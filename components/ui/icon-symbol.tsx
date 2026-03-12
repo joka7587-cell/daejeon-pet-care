@@ -14,11 +14,47 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
+  // Navigation
   "house.fill": "home",
+  "magnifyingglass": "search",
+  "bell.fill": "notifications",
+  "person.fill": "person",
+  // Actions
   "paperplane.fill": "send",
-  "chevron.left.forwardslash.chevron.right": "code",
+  "plus": "add",
+  "plus.circle.fill": "add-circle",
+  "checkmark.circle.fill": "check-circle",
+  "xmark.circle.fill": "cancel",
+  "heart.fill": "favorite",
+  "heart": "favorite-border",
+  "star.fill": "star",
+  "star": "star-border",
+  // Navigation arrows
   "chevron.right": "chevron-right",
-} as IconMapping;
+  "chevron.left": "chevron-left",
+  "chevron.left.forwardslash.chevron.right": "code",
+  // Map/Location
+  "location.fill": "location-on",
+  "map.fill": "map",
+  // Communication
+  "message.fill": "chat",
+  "phone.fill": "phone",
+  // Pet/Care
+  "pawprint.fill": "pets",
+  "figure.walk": "directions-walk",
+  "house.and.flag.fill": "home-work",
+  // Status
+  "clock.fill": "access-time",
+  "exclamationmark.triangle.fill": "warning",
+  "checkmark": "check",
+  "xmark": "close",
+  // Settings
+  "gearshape.fill": "settings",
+  "arrow.right.square.fill": "logout",
+  // Toggle
+  "toggle.on": "toggle-on",
+  "toggle.off": "toggle-off",
+} as unknown as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

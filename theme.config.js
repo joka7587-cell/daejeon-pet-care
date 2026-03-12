@@ -1,14 +1,16 @@
 /** @type {const} */
 const themeColors = {
-  primary: { light: '#0a7ea4', dark: '#0a7ea4' },
-  background: { light: '#ffffff', dark: '#151718' },
-  surface: { light: '#f5f5f5', dark: '#1e2022' },
-  foreground: { light: '#11181C', dark: '#ECEDEE' },
-  muted: { light: '#687076', dark: '#9BA1A6' },
-  border: { light: '#E5E7EB', dark: '#334155' },
-  success: { light: '#22C55E', dark: '#4ADE80' },
-  warning: { light: '#F59E0B', dark: '#FBBF24' },
-  error: { light: '#EF4444', dark: '#F87171' },
+  primary: { light: '#FF7043', dark: '#FF8A65' },
+  secondary: { light: '#4CAF82', dark: '#66BB9A' },
+  background: { light: '#FAFAFA', dark: '#121212' },
+  surface: { light: '#FFFFFF', dark: '#1E1E1E' },
+  foreground: { light: '#1A1A1A', dark: '#F0F0F0' },
+  muted: { light: '#757575', dark: '#9E9E9E' },
+  border: { light: '#E0E0E0', dark: '#2C2C2C' },
+  success: { light: '#4CAF82', dark: '#66BB9A' },
+  warning: { light: '#FFA726', dark: '#FFB74D' },
+  error: { light: '#EF5350', dark: '#EF9A9A' },
+  tint: { light: '#FF7043', dark: '#FF8A65' },
 };
 
 module.exports = { themeColors };
