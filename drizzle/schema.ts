@@ -127,3 +127,34 @@ export const matchingHistory = mysqlTable("matchingHistory", {
 
 export type MatchingHistory = typeof matchingHistory.$inferSelect;
 export type InsertMatchingHistory = typeof matchingHistory.$inferInsert;
+
+
+/**
+ * Chat Rooms - 채팅방 (매칭된 반려인-돌보미 간)
+ */
+export const chatRooms = mysqlTable("chatRooms", {
+  id: int("id").autoincrement().primaryKey(),
+  matchingRequestId: int("matchingRequestId").notNull(),
+  ownerId: int("ownerId").notNull(),
+  caretakerId: int("caretakerId").notNull(),
+  lastMessageAt: timestamp("lastMessageAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ChatRoom = typeof chatRooms.$inferSelect;
+export type InsertChatRoom = typeof chatRooms.$inferInsert;
+
+/**
+ * Messages - 채팅 메시지
+ */
+export const messages = mysqlTable("messages", {
+  id: int("id").autoincrement().primaryKey(),
+  chatRoomId: int("chatRoomId").notNull(),
+  senderId: int("senderId").notNull(),
+  content: text("content").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;
