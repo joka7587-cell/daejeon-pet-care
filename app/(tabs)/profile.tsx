@@ -14,6 +14,8 @@ import { NEIGHBORHOODS } from "@/lib/mock-data";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import { useRouter } from "expo-router";
+import { useThemeContext } from "@/lib/theme-provider";
+import { useColors } from "@/hooks/use-colors";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -60,8 +62,16 @@ export default function ProfileScreen() {
   const { state, dispatch, resetApp } = useApp();
   const { profile } = state;
   const router = useRouter();
+  const { colorScheme, setColorScheme } = useThemeContext();
+  const colors = useColors();
   const isCaretaker = profile.role === "caretaker";
   const [showNeighborhoodPicker, setShowNeighborhoodPicker] = useState(false);
+  const isDark = colorScheme === "dark";
+
+  const handleToggleDarkMode = () => {
+    haptic();
+    setColorScheme(isDark ? "light" : "dark");
+  };
 
   const handleRoleSwitch = () => {
     haptic();
@@ -284,6 +294,22 @@ export default function ProfileScreen() {
           {/* 앱 설정 */}
           <SectionCard title="앱 설정">
             <Pressable
+              onPress={handleToggleDarkMode}
+              style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.settingText}>{isDark ? "🌙 다크 모드" : "☀️ 라이트 모드"}</Text>
+              <View style={[
+                styles.toggleTrack,
+                isDark && styles.toggleTrackActive,
+              ]}>
+                <View style={[
+                  styles.toggleThumb,
+                  isDark && styles.toggleThumbActive,
+                ]} />
+              </View>
+            </Pressable>
+            <View style={styles.settingDivider} />
+            <Pressable
               onPress={() => { haptic(); dispatch({ type: "SET_ONBOARDED", payload: false }); }}
               style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
             >
@@ -486,4 +512,29 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   resetText: { fontSize: 14, color: "#EF5350", fontWeight: "600" as const },
+  toggleTrack: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#E0E0E0",
+    padding: 2,
+    justifyContent: "center" as const,
+  },
+  toggleTrackActive: {
+    backgroundColor: "#4CAF82",
+  },
+  toggleThumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    alignSelf: "flex-end" as const,
+  },
 });

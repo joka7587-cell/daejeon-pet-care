@@ -34,6 +34,7 @@ const NOTIFICATION_ICONS: Record<Notification["type"], string> = {
   match_request: "🤝",
   message: "✉️",
   friend_add: "👫",
+  match: "✅",
 };
 
 const NOTIFICATION_COLORS: Record<Notification["type"], string> = {
@@ -42,6 +43,7 @@ const NOTIFICATION_COLORS: Record<Notification["type"], string> = {
   match_request: "#FF7043",
   message: "#4CAF82",
   friend_add: "#9C27B0",
+  match: "#4CAF82",
 };
 
 // 데모 알림 데이터

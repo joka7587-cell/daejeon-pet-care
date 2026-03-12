@@ -17,12 +17,13 @@ function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
 
-type RequestStatus = "pending" | "accepted" | "completed" | "cancelled";
+type RequestStatus = "pending" | "accepted" | "completed" | "cancelled" | "rejected";
 type RequestType = "walk_partner" | "caretaker" | "walk_request" | "emergency" | "short_care";
 
 const STATUS_LABELS: Record<RequestStatus, { label: string; color: string; bg: string }> = {
   pending: { label: "대기 중", color: "#FF9800", bg: "#FFF8E1" },
   accepted: { label: "수락됨", color: "#4CAF82", bg: "#F0FFF4" },
+  rejected: { label: "거절됨", color: "#EF5350", bg: "#FFEBEE" },
   completed: { label: "완료", color: "#757575", bg: "#F5F5F5" },
   cancelled: { label: "취소됨", color: "#EF5350", bg: "#FFEBEE" },
 };

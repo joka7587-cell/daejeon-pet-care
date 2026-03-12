@@ -78,7 +78,7 @@ export interface CareRequest {
   duration: string;
   petName: string;
   petEmoji: string;
-  status: "pending" | "accepted" | "completed" | "cancelled";
+  status: "pending" | "accepted" | "completed" | "cancelled" | "rejected";
   isUrgent?: boolean;
   description: string;
   createdAt: string;
@@ -86,7 +86,7 @@ export interface CareRequest {
 
 export interface Notification {
   id: string;
-  type: "comment" | "like" | "match_request" | "message" | "friend_add";
+  type: "comment" | "like" | "match_request" | "message" | "friend_add" | "match";
   title: string;
   body: string;
   relatedId?: string;

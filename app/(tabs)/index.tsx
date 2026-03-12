@@ -5,6 +5,7 @@ import { MOCK_CARETAKERS, MOCK_REQUESTS, SERVICE_TYPES } from "@/lib/mock-data";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
+import { useColors } from "@/hooks/use-colors";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -62,6 +63,7 @@ const NEARBY_REQUESTS: NearbyRequest[] = [
 function OwnerHome() {
   const { state } = useApp();
   const router = useRouter();
+  const colors = useColors();
   const nearbyCaretakers = MOCK_CARETAKERS.filter(
     (c) => c.isActive && (c.neighborhood === state.profile.neighborhood || true)
   ).slice(0, 3);
@@ -96,10 +98,10 @@ function OwnerHome() {
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View>
-          <Text style={styles.greeting}>안녕하세요 👋</Text>
-          <Text style={styles.nickname}>{state.profile.nickname || "반려인"}</Text>
+          <Text style={[styles.greeting, { color: colors.muted }]}>안녕하세요 👋</Text>
+          <Text style={[styles.nickname, { color: colors.foreground }]}>{state.profile.nickname || "반려인"}</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Pressable
@@ -119,7 +121,7 @@ function OwnerHome() {
 
       {/* 빠른 서비스 버튼 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>무엇을 찾으시나요?</Text>
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>무엇을 찾으시나요?</Text>
         <View style={styles.serviceGrid}>
           {services.map((svc) => (
             <Pressable
@@ -141,7 +143,7 @@ function OwnerHome() {
       {/* 근처 돌봄 요청 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>근처 돌봄 요청</Text>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>근처 돌봄 요청</Text>
           <Pressable onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}>
             <Text style={styles.seeAllLink}>모두 보기 →</Text>
           </Pressable>
@@ -233,14 +235,15 @@ function OwnerHome() {
 function CaretakerHome() {
   const { state } = useApp();
   const router = useRouter();
+  const colors = useColors();
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View>
-          <Text style={styles.greeting}>안녕하세요 👋</Text>
-          <Text style={styles.nickname}>{state.profile.nickname || "돌보미"}</Text>
+          <Text style={[styles.greeting, { color: colors.muted }]}>안녕하세요 👋</Text>
+          <Text style={[styles.nickname, { color: colors.foreground }]}>{state.profile.nickname || "돌보미"}</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Pressable

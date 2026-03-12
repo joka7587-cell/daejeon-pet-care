@@ -16,10 +16,6 @@ function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
 
-function friendToRoomId(friendId: string): number {
-  return Math.abs(friendId.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 10000) + 200;
-}
-
 function timeAgo(dateStr: string): string {
   if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -34,7 +30,7 @@ function timeAgo(dateStr: string): string {
 }
 
 interface ChatRoom {
-  id: number;
+  id: string;
   roomKey: string;
   otherUserName: string;
   otherUserEmoji: string;
@@ -48,8 +44,8 @@ interface ChatRoom {
 
 const MOCK_CHAT_ROOMS: ChatRoom[] = [
   {
-    id: 1,
-    roomKey: "room_1",
+    id: "mock_1",
+    roomKey: "room_mock_1",
     otherUserName: "산책쌤 미경",
     otherUserEmoji: "👩",
     lastMessage: "네, 좋습니다. 우리집 앞에서 만나요.",
@@ -59,8 +55,8 @@ const MOCK_CHAT_ROOMS: ChatRoom[] = [
     isFriend: false,
   },
   {
-    id: 2,
-    roomKey: "room_2",
+    id: "mock_2",
+    roomKey: "room_mock_2",
     otherUserName: "강아지 친구 준호",
     otherUserEmoji: "👨",
     lastMessage: "내일 오후 2시 괜찮으세요?",
@@ -70,8 +66,8 @@ const MOCK_CHAT_ROOMS: ChatRoom[] = [
     isFriend: false,
   },
   {
-    id: 3,
-    roomKey: "room_3",
+    id: "mock_3",
+    roomKey: "room_mock_3",
     otherUserName: "돌봄 전문 지은",
     otherUserEmoji: "👩",
     lastMessage: "긴급 돌봄 요청 받았습니다.",
@@ -87,10 +83,10 @@ export default function ChatTabScreen() {
   const { state } = useApp();
   const [activeTab, setActiveTab] = useState<"all" | "friends">("all");
 
-  // 친구 채팅방 생성 (저장된 메시지 기반으로 마지막 메시지 표시)
+  // 친구 채팅방 생성 (친구 ID 기반 고유 키)
   const friendRooms: ChatRoom[] = useMemo(() => {
     return state.profile.friends.map((f) => {
-      const roomId = friendToRoomId(f.id);
+      const roomId = `friend_${f.id}`;
       const roomKey = `room_${roomId}`;
       const savedMessages = state.chatMessages[roomKey];
       const lastMsg = savedMessages && savedMessages.length > 0
@@ -219,7 +215,7 @@ export default function ChatTabScreen() {
       <FlatList
         data={filteredRooms}
         renderItem={renderChatRoom}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={

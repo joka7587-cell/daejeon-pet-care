@@ -23,7 +23,7 @@ function haptic(type: "light" | "success" | "error" = "light") {
 export default function RequestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const isCaretaker = state.profile.role === "caretaker";
   const [accepted, setAccepted] = useState<boolean | null>(null);
 
@@ -52,11 +52,85 @@ export default function RequestDetailScreen() {
   const handleAccept = () => {
     haptic("success");
     setAccepted(true);
+
+    // 요청 상태 업데이트
+    if (request) {
+      dispatch({
+        type: "UPDATE_REQUEST_STATUS",
+        payload: { requestId: request.id, status: "accepted" },
+      });
+
+      // 수락 알림 생성
+      dispatch({
+        type: "ADD_NOTIFICATION",
+        payload: {
+          id: `notif_accept_${Date.now()}`,
+          type: "match",
+          title: "요청 수락",
+          body: `${request.petName}의 ${request.title} 요청을 수락했어요! 채팅으로 상세 일정을 조율해보세요.`,
+          fromNickname: request.requester,
+          fromEmoji: request.petEmoji,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          relatedId: request.id,
+        },
+      });
+
+      // 채팅방 자동 생성 (수락 시 보호자와 채팅 연결)
+      const chatRoomId = `request_${request.id}`;
+      const roomKey = `room_${chatRoomId}`;
+      dispatch({
+        type: "SET_CHAT_MESSAGES",
+        payload: {
+          roomId: roomKey,
+          messages: [
+            {
+              id: `sys_${Date.now()}`,
+              senderId: 0,
+              senderName: "시스템",
+              content: `✅ ${request.title} 요청이 수락되었습니다. 상세 일정을 조율해보세요!`,
+              type: "text",
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+    }
   };
 
   const handleReject = () => {
     haptic("error");
     setAccepted(false);
+
+    if (request) {
+      dispatch({
+        type: "UPDATE_REQUEST_STATUS",
+        payload: { requestId: request.id, status: "rejected" },
+      });
+
+      // 거절 알림 생성
+      dispatch({
+        type: "ADD_NOTIFICATION",
+        payload: {
+          id: `notif_reject_${Date.now()}`,
+          type: "match",
+          title: "요청 거절",
+          body: `${request.petName}의 ${request.title} 요청이 거절되었어요. 다른 돌보미를 찾아보세요.`,
+          fromNickname: request.requester,
+          fromEmoji: request.petEmoji,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          relatedId: request.id,
+        },
+      });
+    }
+  };
+
+  const handleOpenChat = () => {
+    if (!request) return;
+    haptic();
+    const chatRoomId = `request_${request.id}`;
+    router.push(`/chat/${chatRoomId}?friendName=${encodeURIComponent(request.requester)}&friendEmoji=${encodeURIComponent(request.petEmoji)}` as never);
   };
 
   return (
@@ -123,9 +197,19 @@ export default function RequestDetailScreen() {
         {accepted !== null && (
           <View style={[styles.resultCard, accepted ? styles.resultCardAccepted : styles.resultCardRejected]}>
             <Text style={styles.resultEmoji}>{accepted ? "✅" : "❌"}</Text>
-            <Text style={styles.resultText}>
-              {accepted ? "요청을 수락했어요! 보호자에게 알림이 전송됩니다." : "요청을 거절했어요."}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.resultText}>
+                {accepted ? "요청을 수락했어요! 보호자에게 알림이 전송됩니다." : "요청을 거절했어요."}
+              </Text>
+              {accepted && (
+                <Pressable
+                  onPress={handleOpenChat}
+                  style={({ pressed }) => [styles.chatLinkBtn, pressed && { opacity: 0.85 }]}
+                >
+                  <Text style={styles.chatLinkBtnText}>💬 보호자와 채팅하기</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -161,11 +245,19 @@ export default function RequestDetailScreen() {
 
       {isCaretaker && accepted !== null && (
         <View style={styles.bottomActions}>
+          {accepted && (
+            <Pressable
+              onPress={handleOpenChat}
+              style={({ pressed }) => [styles.acceptBtn, { flex: 1, backgroundColor: "#FF7043" }, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.acceptBtnText}>💬 채팅으로 이동</Text>
+            </Pressable>
+          )}
           <Pressable
             onPress={() => router.back()}
-            style={({ pressed }) => [styles.acceptBtn, { flex: 1 }, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.rejectBtn, { flex: 1 }, pressed && { opacity: 0.85 }]}
           >
-            <Text style={styles.acceptBtnText}>목록으로 돌아가기</Text>
+            <Text style={styles.rejectBtnText}>목록으로 돌아가기</Text>
           </Pressable>
         </View>
       )}
@@ -297,4 +389,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  chatLinkBtn: {
+    marginTop: 8,
+    backgroundColor: "#FF7043",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    alignSelf: "flex-start",
+  },
+  chatLinkBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 });

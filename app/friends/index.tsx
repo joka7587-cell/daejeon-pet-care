@@ -8,12 +8,13 @@ import {
   StyleSheet,
   Platform,
   Alert,
+  Share,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Friend } from "@/lib/app-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { MOCK_CARETAKERS, MOCK_OWNERS } from "@/lib/mock-data";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -34,6 +35,7 @@ export default function FriendsScreen() {
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [searchResult, setSearchResult] = useState<{ nickname: string; emoji: string; neighborhood: string; role: "owner" | "caretaker" } | null>(null);
   const [searchError, setSearchError] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   const myCode = state.profile.friendCode;
   const friends = state.profile.friends;
@@ -86,6 +88,22 @@ export default function FriendsScreen() {
     };
 
     dispatch({ type: "ADD_FRIEND", payload: newFriend });
+
+    // 친구 추가 알림
+    dispatch({
+      type: "ADD_NOTIFICATION",
+      payload: {
+        id: `notif_${Date.now()}`,
+        type: "friend_add",
+        title: "새 친구 추가",
+        body: `${searchResult.nickname}님을 친구로 추가했어요!`,
+        fromNickname: searchResult.nickname,
+        fromEmoji: searchResult.emoji,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
     setSearchResult(null);
     setFriendCode("");
     setShowCodeInput(false);
@@ -97,22 +115,71 @@ export default function FriendsScreen() {
 
   const handleRemoveFriend = (friendId: string) => {
     haptic();
-    dispatch({ type: "REMOVE_FRIEND", payload: friendId });
+    const doRemove = () => {
+      dispatch({ type: "REMOVE_FRIEND", payload: friendId });
+    };
+    if (Platform.OS === "web") {
+      if (confirm("이 친구를 삭제하시겠어요?")) doRemove();
+    } else {
+      Alert.alert("친구 삭제", "이 친구를 삭제하시겠어요?", [
+        { text: "취소", style: "cancel" },
+        { text: "삭제", style: "destructive", onPress: doRemove },
+      ]);
+    }
   };
 
-  const handleCopyCode = () => {
+  const handleCopyCode = async () => {
     haptic();
-    if (Platform.OS === "web") {
-      navigator.clipboard?.writeText(myCode);
-      alert("코드가 복사되었습니다!");
-    } else {
-      Alert.alert("복사 완료", `친구 코드: ${myCode}`);
+    try {
+      await Clipboard.setStringAsync(myCode);
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (_) {
+      // 폴백: web에서 navigator.clipboard 사용
+      try {
+        await navigator.clipboard?.writeText(myCode);
+        setCopyFeedback(true);
+        setTimeout(() => setCopyFeedback(false), 2000);
+      } catch (__) {
+        if (Platform.OS === "web") {
+          alert(`친구 코드: ${myCode}\n직접 복사해주세요!`);
+        }
+      }
     }
+  };
+
+  const handlePasteCode = async () => {
+    haptic();
+    try {
+      const text = await Clipboard.getStringAsync();
+      if (text) {
+        setFriendCode(text.trim().toUpperCase());
+      }
+    } catch (_) {
+      // 폴백
+      try {
+        const text = await navigator.clipboard?.readText();
+        if (text) setFriendCode(text.trim().toUpperCase());
+      } catch (__) {}
+    }
+  };
+
+  const handleShareCode = async () => {
+    haptic();
+    try {
+      await Share.share({
+        message: `반려이음에서 친구 추가해주세요!\n내 친구 코드: ${myCode}\n\n앱에서 친구 > + 추가 > 코드 입력으로 추가할 수 있어요!`,
+      });
+    } catch (_) {}
   };
 
   const handleStartChat = (friend: Friend) => {
     haptic();
-    const roomId = Math.abs(friend.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 10000) + 200;
+    // 친구 ID 기반으로 고유한 채팅방 ID 생성 (일관성 보장)
+    const roomId = `friend_${friend.id}`;
     router.push(`/chat/${roomId}?friendName=${encodeURIComponent(friend.nickname)}&friendEmoji=${encodeURIComponent(friend.profileEmoji)}` as never);
   };
 
@@ -166,12 +233,24 @@ export default function FriendsScreen() {
           <Text style={styles.myCodeText}>{myCode}</Text>
           <Pressable
             onPress={handleCopyCode}
-            style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [
+              styles.copyBtn,
+              copyFeedback && { backgroundColor: "#4CAF82" },
+              pressed && { opacity: 0.7 },
+            ]}
           >
-            <Text style={styles.copyBtnText}>복사</Text>
+            <Text style={styles.copyBtnText}>{copyFeedback ? "✓ 복사됨" : "복사"}</Text>
           </Pressable>
         </View>
-        <Text style={styles.myCodeHint}>이 코드를 친구에게 공유하세요!</Text>
+        <View style={styles.shareRow}>
+          <Pressable
+            onPress={handleShareCode}
+            style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.shareBtnText}>📤 링크로 공유하기</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.myCodeHint}>코드를 복사하거나 링크로 공유하세요!</Text>
       </View>
 
       {/* 친구 코드 입력 */}
@@ -190,6 +269,12 @@ export default function FriendsScreen() {
               returnKeyType="search"
               onSubmitEditing={handleSearch}
             />
+            <Pressable
+              onPress={handlePasteCode}
+              style={({ pressed }) => [styles.pasteBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.pasteBtnText}>붙여넣기</Text>
+            </Pressable>
             <Pressable
               onPress={handleSearch}
               style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.85 }]}
@@ -278,6 +363,16 @@ const styles = StyleSheet.create({
   myCodeText: { fontSize: 28, fontWeight: "800", color: "#1A1A1A", letterSpacing: 2 },
   copyBtn: { backgroundColor: "#FF7043", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
   copyBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  shareRow: { marginTop: 4 },
+  shareBtn: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#FFCCBC",
+  },
+  shareBtnText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
   myCodeHint: { fontSize: 12, color: "#9E9E9E" },
   codeInputCard: {
     marginHorizontal: 16,
@@ -301,6 +396,15 @@ const styles = StyleSheet.create({
     color: "#1A1A1A",
     letterSpacing: 1,
   },
+  pasteBtn: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  pasteBtnText: { fontSize: 12, color: "#555", fontWeight: "600" },
   searchBtn: { backgroundColor: "#FF7043", borderRadius: 10, paddingHorizontal: 16, justifyContent: "center" },
   searchBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   errorText: { fontSize: 13, color: "#EF5350" },

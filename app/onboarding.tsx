@@ -57,7 +57,16 @@ const EXISTING_NICKNAMES = [
   ...MOCK_OWNERS.map((u) => u.nickname),
 ];
 
-type Step = "slides" | "role" | "neighborhood" | "profile";
+type Step = "slides" | "role" | "neighborhood" | "caretaker_setup" | "profile";
+
+const CARETAKER_SERVICES = [
+  { id: "walk", emoji: "🚶", label: "대신 산책해주기", desc: "반려동물 산책 대행" },
+  { id: "visit", emoji: "🏠", label: "방문 돌봄", desc: "집에 방문하여 돌봄" },
+  { id: "emergency", emoji: "🚨", label: "긴급 돌봄", desc: "긴급 상황 시 돌봄" },
+  { id: "daycare", emoji: "☀️", label: "데이케어", desc: "낮 시간 돌봄" },
+  { id: "grooming", emoji: "✂️", label: "그루밍 도움", desc: "목욕, 빗질 등" },
+  { id: "training", emoji: "🎓", label: "기본 훈련", desc: "기본 예절 훈련" },
+];
 
 export default function OnboardingScreen() {
   const [step, setStep] = useState<Step>("slides");
@@ -68,6 +77,8 @@ export default function OnboardingScreen() {
   const [selectedAvatar, setSelectedAvatar] = useState("🐾");
   const [nicknameError, setNicknameError] = useState("");
   const [isCompleting, setIsCompleting] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [caretakerBio, setCaretakerBio] = useState("");
   const scrollRef = useRef<ScrollView>(null);
   const { dispatch } = useApp();
   const router = useRouter();
@@ -128,6 +139,25 @@ export default function OnboardingScreen() {
   const handleNeighborhoodSelect = (n: Neighborhood) => {
     haptic();
     setSelectedNeighborhood(n);
+    // 돌보미 역할이면 서비스 설정 단계로, 반려인이면 프로필로
+    if (selectedRole === "caretaker") {
+      animateStepTransition("caretaker_setup");
+    } else {
+      animateStepTransition("profile");
+    }
+  };
+
+  const toggleService = (serviceId: string) => {
+    haptic();
+    setSelectedServices((prev) =>
+      prev.includes(serviceId)
+        ? prev.filter((s) => s !== serviceId)
+        : [...prev, serviceId]
+    );
+  };
+
+  const handleCaretakerSetupComplete = () => {
+    haptic();
     animateStepTransition("profile");
   };
 
@@ -176,11 +206,16 @@ export default function OnboardingScreen() {
       const nick = nickname.trim() || (selectedRole === "caretaker" ? "새 돌보미" : "새 반려인");
       dispatch({ type: "SET_ROLE", payload: selectedRole });
       dispatch({ type: "SET_NEIGHBORHOOD", payload: selectedNeighborhood! });
+      const bio = selectedRole === "caretaker" && caretakerBio.trim()
+        ? caretakerBio.trim()
+        : `${selectedAvatar} ${selectedNeighborhood}에서 활동하는 ${selectedRole === "owner" ? "반려인" : "돌보미"}입니다.`;
       dispatch({
         type: "SET_PROFILE",
         payload: {
           nickname: nick,
-          bio: `${selectedAvatar} ${selectedNeighborhood}에서 활동하는 ${selectedRole === "owner" ? "반려인" : "돌보미"}입니다.`,
+          bio,
+          caretakerServices: selectedServices,
+          isCaretakerActive: selectedRole === "caretaker",
         },
       });
       setTimeout(() => {
@@ -313,6 +348,101 @@ export default function OnboardingScreen() {
             </Pressable>
           </View>
         </RNAnimated.View>
+      </ScreenContainer>
+    );
+  }
+
+  // 돌보미 서비스 설정
+  if (step === "caretaker_setup") {
+    return (
+      <ScreenContainer className="px-6">
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <RNAnimated.View
+              style={[
+                styles.stepContainer,
+                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+              ]}
+            >
+              <Text style={styles.stepTitle}>돌보미 서비스 설정</Text>
+              <Text style={styles.stepSubtitle}>제공할 수 있는 서비스를 선택해주세요</Text>
+
+              <View style={{ gap: 10, marginBottom: 24 }}>
+                {CARETAKER_SERVICES.map((svc) => {
+                  const isSelected = selectedServices.includes(svc.id);
+                  return (
+                    <Pressable
+                      key={svc.id}
+                      onPress={() => toggleService(svc.id)}
+                      style={({ pressed }) => [
+                        styles.serviceCard,
+                        isSelected && styles.serviceCardSelected,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                    >
+                      <Text style={{ fontSize: 28 }}>{svc.emoji}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[
+                          styles.serviceLabel,
+                          isSelected && { color: "#4CAF82" },
+                        ]}>{svc.label}</Text>
+                        <Text style={styles.serviceDesc}>{svc.desc}</Text>
+                      </View>
+                      <View style={[
+                        styles.serviceCheck,
+                        isSelected && styles.serviceCheckSelected,
+                      ]}>
+                        <Text style={{ color: isSelected ? "#fff" : "#ccc", fontSize: 14 }}>
+                          {isSelected ? "✓" : ""}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={styles.inputWrap}>
+                <Text style={styles.sectionLabel}>자기소개 (선택)</Text>
+                <TextInput
+                  style={[styles.textInput, { height: 80, textAlignVertical: "top" }]}
+                  placeholder="예) 반려동물 돌봄 경력 3년, 대형견도 가능해요!"
+                  placeholderTextColor="#BDBDBD"
+                  value={caretakerBio}
+                  onChangeText={setCaretakerBio}
+                  maxLength={100}
+                  multiline
+                  returnKeyType="done"
+                />
+                <Text style={styles.hintText}>{caretakerBio.length}/100</Text>
+              </View>
+
+              <Pressable
+                onPress={handleCaretakerSetupComplete}
+                style={({ pressed }) => [
+                  styles.completeBtn,
+                  selectedServices.length === 0 && styles.completeBtnDisabled,
+                  pressed && selectedServices.length > 0 && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                ]}
+                disabled={selectedServices.length === 0}
+              >
+                <Text style={[
+                  styles.completeBtnText,
+                  selectedServices.length === 0 && styles.completeBtnTextDisabled,
+                ]}>
+                  다음 ({selectedServices.length}개 선택)
+                </Text>
+              </Pressable>
+            </RNAnimated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </ScreenContainer>
     );
   }
@@ -627,6 +757,45 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF3EE",
   },
   avatarEmoji: { fontSize: 24 },
+
+  // 돌보미 서비스 설정
+  serviceCard: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#E0E0E0",
+    backgroundColor: "#fff",
+  },
+  serviceCardSelected: {
+    borderColor: "#4CAF82",
+    backgroundColor: "#F0FFF4",
+  },
+  serviceLabel: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+    color: "#1A1A1A",
+  },
+  serviceDesc: {
+    fontSize: 12,
+    color: "#757575",
+    marginTop: 2,
+  },
+  serviceCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#E0E0E0",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  serviceCheckSelected: {
+    backgroundColor: "#4CAF82",
+    borderColor: "#4CAF82",
+  },
 
   // 닉네임 입력
   inputWrap: { marginBottom: 24 },
