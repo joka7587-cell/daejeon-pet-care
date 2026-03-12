@@ -1,5 +1,4 @@
-import React from "react";
-import { ScrollView, View, Text, Pressable, StyleSheet, FlatList } from "react-native";
+import { ScrollView, View, Text, Pressable, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { MOCK_CARETAKERS, MOCK_REQUESTS, SERVICE_TYPES } from "@/lib/mock-data";
@@ -10,6 +9,54 @@ import { Platform } from "react-native";
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
+
+interface NearbyRequest {
+  id: number;
+  title: string;
+  service: string;
+  distance: number;
+  date: string;
+  time: string;
+  requesterName: string;
+  rating: number;
+  isUrgent: boolean;
+}
+
+const NEARBY_REQUESTS: NearbyRequest[] = [
+  {
+    id: 1,
+    title: "오후 산책 부탁드립니다",
+    service: "산책",
+    distance: 0.8,
+    date: "2025-03-13",
+    time: "14:00",
+    requesterName: "미영",
+    rating: 4.8,
+    isUrgent: false,
+  },
+  {
+    id: 2,
+    title: "긴급! 오늘 저녁 돌봐주실 분",
+    service: "긴급 돌봄",
+    distance: 1.2,
+    date: "2025-03-12",
+    time: "18:00",
+    requesterName: "준호",
+    rating: 4.9,
+    isUrgent: true,
+  },
+  {
+    id: 3,
+    title: "주말 산책 친구 찾습니다",
+    service: "산책",
+    distance: 0.5,
+    date: "2025-03-15",
+    time: "10:00",
+    requesterName: "지은",
+    rating: 4.7,
+    isUrgent: false,
+  },
+];
 
 // 반려인 홈
 function OwnerHome() {
@@ -49,66 +96,98 @@ function OwnerHome() {
               ]}
             >
               <Text style={styles.serviceEmoji}>{svc.emoji}</Text>
-              <Text style={[styles.serviceTitle, { color: svc.color }]}>{svc.title}</Text>
-              <Text style={styles.serviceDesc}>{svc.description}</Text>
+              <Text style={styles.serviceName}>{svc.title}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
-      {/* 긴급 요청 배너 */}
-      <Pressable
-        onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}
-        style={({ pressed }) => [styles.urgentBanner, pressed && { opacity: 0.85 }]}
-      >
-        <Text style={styles.urgentEmoji}>🚨</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.urgentTitle}>긴급 돌봄이 필요하신가요?</Text>
-          <Text style={styles.urgentDesc}>지금 바로 근처 돌보미에게 요청하세요</Text>
-        </View>
-        <Text style={styles.urgentArrow}>›</Text>
-      </Pressable>
-
-      {/* 근처 돌보미 */}
+      {/* 근처 돌봄 요청 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>근처 활동 중인 돌보미</Text>
+          <Text style={styles.sectionTitle}>근처 돌봄 요청</Text>
           <Pressable onPress={() => { haptic(); router.push("/(tabs)/explore" as never); }}>
-            <Text style={styles.seeAll}>전체보기</Text>
+            <Text style={styles.seeAllLink}>모두 보기 →</Text>
           </Pressable>
         </View>
-        {nearbyCaretakers.map((c) => (
-          <Pressable
-            key={c.id}
-            onPress={() => { haptic(); router.push(`/profile/${c.id}` as never); }}
-            style={({ pressed }) => [styles.caretakerCard, pressed && { opacity: 0.85 }]}
-          >
-            <View style={styles.caretakerAvatar}>
-              <Text style={{ fontSize: 28 }}>{c.profileEmoji}</Text>
-              {c.isActive && <View style={styles.activeDot} />}
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Text style={styles.caretakerName}>{c.nickname}</Text>
-                <View style={styles.neighborhoodTag}>
-                  <Text style={styles.neighborhoodTagText}>{c.neighborhood}</Text>
+        <View style={styles.requestsList}>
+          {NEARBY_REQUESTS.map((req) => (
+            <Pressable
+              key={req.id}
+              onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
+              style={({ pressed }) => [
+                styles.requestCard,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+            >
+              <View style={styles.requestHeader}>
+                <View style={styles.requestTitleContainer}>
+                  <Text style={styles.requestTitle}>{req.title}</Text>
+                  {req.isUrgent && (
+                    <View style={styles.urgentBadge}>
+                      <Text style={styles.urgentText}>긴급</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.requestRating}>⭐ {req.rating}</Text>
+              </View>
+
+              <View style={styles.requestInfo}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>서비스</Text>
+                  <Text style={styles.infoValue}>{req.service}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>거리</Text>
+                  <Text style={styles.infoValue}>{req.distance} km</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>시간</Text>
+                  <Text style={styles.infoValue}>{req.time}</Text>
                 </View>
               </View>
-              <Text style={styles.caretakerBio} numberOfLines={1}>{c.bio}</Text>
-              <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-                {c.services?.map((s) => (
-                  <View key={s} style={styles.serviceTag}>
-                    <Text style={styles.serviceTagText}>{s}</Text>
-                  </View>
-                ))}
+
+              <View style={styles.requestFooter}>
+                <Text style={styles.requesterName}>{req.requesterName}님의 요청</Text>
+                <TouchableOpacity
+                  style={styles.acceptBtn}
+                  onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
+                >
+                  <Text style={styles.acceptBtnText}>수락하기</Text>
+                </TouchableOpacity>
               </View>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={styles.rating}>⭐ {c.rating}</Text>
-              <Text style={styles.distance}>{c.distance}</Text>
-            </View>
-          </Pressable>
-        ))}
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      {/* 추천 돌보미 */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>추천 돌보미</Text>
+        <FlatList
+          data={nearbyCaretakers}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => { haptic(); router.push(`/profile/${item.id}` as never); }}
+              style={({ pressed }) => [
+                styles.caretakerCard,
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <View style={styles.caretakerInfo}>
+                <View style={styles.caretakerAvatar}>
+                  <Text style={styles.avatarText}>{(item.nickname || "돌").charAt(0)}</Text>
+                </View>
+                <View style={styles.caretakerDetails}>
+                  <Text style={styles.caretakerName}>{item.nickname || "돌보미"}</Text>
+                  <Text style={styles.caretakerRole}>{item.role === "caretaker" ? "돌보미" : "산책친구"}</Text>
+                  <Text style={styles.caretakerRating}>⭐ {item.rating} (리뷰)</Text>
+                </View>
+              </View>
+            </Pressable>
+          )}
+          scrollEnabled={false}
+        />
       </View>
     </ScrollView>
   );
@@ -116,11 +195,8 @@ function OwnerHome() {
 
 // 돌보미 홈
 function CaretakerHome() {
-  const { state, dispatch } = useApp();
+  const { state } = useApp();
   const router = useRouter();
-  const pendingRequests = MOCK_REQUESTS.filter(
-    (r) => r.status === "pending" && (r.type === "emergency" || r.type === "walk_request")
-  );
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
@@ -135,100 +211,75 @@ function CaretakerHome() {
         </View>
       </View>
 
-      {/* 활동 상태 토글 */}
-      <Pressable
-        onPress={() => { haptic(); dispatch({ type: "TOGGLE_CARETAKER_ACTIVE" }); }}
-        style={({ pressed }) => [
-          styles.activeToggle,
-          state.profile.isCaretakerActive ? styles.activeToggleOn : styles.activeToggleOff,
-          pressed && { opacity: 0.85 },
-        ]}
-      >
-        <View style={styles.activeToggleLeft}>
-          <Text style={styles.activeToggleEmoji}>
-            {state.profile.isCaretakerActive ? "🟢" : "⚫"}
-          </Text>
+      {/* 활동 상태 */}
+      <View style={styles.section}>
+        <View style={styles.statusCard}>
           <View>
-            <Text style={styles.activeToggleTitle}>
-              {state.profile.isCaretakerActive ? "활동 중" : "활동 중지"}
-            </Text>
-            <Text style={styles.activeToggleDesc}>
-              {state.profile.isCaretakerActive
-                ? "요청을 받고 있어요"
-                : "탭하여 활동 시작"}
-            </Text>
+            <Text style={styles.statusLabel}>현재 활동 상태</Text>
+            <Text style={styles.statusValue}>🟢 온라인</Text>
           </View>
+          <Pressable
+            style={styles.statusToggle}
+            onPress={() => haptic()}
+          >
+            <Text style={styles.statusToggleText}>오프라인</Text>
+          </Pressable>
         </View>
-        <View style={[
-          styles.toggleSwitch,
-          state.profile.isCaretakerActive ? styles.toggleSwitchOn : styles.toggleSwitchOff,
-        ]}>
-          <View style={[
-            styles.toggleThumb,
-            state.profile.isCaretakerActive ? styles.toggleThumbOn : styles.toggleThumbOff,
-          ]} />
-        </View>
-      </Pressable>
+      </View>
 
       {/* 제공 서비스 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>제공 가능한 서비스</Text>
-        <View style={{ flexDirection: "row", gap: 12 }}>
+        <Text style={styles.sectionTitle}>제공 서비스</Text>
+        <View style={styles.serviceGrid}>
           {SERVICE_TYPES.caretaker.map((svc) => (
             <View
               key={svc.id}
-              style={[styles.caretakerServiceCard, { borderColor: svc.color + "50", backgroundColor: svc.color + "10" }]}
+              style={[
+                styles.serviceCard,
+                { borderColor: svc.color + "40", backgroundColor: svc.color + "12" },
+              ]}
             >
-              <Text style={{ fontSize: 32 }}>{svc.emoji}</Text>
-              <Text style={[styles.serviceTitle, { color: svc.color }]}>{svc.title}</Text>
-              <Text style={styles.serviceDesc}>{svc.description}</Text>
+              <Text style={styles.serviceEmoji}>{svc.emoji}</Text>
+              <Text style={styles.serviceName}>{svc.title}</Text>
             </View>
           ))}
         </View>
       </View>
 
-      {/* 새 요청 목록 */}
+      {/* 새 요청 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>새로운 요청</Text>
-          <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{pendingRequests.length}</Text>
-          </View>
+          <Text style={styles.sectionTitle}>새 요청 (3)</Text>
           <Pressable onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}>
-            <Text style={styles.seeAll}>전체보기</Text>
+            <Text style={styles.seeAllLink}>모두 보기 →</Text>
           </Pressable>
         </View>
-
-        {pendingRequests.slice(0, 3).map((req) => (
-          <Pressable
-            key={req.id}
-            onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
-            style={({ pressed }) => [styles.requestCard, pressed && { opacity: 0.85 }]}
-          >
-            {req.isUrgent && (
-              <View style={styles.urgentTag}>
-                <Text style={styles.urgentTagText}>🚨 긴급</Text>
-              </View>
-            )}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Text style={{ fontSize: 36 }}>{req.petEmoji}</Text>
-              <View style={{ flex: 1 }}>
+        <View style={styles.requestsList}>
+          {MOCK_REQUESTS.slice(0, 2).map((req) => (
+            <Pressable
+              key={req.id}
+              onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
+              style={({ pressed }) => [
+                styles.requestCard,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <View style={styles.requestHeader}>
                 <Text style={styles.requestTitle}>{req.title}</Text>
-                <Text style={styles.requestMeta}>
-                  {req.requester} · {req.neighborhood} · {req.date} {req.time}
-                </Text>
-                <Text style={styles.requestDuration}>⏱ {req.duration}</Text>
+                <Text style={styles.requestDate}>{req.date}</Text>
               </View>
-            </View>
-          </Pressable>
-        ))}
-
-        {pendingRequests.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>🌙</Text>
-            <Text style={styles.emptyText}>새로운 요청이 없어요</Text>
-          </View>
-        )}
+              <Text style={styles.requestDescription}>{req.description}</Text>
+              <View style={styles.requestActions}>
+                <TouchableOpacity style={styles.acceptBtn}>
+                  <Text style={styles.acceptBtnText}>수락</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.rejectBtn}>
+                  <Text style={styles.rejectBtnText}>거절</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
@@ -236,11 +287,11 @@ function CaretakerHome() {
 
 export default function HomeScreen() {
   const { state } = useApp();
-  const isCaretaker = state.profile.role === "caretaker";
+  const isOwner = state.profile.role === "owner";
 
   return (
-    <ScreenContainer className="px-4 pt-2">
-      {isCaretaker ? <CaretakerHome /> : <OwnerHome />}
+    <ScreenContainer className="bg-background">
+      {isOwner ? <OwnerHome /> : <CaretakerHome />}
     </ScreenContainer>
   );
 }
@@ -250,184 +301,251 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-  },
-  greeting: { fontSize: 14, color: "#757575" },
-  nickname: { fontSize: 22, fontWeight: "800", color: "#1A1A1A" },
-  neighborhoodBadge: {
-    backgroundColor: "#FFF3EE",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "#FFCCBC",
-  },
-  neighborhoodText: { fontSize: 13, fontWeight: "600", color: "#FF7043" },
-  section: { marginBottom: 24 },
-  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#1A1A1A", marginBottom: 12 },
-  seeAll: { fontSize: 13, color: "#FF7043", fontWeight: "600", marginLeft: "auto" },
-  serviceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  serviceCard: {
-    width: "47%",
-    borderWidth: 1.5,
-    borderRadius: 16,
-    padding: 16,
-    gap: 6,
-  },
-  serviceEmoji: { fontSize: 28 },
-  serviceTitle: { fontSize: 15, fontWeight: "700" },
-  serviceDesc: { fontSize: 12, color: "#757575", lineHeight: 16 },
-  urgentBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF3EE",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: "#FFCCBC",
-    gap: 12,
-  },
-  urgentEmoji: { fontSize: 28 },
-  urgentTitle: { fontSize: 15, fontWeight: "700", color: "#FF7043" },
-  urgentDesc: { fontSize: 13, color: "#757575", marginTop: 2 },
-  urgentArrow: { fontSize: 24, color: "#FF7043" },
-  caretakerCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  caretakerAvatar: { position: "relative", width: 48, height: 48, alignItems: "center", justifyContent: "center" },
-  activeDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#4CAF82",
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
-  caretakerName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
-  caretakerBio: { fontSize: 12, color: "#757575", marginTop: 2 },
-  neighborhoodTag: {
-    backgroundColor: "#F5F5F5",
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  neighborhoodTagText: { fontSize: 11, color: "#555", fontWeight: "500" },
-  serviceTag: {
-    backgroundColor: "#F0FFF4",
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: "#C8E6C9",
-  },
-  serviceTagText: { fontSize: 10, color: "#4CAF82", fontWeight: "600" },
-  rating: { fontSize: 13, fontWeight: "600", color: "#FF9800" },
-  distance: { fontSize: 12, color: "#9E9E9E", marginTop: 2 },
-  activeToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1.5,
-  },
-  activeToggleOn: { backgroundColor: "#F0FFF4", borderColor: "#4CAF82" },
-  activeToggleOff: { backgroundColor: "#F5F5F5", borderColor: "#E0E0E0" },
-  activeToggleLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  activeToggleEmoji: { fontSize: 24 },
-  activeToggleTitle: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
-  activeToggleDesc: { fontSize: 12, color: "#757575", marginTop: 2 },
-  toggleSwitch: {
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center",
-    paddingHorizontal: 3,
-  },
-  toggleSwitchOn: { backgroundColor: "#4CAF82" },
-  toggleSwitchOff: { backgroundColor: "#BDBDBD" },
-  toggleThumb: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleThumbOn: { alignSelf: "flex-end" },
-  toggleThumbOff: { alignSelf: "flex-start" },
-  caretakerServiceCard: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderRadius: 16,
-    padding: 16,
-    gap: 6,
-    alignItems: "center",
-  },
-  countBadge: {
-    backgroundColor: "#EF5350",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-  },
-  countBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
-  requestCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  urgentTag: {
-    alignSelf: "flex-start",
-    backgroundColor: "#FFEBEE",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     marginBottom: 8,
   },
-  urgentTagText: { fontSize: 11, color: "#EF5350", fontWeight: "700" },
-  requestTitle: { fontSize: 14, fontWeight: "700", color: "#1A1A1A" },
-  requestMeta: { fontSize: 12, color: "#757575", marginTop: 3 },
-  requestDuration: { fontSize: 12, color: "#4CAF82", marginTop: 3, fontWeight: "600" },
-  emptyCard: {
-    alignItems: "center",
-    padding: 32,
-    backgroundColor: "#F5F5F5",
+  greeting: {
+    fontSize: 14,
+    color: "#9E9E9E",
+    marginBottom: 2,
+  },
+  nickname: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  neighborhoodBadge: {
+    backgroundColor: "#FFF3E0",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
+  },
+  neighborhoodText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FF7043",
+  },
+  section: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  seeAllLink: {
+    fontSize: 12,
+    color: "#FF7043",
+    fontWeight: "600",
+  },
+  serviceGrid: {
+    flexDirection: "row",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  serviceCard: {
+    flex: 1,
+    minWidth: "30%",
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
     gap: 8,
   },
-  emptyEmoji: { fontSize: 40 },
-  emptyText: { fontSize: 15, color: "#9E9E9E", fontWeight: "500" },
+  serviceEmoji: {
+    fontSize: 28,
+  },
+  serviceName: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1A1A1A",
+    textAlign: "center",
+  },
+  requestsList: {
+    gap: 12,
+  },
+  requestCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    padding: 12,
+    gap: 12,
+  },
+  requestHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  requestTitleContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  requestTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    flex: 1,
+  },
+  requestRating: {
+    fontSize: 12,
+    color: "#FF7043",
+    fontWeight: "600",
+  },
+  requestDate: {
+    fontSize: 12,
+    color: "#9E9E9E",
+  },
+  requestDescription: {
+    fontSize: 13,
+    color: "#616161",
+    lineHeight: 18,
+  },
+  urgentBadge: {
+    backgroundColor: "#EF5350",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  urgentText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  requestInfo: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  infoItem: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: "#9E9E9E",
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1A1A1A",
+  },
+  requestFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  requesterName: {
+    fontSize: 12,
+    color: "#9E9E9E",
+  },
+  acceptBtn: {
+    backgroundColor: "#FF7043",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  acceptBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  rejectBtn: {
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  rejectBtnText: {
+    color: "#616161",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  requestActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  caretakerCard: {
+    flexDirection: "row",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+  },
+  caretakerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  caretakerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FF7043",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  caretakerDetails: {
+    flex: 1,
+  },
+  caretakerName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  caretakerRole: {
+    fontSize: 12,
+    color: "#9E9E9E",
+    marginTop: 2,
+  },
+  caretakerRating: {
+    fontSize: 12,
+    color: "#FF7043",
+    marginTop: 2,
+  },
+  statusCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    padding: 16,
+  },
+  statusLabel: {
+    fontSize: 12,
+    color: "#9E9E9E",
+    marginBottom: 4,
+  },
+  statusValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  statusToggle: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  statusToggleText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#616161",
+  },
 });
