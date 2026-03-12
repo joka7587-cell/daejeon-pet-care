@@ -39,6 +39,7 @@ const MAPPING = {
   // Communication
   "message.fill": "chat",
   "bubble.left.fill": "chat-bubble",
+  "text.bubble.fill": "forum",
   "phone.fill": "phone",
   // Pet/Care
   "pawprint.fill": "pets",

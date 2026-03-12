@@ -95,6 +95,14 @@ export default function RootLayout() {
               <Stack.Screen name="request/new" options={{ presentation: "modal" }} />
               <Stack.Screen name="request/[id]" options={{ presentation: "modal" }} />
               <Stack.Screen name="profile/[id]" />
+              <Stack.Screen name="friends/index" />
+              <Stack.Screen name="review/write" options={{ presentation: "modal" }} />
+              <Stack.Screen name="review/list" />
+              <Stack.Screen name="payment/index" />
+              <Stack.Screen name="payment/history" />
+              <Stack.Screen name="chat/[roomId]" />
+              <Stack.Screen name="chat/index" />
+              <Stack.Screen name="community/write" options={{ presentation: "modal" }} />
             </Stack>
             <StatusBar style="auto" />
           </AppProvider>

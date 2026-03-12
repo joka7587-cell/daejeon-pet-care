@@ -52,17 +52,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="requests"
+        name="community"
         options={{
-          title: "요청",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="bell.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: "지도",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="map.fill" color={color} />,
+          title: "커뮤니티",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="text.bubble.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -77,6 +70,19 @@ export default function TabLayout() {
         options={{
           title: "프로필",
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.fill" color={color} />,
+        }}
+      />
+      {/* 숨김 탭 - 탭바에 표시하지 않지만 라우트로 접근 가능 */}
+      <Tabs.Screen
+        name="requests"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

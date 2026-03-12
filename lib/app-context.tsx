@@ -23,6 +23,62 @@ export interface Pet {
   emoji: string;
 }
 
+export interface Review {
+  id: string;
+  fromUserId: string;
+  fromNickname: string;
+  rating: number;
+  content: string;
+  serviceType: string;
+  createdAt: string;
+}
+
+export interface Friend {
+  id: string;
+  nickname: string;
+  profileEmoji: string;
+  neighborhood: string;
+  role: "owner" | "caretaker";
+  addedAt: string;
+}
+
+export interface Post {
+  id: string;
+  authorId: string;
+  authorNickname: string;
+  authorEmoji: string;
+  category: "자유" | "산책" | "돌봄" | "정보";
+  title: string;
+  content: string;
+  imageUri?: string;
+  likes: string[];
+  comments: PostComment[];
+  createdAt: string;
+  neighborhood: string;
+}
+
+export interface PostComment {
+  id: string;
+  authorId: string;
+  authorNickname: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface Payment {
+  id: string;
+  requestId?: string;
+  amount: number;
+  method: "kakaopay" | "toss" | "kakao" | "card";
+  status: "pending" | "completed" | "cancelled";
+  fromUserId?: string;
+  toUserId?: string;
+  description?: string;
+  serviceType?: string;
+  caretakerName?: string;
+  createdAt: string;
+}
+
 export interface UserProfile {
   nickname: string;
   neighborhood: Neighborhood | null;
@@ -34,11 +90,17 @@ export interface UserProfile {
   isCaretakerActive: boolean;
   caretakerServices: string[];
   joinedAt: string;
+  friendCode: string;
+  friends: Friend[];
+  reviews: Review[];
+  payments: Payment[];
 }
 
 interface AppState {
   isOnboarded: boolean;
   profile: UserProfile;
+  posts: Post[];
+  payments: Payment[];
 }
 
 type AppAction =
@@ -48,7 +110,24 @@ type AppAction =
   | { type: "SET_PROFILE"; payload: Partial<UserProfile> }
   | { type: "ADD_PET"; payload: Pet }
   | { type: "TOGGLE_CARETAKER_ACTIVE" }
+  | { type: "ADD_FRIEND"; payload: Friend }
+  | { type: "REMOVE_FRIEND"; payload: string }
+  | { type: "ADD_REVIEW"; payload: Review }
+  | { type: "ADD_POST"; payload: Post }
+  | { type: "LIKE_POST"; payload: { postId: string; userId: string } }
+  | { type: "ADD_COMMENT"; payload: { postId: string; comment: PostComment } }
+  | { type: "ADD_PAYMENT"; payload: Payment }
+  | { type: "UPDATE_PAYMENT_STATUS"; payload: { paymentId: string; status: Payment["status"] } }
   | { type: "LOAD_STATE"; payload: AppState };
+
+function generateFriendCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code.slice(0, 4) + "-" + code.slice(4);
+}
 
 const initialProfile: UserProfile = {
   nickname: "",
@@ -61,11 +140,17 @@ const initialProfile: UserProfile = {
   isCaretakerActive: false,
   caretakerServices: [],
   joinedAt: new Date().toISOString(),
+  friendCode: generateFriendCode(),
+  friends: [],
+  reviews: [],
+  payments: [],
 };
 
 const initialState: AppState = {
   isOnboarded: false,
   profile: initialProfile,
+  posts: [],
+  payments: [],
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -82,8 +167,59 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, profile: { ...state.profile, pets: [...state.profile.pets, action.payload] } };
     case "TOGGLE_CARETAKER_ACTIVE":
       return { ...state, profile: { ...state.profile, isCaretakerActive: !state.profile.isCaretakerActive } };
+    case "ADD_FRIEND":
+      return { ...state, profile: { ...state.profile, friends: [...state.profile.friends, action.payload] } };
+    case "REMOVE_FRIEND":
+      return { ...state, profile: { ...state.profile, friends: state.profile.friends.filter(f => f.id !== action.payload) } };
+    case "ADD_REVIEW": {
+      const newReviews = [...state.profile.reviews, action.payload];
+      const avgRating = newReviews.reduce((sum, r) => sum + r.rating, 0) / newReviews.length;
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          reviews: newReviews,
+          rating: Math.round(avgRating * 10) / 10,
+          reviewCount: newReviews.length,
+        },
+      };
+    }
+    case "ADD_POST":
+      return { ...state, posts: [action.payload, ...state.posts] };
+    case "LIKE_POST":
+      return {
+        ...state,
+        posts: state.posts.map((p) =>
+          p.id === action.payload.postId
+            ? {
+                ...p,
+                likes: p.likes.includes(action.payload.userId)
+                  ? p.likes.filter((id) => id !== action.payload.userId)
+                  : [...p.likes, action.payload.userId],
+              }
+            : p
+        ),
+      };
+    case "ADD_COMMENT":
+      return {
+        ...state,
+        posts: state.posts.map((p) =>
+          p.id === action.payload.postId
+            ? { ...p, comments: [...p.comments, action.payload.comment] }
+            : p
+        ),
+      };
+    case "ADD_PAYMENT":
+      return { ...state, payments: [...state.payments, action.payload] };
+    case "UPDATE_PAYMENT_STATUS":
+      return {
+        ...state,
+        payments: state.payments.map((p) =>
+          p.id === action.payload.paymentId ? { ...p, status: action.payload.status } : p
+        ),
+      };
     case "LOAD_STATE":
-      return action.payload;
+      return { ...action.payload, profile: { ...initialProfile, ...action.payload.profile } };
     default:
       return state;
   }

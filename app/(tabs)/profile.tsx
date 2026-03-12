@@ -5,13 +5,13 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, UserRole, Neighborhood, Pet } from "@/lib/app-context";
 import { NEIGHBORHOODS } from "@/lib/mock-data";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
+import { useRouter } from "expo-router";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -35,13 +35,31 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function MenuRow({ emoji, label, badge, onPress }: { emoji: string; label: string; badge?: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.menuRow, pressed && { opacity: 0.7 }]}
+    >
+      <Text style={{ fontSize: 20 }}>{emoji}</Text>
+      <Text style={styles.menuLabel}>{label}</Text>
+      <View style={{ flex: 1 }} />
+      {badge && (
+        <View style={styles.menuBadge}>
+          <Text style={styles.menuBadgeText}>{badge}</Text>
+        </View>
+      )}
+      <Text style={styles.menuArrow}>›</Text>
+    </Pressable>
+  );
+}
+
 export default function ProfileScreen() {
   const { state, dispatch } = useApp();
   const { profile } = state;
+  const router = useRouter();
   const isCaretaker = profile.role === "caretaker";
   const [showNeighborhoodPicker, setShowNeighborhoodPicker] = useState(false);
-  const [editingNickname, setEditingNickname] = useState(false);
-  const [tempNickname, setTempNickname] = useState(profile.nickname);
 
   const handleRoleSwitch = () => {
     haptic();
@@ -59,16 +77,11 @@ export default function ProfileScreen() {
     haptic();
     const samplePets: Pet[] = [
       { id: Date.now().toString(), name: "초코", breed: "포메라니안", age: 2, size: "소형", emoji: "🦊" },
-      { id: Date.now().toString(), name: "뭉치", breed: "골든 리트리버", age: 3, size: "대형", emoji: "🐕" },
-      { id: Date.now().toString(), name: "콩이", breed: "말티즈", age: 1, size: "소형", emoji: "🐩" },
+      { id: (Date.now() + 1).toString(), name: "뭉치", breed: "골든 리트리버", age: 3, size: "대형", emoji: "🐕" },
+      { id: (Date.now() + 2).toString(), name: "콩이", breed: "말티즈", age: 1, size: "소형", emoji: "🐩" },
     ];
     const randomPet = samplePets[Math.floor(Math.random() * samplePets.length)];
     dispatch({ type: "ADD_PET", payload: randomPet });
-  };
-
-  const handleResetOnboarding = () => {
-    haptic();
-    dispatch({ type: "SET_ONBOARDED", payload: false });
   };
 
   return (
@@ -85,6 +98,7 @@ export default function ProfileScreen() {
               {isCaretaker ? "🏠 돌보미" : "🐶 반려인"}
             </Text>
           </View>
+          <Text style={styles.friendCode}>내 코드: {profile.friendCode || "생성중..."}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{profile.rating > 0 ? profile.rating.toFixed(1) : "-"}</Text>
@@ -97,6 +111,11 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
+              <Text style={styles.statValue}>{profile.friends.length}</Text>
+              <Text style={styles.statLabel}>친구</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
               <Text style={styles.statValue}>{profile.pets.length}</Text>
               <Text style={styles.statLabel}>반려동물</Text>
             </View>
@@ -104,6 +123,33 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16 }}>
+          {/* 바로가기 메뉴 */}
+          <SectionCard title="나의 활동">
+            <MenuRow
+              emoji="👫"
+              label="친구 관리"
+              badge={`${profile.friends.length}명`}
+              onPress={() => { haptic(); router.push("/friends" as never); }}
+            />
+            <MenuRow
+              emoji="⭐"
+              label="받은 후기"
+              badge={`${profile.reviewCount}건`}
+              onPress={() => { haptic(); router.push("/review/list" as never); }}
+            />
+            <MenuRow
+              emoji="💳"
+              label="결제 내역"
+              badge={`${state.payments.length}건`}
+              onPress={() => { haptic(); router.push("/payment/history" as never); }}
+            />
+            <MenuRow
+              emoji="📋"
+              label="요청 현황"
+              onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}
+            />
+          </SectionCard>
+
           {/* 기본 정보 */}
           <SectionCard title="기본 정보">
             <InfoRow label="닉네임" value={profile.nickname || "미설정"} />
@@ -226,7 +272,7 @@ export default function ProfileScreen() {
           {/* 앱 설정 */}
           <SectionCard title="앱 설정">
             <Pressable
-              onPress={handleResetOnboarding}
+              onPress={() => { haptic(); dispatch({ type: "SET_ONBOARDED", payload: false }); }}
               style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
             >
               <Text style={styles.settingText}>온보딩 다시 보기</Text>
@@ -268,7 +314,8 @@ const styles = StyleSheet.create({
   roleBadgeOrange: { backgroundColor: "#FF7043" },
   roleBadgeGreen: { backgroundColor: "#4CAF82" },
   roleBadgeText: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  statsRow: { flexDirection: "row", alignItems: "center", marginTop: 8, gap: 24 },
+  friendCode: { fontSize: 13, color: "#9E9E9E", fontWeight: "600", letterSpacing: 1 },
+  statsRow: { flexDirection: "row", alignItems: "center", marginTop: 8, gap: 20 },
   statItem: { alignItems: "center", gap: 2 },
   statValue: { fontSize: 20, fontWeight: "800", color: "#1A1A1A" },
   statLabel: { fontSize: 11, color: "#757575" },
@@ -287,6 +334,18 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 14, fontWeight: "600", color: "#1A1A1A" },
   editBtn: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: "#F5F5F5", borderRadius: 8 },
   editBtnText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+  },
+  menuLabel: { fontSize: 15, fontWeight: "600", color: "#1A1A1A" },
+  menuBadge: { backgroundColor: "#FF704320", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  menuBadgeText: { fontSize: 12, fontWeight: "700", color: "#FF7043" },
+  menuArrow: { fontSize: 20, color: "#C0C0C0" },
   neighborhoodPicker: {
     backgroundColor: "#FAFAFA",
     borderRadius: 12,
