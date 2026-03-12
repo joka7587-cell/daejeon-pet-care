@@ -17,6 +17,7 @@ import { useApp, UserRole, Neighborhood } from "@/lib/app-context";
 import { NEIGHBORHOODS, MOCK_CARETAKERS, MOCK_OWNERS } from "@/lib/mock-data";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { getCurrentLocation, findNearestNeighborhood } from "@/lib/location-service";
 
 const { width } = Dimensions.get("window");
 
@@ -460,6 +461,23 @@ export default function OnboardingScreen() {
           <Text style={styles.stepTitle}>우리 동네를 선택해주세요</Text>
           <Text style={styles.stepSubtitle}>대전 동네 단위로 매칭해드려요</Text>
 
+          <Pressable
+            onPress={async () => {
+              haptic();
+              const loc = await getCurrentLocation();
+              if (loc) {
+                const nearest = findNearestNeighborhood(loc.lat, loc.lng);
+                handleNeighborhoodSelect(nearest as Neighborhood);
+              }
+            }}
+            style={({ pressed }) => [
+              styles.autoDetectBtn,
+              pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+            ]}
+          >
+            <Text style={styles.autoDetectText}>📍 현재 위치로 자동 감지</Text>
+          </Pressable>
+
           <FlatList
             data={NEIGHBORHOODS}
             keyExtractor={(item) => item}
@@ -700,6 +718,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   roleBadgeText: { color: "#fff", fontSize: 11, fontWeight: "600" },
+  autoDetectBtn: {
+    backgroundColor: "#4CAF82",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center" as const,
+    marginBottom: 16,
+  },
+  autoDetectText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700" as const,
+  },
   neighborhoodBtn: {
     flex: 1,
     borderWidth: 1.5,

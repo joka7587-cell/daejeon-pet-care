@@ -214,3 +214,21 @@
 - [x] 탭 바 다크 모드 색상 자동 적용 (useColors)
 - [x] 홈 화면 헤더/섹션 다크 모드 동적 색상 적용
 - [x] theme.config.js에 light/dark 색상 정의 완료
+
+## 기능 추가 (Phase 7)
+
+### 프로필 닉네임/아바타 편집
+- [x] 프로필 화면에서 닉네임 직접 수정 (인라인 편집 모드)
+- [x] 프로필 화면에서 아바타(이모지) 변경 기능 (15종 이모지 팔레트)
+- [x] 변경 사항 즉시 상태 반영 및 AsyncStorage 저장
+- [x] UserProfile에 avatarEmoji 필드 추가
+
+### 위치 기반 서비스 업그레이드
+- [x] expo-location 설치 및 location-service.ts 유틸리티 모듈 생성
+- [x] 현재 위치 가져오기 (GPS + 웹 Geolocation API)
+- [x] 위치 기반 동네 자동 감지 (findNearestNeighborhood)
+- [x] Haversine 공식으로 정확한 거리 계산 및 표시
+- [x] 지도 화면 전체 리뉴얼 (내 위치 버튼, 돌보미 서비스 태그, 거리순 정렬)
+- [x] 온보딩 동네 선택에 위치 자동 감지 버튼 추가
+- [x] 동네 칩에 거리 정보 표시
+- [x] 다크 모드 색상 적용

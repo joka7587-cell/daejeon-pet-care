@@ -115,6 +115,7 @@ export interface UserProfile {
   neighborhood: Neighborhood | null;
   role: UserRole;
   bio: string;
+  avatarEmoji: string;
   pets: Pet[];
   rating: number;
   reviewCount: number;
@@ -191,6 +192,7 @@ const initialProfile: UserProfile = {
   neighborhood: null,
   role: null,
   bio: "",
+  avatarEmoji: "🐶",
   pets: [],
   rating: 0,
   reviewCount: 0,
