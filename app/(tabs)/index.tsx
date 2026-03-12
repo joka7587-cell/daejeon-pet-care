@@ -68,6 +68,31 @@ function OwnerHome() {
 
   const services = SERVICE_TYPES.owner;
 
+  const handleServicePress = (serviceId: string) => {
+    haptic();
+    // 각 서비스별로 적절한 화면으로 이동
+    switch (serviceId) {
+      case "walk_partner":
+        // 산책 친구 찾기 → 찾기 탭의 산책 친구 탭
+        router.push({ pathname: "/(tabs)/explore", params: { tab: "walk_partner" } } as never);
+        break;
+      case "find_caretaker":
+        // 돌보미 찾기 → 찾기 탭의 돌보미 찾기 탭
+        router.push({ pathname: "/(tabs)/explore", params: { tab: "find_caretaker" } } as never);
+        break;
+      case "walk_request":
+        // 산책 부탁하기 → 요청 작성 화면
+        router.push("/request/new" as never);
+        break;
+      case "short_care":
+        // 단기 돌봄 교환 → 찾기 탭의 돌봄 교환 탭
+        router.push({ pathname: "/(tabs)/explore", params: { tab: "short_care" } } as never);
+        break;
+      default:
+        router.push({ pathname: "/(tabs)/explore", params: { tab: serviceId } } as never);
+    }
+  };
+
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
       {/* 헤더 */}
@@ -88,7 +113,7 @@ function OwnerHome() {
           {services.map((svc) => (
             <Pressable
               key={svc.id}
-              onPress={() => { haptic(); router.push("/(tabs)/explore" as never); }}
+              onPress={() => handleServicePress(svc.id)}
               style={({ pressed }) => [
                 styles.serviceCard,
                 { borderColor: svc.color + "40", backgroundColor: svc.color + "12" },
@@ -106,7 +131,7 @@ function OwnerHome() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>근처 돌봄 요청</Text>
-          <Pressable onPress={() => { haptic(); router.push("/(tabs)/explore" as never); }}>
+          <Pressable onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}>
             <Text style={styles.seeAllLink}>모두 보기 →</Text>
           </Pressable>
         </View>
@@ -232,16 +257,21 @@ function CaretakerHome() {
         <Text style={styles.sectionTitle}>제공 서비스</Text>
         <View style={styles.serviceGrid}>
           {SERVICE_TYPES.caretaker.map((svc) => (
-            <View
+            <Pressable
               key={svc.id}
-              style={[
+              onPress={() => {
+                haptic();
+                router.push({ pathname: "/(tabs)/explore", params: { tab: svc.id } } as never);
+              }}
+              style={({ pressed }) => [
                 styles.serviceCard,
                 { borderColor: svc.color + "40", backgroundColor: svc.color + "12" },
+                pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
               ]}
             >
               <Text style={styles.serviceEmoji}>{svc.emoji}</Text>
               <Text style={styles.serviceName}>{svc.title}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
       </View>

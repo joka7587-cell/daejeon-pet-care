@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,8 +9,8 @@ import {
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
-import { MOCK_CARETAKERS, MOCK_OWNERS, NEIGHBORHOODS } from "@/lib/mock-data";
-import { useRouter } from "expo-router";
+import { MOCK_CARETAKERS, MOCK_OWNERS, MOCK_REQUESTS, NEIGHBORHOODS } from "@/lib/mock-data";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
@@ -21,15 +21,23 @@ function haptic() {
 type OwnerTab = "walk_partner" | "find_caretaker" | "walk_request" | "short_care";
 type CaretakerTab = "emergency" | "walk_service";
 
-function OwnerExplore() {
+function OwnerExplore({ initialTab }: { initialTab?: string }) {
   const { state } = useApp();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<OwnerTab>("find_caretaker");
+  const validTabs: OwnerTab[] = ["find_caretaker", "walk_partner", "walk_request", "short_care"];
+  const startTab = validTabs.includes(initialTab as OwnerTab) ? (initialTab as OwnerTab) : "find_caretaker";
+  const [activeTab, setActiveTab] = useState<OwnerTab>(startTab);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("전체");
 
+  useEffect(() => {
+    if (initialTab && validTabs.includes(initialTab as OwnerTab)) {
+      setActiveTab(initialTab as OwnerTab);
+    }
+  }, [initialTab]);
+
   const tabs: { id: OwnerTab; label: string; emoji: string }[] = [
-    { id: "find_caretaker", label: "돌보미 찾기", emoji: "🏠" },
     { id: "walk_partner", label: "산책 친구", emoji: "🚶" },
+    { id: "find_caretaker", label: "돌보미 찾기", emoji: "🏠" },
     { id: "walk_request", label: "산책 부탁", emoji: "🐾" },
     { id: "short_care", label: "돌봄 교환", emoji: "🤝" },
   ];
@@ -46,63 +54,18 @@ function OwnerExplore() {
     return true;
   });
 
-  return (
-    <View style={{ flex: 1 }}>
-      {/* 탭 */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabScroll}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 8 }}
-      >
-        {tabs.map((tab) => (
-          <Pressable
-            key={tab.id}
-            onPress={() => { haptic(); setActiveTab(tab.id); }}
-            style={({ pressed }) => [
-              styles.tab,
-              activeTab === tab.id && styles.tabActive,
-              pressed && { opacity: 0.8 },
-            ]}
-          >
-            <Text style={styles.tabEmoji}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, activeTab === tab.id && styles.tabLabelActive]}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+  // 산책 부탁 탭: 요청 목록 표시
+  const filteredRequests = MOCK_REQUESTS.filter((r) => {
+    if (r.type !== "walk_request") return false;
+    if (selectedNeighborhood !== "전체" && r.neighborhood !== selectedNeighborhood) return false;
+    return true;
+  });
 
-      {/* 동네 필터 */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.neighborhoodScroll}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 8 }}
-      >
-        {neighborhoods.map((n) => (
-          <Pressable
-            key={n}
-            onPress={() => { haptic(); setSelectedNeighborhood(n); }}
-            style={({ pressed }) => [
-              styles.neighborhoodChip,
-              selectedNeighborhood === n && styles.neighborhoodChipActive,
-              pressed && { opacity: 0.8 },
-            ]}
-          >
-            <Text style={[
-              styles.neighborhoodChipText,
-              selectedNeighborhood === n && styles.neighborhoodChipTextActive,
-            ]}>
-              {n === "전체" ? "📍 전체" : n}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {/* 목록 */}
+  const renderUserList = () => {
+    const data = activeTab === "walk_partner" || activeTab === "short_care" ? filteredOwners : filteredCaretakers;
+    return (
       <FlatList
-        data={activeTab === "walk_partner" || activeTab === "short_care" ? filteredOwners : filteredCaretakers}
+        data={data}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, gap: 12 }}
         showsVerticalScrollIndicator={false}
@@ -160,14 +123,123 @@ function OwnerExplore() {
           </Pressable>
         )}
       />
+    );
+  };
+
+  const renderRequestList = () => (
+    <FlatList
+      data={filteredRequests}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ padding: 16, gap: 12 }}
+      showsVerticalScrollIndicator={false}
+      ListHeaderComponent={
+        <Pressable
+          onPress={() => { haptic(); router.push("/request/new" as never); }}
+          style={({ pressed }) => [styles.createRequestBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+        >
+          <Text style={styles.createRequestBtnText}>+ 산책 부탁하기</Text>
+        </Pressable>
+      }
+      ListEmptyComponent={
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyEmoji}>🐾</Text>
+          <Text style={styles.emptyText}>산책 요청이 없어요</Text>
+          <Text style={styles.emptySubText}>새로운 산책 요청을 만들어보세요</Text>
+        </View>
+      }
+      renderItem={({ item }) => (
+        <Pressable
+          onPress={() => { haptic(); router.push(`/request/${item.id}` as never); }}
+          style={({ pressed }) => [styles.requestCard, pressed && { opacity: 0.85 }]}
+        >
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <Text style={{ fontSize: 36 }}>{item.petEmoji}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.requestTitle}>{item.title}</Text>
+              <Text style={styles.requestMeta}>{item.requester} · 📍 {item.neighborhood}</Text>
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 6 }}>
+                <Text style={styles.requestDetail}>📅 {item.date} {item.time}</Text>
+                <Text style={styles.requestDetail}>⏱ {item.duration}</Text>
+              </View>
+            </View>
+          </View>
+        </Pressable>
+      )}
+    />
+  );
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* 탭 */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabScroll}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 8 }}
+      >
+        {tabs.map((tab) => (
+          <Pressable
+            key={tab.id}
+            onPress={() => { haptic(); setActiveTab(tab.id); }}
+            style={({ pressed }) => [
+              styles.tab,
+              activeTab === tab.id && styles.tabActive,
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <Text style={styles.tabEmoji}>{tab.emoji}</Text>
+            <Text style={[styles.tabLabel, activeTab === tab.id && styles.tabLabelActive]}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {/* 동네 필터 */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.neighborhoodScroll}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 8 }}
+      >
+        {neighborhoods.map((n) => (
+          <Pressable
+            key={n}
+            onPress={() => { haptic(); setSelectedNeighborhood(n); }}
+            style={({ pressed }) => [
+              styles.neighborhoodChip,
+              selectedNeighborhood === n && styles.neighborhoodChipActive,
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <Text style={[
+              styles.neighborhoodChipText,
+              selectedNeighborhood === n && styles.neighborhoodChipTextActive,
+            ]}>
+              {n === "전체" ? "📍 전체" : n}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {/* 목록 */}
+      {activeTab === "walk_request" ? renderRequestList() : renderUserList()}
     </View>
   );
 }
 
-function CaretakerExplore() {
+function CaretakerExplore({ initialTab }: { initialTab?: string }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<CaretakerTab>("emergency");
+  const validTabs: CaretakerTab[] = ["emergency", "walk_service"];
+  const startTab = validTabs.includes(initialTab as CaretakerTab) ? (initialTab as CaretakerTab) : "emergency";
+  const [activeTab, setActiveTab] = useState<CaretakerTab>(startTab);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("전체");
+
+  useEffect(() => {
+    if (initialTab && validTabs.includes(initialTab as CaretakerTab)) {
+      setActiveTab(initialTab as CaretakerTab);
+    }
+  }, [initialTab]);
 
   const tabs: { id: CaretakerTab; label: string; emoji: string; color: string }[] = [
     { id: "emergency", label: "긴급 방문 돌봄", emoji: "🚨", color: "#EF5350" },
@@ -289,6 +361,7 @@ function CaretakerExplore() {
 export default function ExploreScreen() {
   const { state } = useApp();
   const isCaretaker = state.profile.role === "caretaker";
+  const params = useLocalSearchParams<{ tab?: string }>();
 
   return (
     <ScreenContainer className="pt-2">
@@ -298,7 +371,7 @@ export default function ExploreScreen() {
           <Text style={styles.neighborhoodBadgeText}>📍 {state.profile.neighborhood || "전체"}</Text>
         </View>
       </View>
-      {isCaretaker ? <CaretakerExplore /> : <OwnerExplore />}
+      {isCaretaker ? <CaretakerExplore initialTab={params.tab} /> : <OwnerExplore initialTab={params.tab} />}
     </ScreenContainer>
   );
 }
@@ -427,6 +500,7 @@ const styles = StyleSheet.create({
   },
   emptyEmoji: { fontSize: 40 },
   emptyText: { fontSize: 15, color: "#9E9E9E", fontWeight: "500" },
+  emptySubText: { fontSize: 13, color: "#BDBDBD" },
   infoCard: {
     backgroundColor: "#F0FFF4",
     borderRadius: 12,
@@ -436,4 +510,27 @@ const styles = StyleSheet.create({
     borderColor: "#C8E6C9",
   },
   infoCardText: { fontSize: 13, color: "#4CAF82", lineHeight: 18 },
+  requestCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  requestTitle: { fontSize: 14, fontWeight: "700", color: "#1A1A1A", marginBottom: 4 },
+  requestMeta: { fontSize: 12, color: "#757575" },
+  requestDetail: { fontSize: 12, color: "#555" },
+  createRequestBtn: {
+    backgroundColor: "#FF7043",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  createRequestBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
 });
