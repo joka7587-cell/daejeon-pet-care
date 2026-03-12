@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useRouter } from "expo-router";
-import { useApp } from "@/lib/app-context";
+import { useApp, CareRequest } from "@/lib/app-context";
 import { SERVICE_TYPES } from "@/lib/mock-data";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -22,9 +22,23 @@ const DATE_OPTIONS = ["오늘", "내일", "이번 주 토요일", "이번 주 �
 const TIME_OPTIONS = ["오전 7시", "오전 9시", "오전 11시", "오후 1시", "오후 3시", "오후 5시", "오후 7시"];
 const DURATION_OPTIONS = ["30분", "1시간", "2시간", "3시간", "4시간", "협의"];
 
+const SERVICE_TITLE_MAP: Record<string, string> = {
+  walk_partner: "산책 친구 찾기",
+  find_caretaker: "돌보미 찾기",
+  walk_request: "산책 부탁하기",
+  short_care: "단기 돌봄 교환",
+};
+
+const SERVICE_TYPE_MAP: Record<string, CareRequest["type"]> = {
+  walk_partner: "walk_partner",
+  find_caretaker: "caretaker",
+  walk_request: "walk_request",
+  short_care: "short_care",
+};
+
 export default function NewRequestScreen() {
   const router = useRouter();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -34,9 +48,54 @@ export default function NewRequestScreen() {
 
   const services = SERVICE_TYPES.owner;
 
+  // 반려동물 정보 (첫 번째 반려동물 사용)
+  const firstPet = state.profile.pets[0];
+  const petName = firstPet?.name || "반려동물";
+  const petEmoji = firstPet?.emoji || "🐾";
+
   const handleSubmit = () => {
     if (!selectedService || !selectedDate || !selectedTime) return;
     haptic();
+
+    const serviceTitle = SERVICE_TITLE_MAP[selectedService] || selectedService;
+    const serviceType = SERVICE_TYPE_MAP[selectedService] || "walk_request";
+
+    const newRequest: CareRequest = {
+      id: `req_${Date.now()}`,
+      type: serviceType,
+      title: `${serviceTitle} - ${selectedDate} ${selectedTime}`,
+      requester: state.profile.nickname || "사용자",
+      neighborhood: state.profile.neighborhood || "유성구",
+      date: selectedDate,
+      time: selectedTime,
+      duration: selectedDuration || "협의",
+      petName,
+      petEmoji,
+      status: "pending",
+      isUrgent: selectedDate === "오늘",
+      description: memo.trim() || `${serviceTitle} 요청입니다. ${petName}(이)를 부탁드립니다.`,
+      createdAt: new Date().toISOString(),
+    };
+
+    dispatch({ type: "ADD_REQUEST", payload: newRequest });
+
+    // 알림도 생성
+    dispatch({
+      type: "ADD_NOTIFICATION",
+      payload: {
+        id: `notif_${Date.now()}`,
+        type: "match_request",
+        title: "요청이 등록되었어요",
+        body: `${serviceTitle} 요청이 등록되었습니다. 근처 돌보미에게 알림이 전송됩니다.`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+
     setSubmitted(true);
   };
 
@@ -54,6 +113,12 @@ export default function NewRequestScreen() {
             style={({ pressed }) => [styles.doneBtn, pressed && { opacity: 0.85 }]}
           >
             <Text style={styles.doneBtnText}>확인</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { haptic(); router.replace("/(tabs)/requests" as never); }}
+            style={({ pressed }) => [styles.viewRequestsBtn, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={styles.viewRequestsBtnText}>내 요청 보기</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -170,6 +235,19 @@ export default function NewRequestScreen() {
           />
         </View>
 
+        {/* 반려동물 정보 */}
+        {firstPet && (
+          <View style={styles.section}>
+            <View style={styles.petInfoCard}>
+              <Text style={{ fontSize: 32 }}>{petEmoji}</Text>
+              <View>
+                <Text style={styles.petInfoName}>{petName}</Text>
+                <Text style={styles.petInfoDetail}>{firstPet.breed} · {firstPet.age}살 · {firstPet.size}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* 요청 동네 */}
         <View style={styles.section}>
           <View style={styles.locationCard}>
@@ -259,6 +337,18 @@ const styles = StyleSheet.create({
     minHeight: 100,
     lineHeight: 22,
   },
+  petInfoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#F5F5FF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E8E8FF",
+  },
+  petInfoName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
+  petInfoDetail: { fontSize: 12, color: "#757575", marginTop: 2 },
   locationCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -304,4 +394,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   doneBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  viewRequestsBtn: {
+    borderWidth: 1.5,
+    borderColor: "#FF7043",
+    borderRadius: 14,
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+  },
+  viewRequestsBtnText: { color: "#FF7043", fontSize: 16, fontWeight: "700" },
 });

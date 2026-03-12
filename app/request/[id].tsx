@@ -9,7 +9,7 @@ import {
 import { ScreenContainer } from "@/components/screen-container";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MOCK_REQUESTS } from "@/lib/mock-data";
-import { useApp } from "@/lib/app-context";
+import { useApp, CareRequest } from "@/lib/app-context";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
@@ -27,7 +27,11 @@ export default function RequestDetailScreen() {
   const isCaretaker = state.profile.role === "caretaker";
   const [accepted, setAccepted] = useState<boolean | null>(null);
 
-  const request = MOCK_REQUESTS.find((r) => r.id === id);
+  // 사용자 작성 요청과 더미 데이터 모두에서 검색
+  const userRequest = (state.requests || []).find((r) => r.id === id);
+  const mockRequest = MOCK_REQUESTS.find((r) => r.id === id);
+  const request = userRequest || mockRequest;
+  const isMyRequest = !!userRequest;
 
   if (!request) {
     return (

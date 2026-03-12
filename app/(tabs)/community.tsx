@@ -109,6 +109,7 @@ export default function CommunityScreen() {
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<{ postId: string; authorNickname: string } | null>(null);
 
   // 새 게시글 작성 상태
   const [newTitle, setNewTitle] = useState("");
@@ -141,16 +142,46 @@ export default function CommunityScreen() {
     if (!commentText.trim()) return;
     haptic();
 
+    const content = replyTo
+      ? `@${replyTo.authorNickname} ${commentText.trim()}`
+      : commentText.trim();
+
     const comment: PostComment = {
       id: `c_${Date.now()}`,
       authorId: userId,
       authorNickname: state.profile.nickname || "사용자",
-      content: commentText.trim(),
+      content,
       createdAt: new Date().toISOString(),
     };
 
     dispatch({ type: "ADD_COMMENT", payload: { postId, comment } });
+
+    // 게시글 작성자에게 댓글 알림
+    const post = allPosts.find((p) => p.id === postId);
+    if (post && post.authorId !== userId) {
+      dispatch({
+        type: "ADD_NOTIFICATION",
+        payload: {
+          id: `notif_${Date.now()}`,
+          type: "comment",
+          title: "새 댓글",
+          body: `${state.profile.nickname || "사용자"}님이 "당신의 게시글"에 댓글을 달았어요: ${content.substring(0, 30)}...`,
+          relatedId: postId,
+          fromNickname: state.profile.nickname || "사용자",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        },
+      });
+    }
+
     setCommentText("");
+    setReplyTo(null);
+  };
+
+  const handleReplyTo = (postId: string, authorNickname: string) => {
+    haptic();
+    setReplyTo({ postId, authorNickname });
+    setExpandedPost(postId);
   };
 
   const handleSubmitPost = () => {
@@ -321,17 +352,54 @@ export default function CommunityScreen() {
         {/* 댓글 섹션 */}
         {isExpanded && (
           <View style={styles.commentsSection}>
-            {item.comments.map((c) => (
-              <View key={c.id} style={styles.commentItem}>
-                <Text style={styles.commentAuthor}>{c.authorNickname}</Text>
-                <Text style={styles.commentContent}>{c.content}</Text>
-                <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
+            {item.comments.length === 0 && (
+              <Text style={styles.noCommentsText}>아직 댓글이 없어요. 첫 댓글을 달아보세요!</Text>
+            )}
+            {item.comments.map((c) => {
+              const isReply = c.content.startsWith("@");
+              return (
+                <View key={c.id} style={[styles.commentItem, isReply && styles.commentItemReply]}>
+                  <View style={styles.commentHeader}>
+                    <Text style={styles.commentAuthor}>{c.authorNickname}</Text>
+                    <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
+                  </View>
+                  <Text style={styles.commentContent}>
+                    {isReply ? (
+                      <>
+                        <Text style={styles.mentionText}>{c.content.split(" ")[0]} </Text>
+                        {c.content.substring(c.content.indexOf(" ") + 1)}
+                      </>
+                    ) : c.content}
+                  </Text>
+                  {c.authorId !== userId && (
+                    <Pressable
+                      onPress={() => handleReplyTo(item.id, c.authorNickname)}
+                      style={({ pressed }) => [styles.replyBtn, pressed && { opacity: 0.7 }]}
+                    >
+                      <Text style={styles.replyBtnText}>답글</Text>
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
+
+            {/* 답글 대상 표시 */}
+            {replyTo && replyTo.postId === item.id && (
+              <View style={styles.replyToBar}>
+                <Text style={styles.replyToText}>@{replyTo.authorNickname}님에게 답글</Text>
+                <Pressable
+                  onPress={() => { haptic(); setReplyTo(null); }}
+                  style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={styles.replyToCancelText}>✕</Text>
+                </Pressable>
               </View>
-            ))}
+            )}
+
             <View style={styles.commentInputRow}>
               <TextInput
                 style={styles.commentInput}
-                placeholder="댓글을 입력하세요..."
+                placeholder={replyTo && replyTo.postId === item.id ? `@${replyTo.authorNickname}님에게 답글...` : "댓글을 입력하세요..."}
                 placeholderTextColor="#BDBDBD"
                 value={commentText}
                 onChangeText={setCommentText}
@@ -637,9 +705,36 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 4,
   },
+  commentItemReply: {
+    marginLeft: 16,
+    borderLeftWidth: 2,
+    borderLeftColor: "#FF704330",
+  },
+  commentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   commentAuthor: { fontSize: 12, fontWeight: "700", color: "#1A1A1A" },
   commentContent: { fontSize: 13, color: "#555", lineHeight: 18 },
   commentTime: { fontSize: 10, color: "#9E9E9E" },
+  mentionText: { color: "#FF7043", fontWeight: "700" },
+  noCommentsText: { fontSize: 13, color: "#BDBDBD", textAlign: "center", paddingVertical: 8 },
+  replyBtn: { alignSelf: "flex-start", paddingVertical: 2 },
+  replyBtnText: { fontSize: 11, color: "#FF7043", fontWeight: "600" },
+  replyToBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#FFF3EE",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "#FFCCBC",
+  },
+  replyToText: { fontSize: 12, color: "#FF7043", fontWeight: "600" },
+  replyToCancelText: { fontSize: 14, color: "#9E9E9E", fontWeight: "700" },
   commentInputRow: { flexDirection: "row", gap: 8, marginTop: 4 },
   commentInput: {
     flex: 1,

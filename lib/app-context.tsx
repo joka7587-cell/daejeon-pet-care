@@ -66,6 +66,23 @@ export interface PostComment {
   createdAt: string;
 }
 
+export interface CareRequest {
+  id: string;
+  type: "walk_partner" | "caretaker" | "walk_request" | "emergency" | "short_care";
+  title: string;
+  requester: string;
+  neighborhood: string;
+  date: string;
+  time: string;
+  duration: string;
+  petName: string;
+  petEmoji: string;
+  status: "pending" | "accepted" | "completed" | "cancelled";
+  isUrgent?: boolean;
+  description: string;
+  createdAt: string;
+}
+
 export interface Notification {
   id: string;
   type: "comment" | "like" | "match_request" | "message" | "friend_add";
@@ -115,6 +132,18 @@ interface AppState {
   posts: Post[];
   payments: Payment[];
   notifications: Notification[];
+  requests: CareRequest[];
+  chatMessages: Record<string, ChatMessageData[]>;
+}
+
+export interface ChatMessageData {
+  id: string;
+  senderId: number;
+  senderName: string;
+  content: string;
+  type: "text" | "image";
+  imageUri?: string;
+  createdAt: string;
 }
 
 type AppAction =
@@ -139,6 +168,10 @@ type AppAction =
   | { type: "ADD_NOTIFICATION"; payload: Notification }
   | { type: "MARK_NOTIFICATION_READ"; payload: string }
   | { type: "MARK_ALL_NOTIFICATIONS_READ" }
+  | { type: "ADD_REQUEST"; payload: CareRequest }
+  | { type: "UPDATE_REQUEST_STATUS"; payload: { requestId: string; status: CareRequest["status"] } }
+  | { type: "ADD_CHAT_MESSAGE"; payload: { roomId: string; message: ChatMessageData } }
+  | { type: "SET_CHAT_MESSAGES"; payload: { roomId: string; messages: ChatMessageData[] } }
   | { type: "LOAD_STATE"; payload: AppState };
 
 function generateFriendCode(): string {
@@ -173,6 +206,8 @@ const initialState: AppState = {
   posts: [],
   payments: [],
   notifications: [],
+  requests: [],
+  chatMessages: {},
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -277,6 +312,34 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
       };
+    case "ADD_REQUEST":
+      return { ...state, requests: [action.payload, ...state.requests] };
+    case "UPDATE_REQUEST_STATUS":
+      return {
+        ...state,
+        requests: state.requests.map((r) =>
+          r.id === action.payload.requestId ? { ...r, status: action.payload.status } : r
+        ),
+      };
+    case "ADD_CHAT_MESSAGE": {
+      const roomKey = action.payload.roomId;
+      const existing = state.chatMessages[roomKey] || [];
+      return {
+        ...state,
+        chatMessages: {
+          ...state.chatMessages,
+          [roomKey]: [...existing, action.payload.message],
+        },
+      };
+    }
+    case "SET_CHAT_MESSAGES":
+      return {
+        ...state,
+        chatMessages: {
+          ...state.chatMessages,
+          [action.payload.roomId]: action.payload.messages,
+        },
+      };
     case "LOAD_STATE":
       return {
         ...initialState,
@@ -292,6 +355,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         posts: action.payload.posts ?? [],
         payments: action.payload.payments ?? [],
         notifications: action.payload.notifications ?? [],
+        requests: action.payload.requests ?? [],
+        chatMessages: action.payload.chatMessages ?? {},
       };
     default:
       return state;

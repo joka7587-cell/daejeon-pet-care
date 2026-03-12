@@ -8,14 +8,13 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Modal,
   Dimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { ScreenContainer } from "@/components/screen-container";
-import { useApp } from "@/lib/app-context";
+import { useApp, ChatMessageData } from "@/lib/app-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -33,55 +32,151 @@ interface ChatMessage {
   createdAt: string;
 }
 
-const DEMO_MESSAGES: ChatMessage[] = [
-  {
-    id: "m1",
-    senderId: 2,
-    senderName: "돌보미",
-    content: "안녕하세요! 돌봄 요청 확인했습니다 😊",
-    type: "text",
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: "m2",
-    senderId: 1,
-    senderName: "나",
-    content: "감사합니다! 우리 강아지 사진 보내드릴게요",
-    type: "text",
-    createdAt: new Date(Date.now() - 3000000).toISOString(),
-  },
-  {
-    id: "m3",
-    senderId: 2,
-    senderName: "돌보미",
-    content: "네! 사진 보내주시면 미리 파악하고 있을게요 🐾",
-    type: "text",
-    createdAt: new Date(Date.now() - 2400000).toISOString(),
-  },
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// 친구별 자동 응답 (더 자연스러운 대화)
+const FRIEND_AUTO_REPLIES = [
+  "안녕하세요! 반가워요 😊",
+  "네, 좋아요! 언제 만날까요?",
+  "우리 강아지도 산책 좋아해요 🐕",
+  "그 동네 산책로 정말 좋죠!",
+  "다음에 같이 산책해요~",
+  "사진 보내주세요! 보고 싶어요 🥰",
+  "오늘 날씨가 산책하기 딱 좋네요 ☀️",
+  "혹시 이번 주말에 시간 되세요?",
+  "우리 아이가 친구를 만나면 정말 좋아할 거예요!",
+  "좋은 정보 감사합니다! 👍",
 ];
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const GENERAL_AUTO_REPLIES: Record<string, string> = {
+  "사진": "사진 잘 받았어요! 귀엽네요 🥰",
+  "이미지": "사진 잘 받았어요! 귀엽네요 🥰",
+  "시간": "오후 2시~5시 사이에 가능해요!",
+  "언제": "이번 주말은 어떠세요? 시간 맞춰볼게요!",
+  "비용": "시간당 15,000원이에요. 결제는 앱에서 가능합니다!",
+  "가격": "시간당 15,000원이에요. 결제는 앱에서 가능합니다!",
+  "감사": "별말씀을요! 잘 부탁드려요 😊",
+  "고마": "별말씀을요! 잘 부탁드려요 😊",
+  "안녕": "안녕하세요! 반가워요 😊🐾",
+  "산책": "산책 좋죠! 우리 동네에 좋은 산책로가 많아요 🌳",
+  "강아지": "강아지 이야기 좋아해요! 어떤 견종이에요? 🐶",
+};
 
 export default function ChatScreen() {
   const router = useRouter();
-  const { roomId } = useLocalSearchParams();
-  const { state } = useApp();
+  const { roomId, friendName, friendEmoji } = useLocalSearchParams<{
+    roomId: string;
+    friendName?: string;
+    friendEmoji?: string;
+  }>();
+  const { state, dispatch } = useApp();
   const [inputText, setInputText] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>(DEMO_MESSAGES);
-  const [sending, setSending] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const userId = 1;
   const userName = state.profile.nickname || "사용자";
-  const otherUserName = state.profile.role === "owner" ? "돌보미" : "반려인";
+
+  // 친구 이름 결정 (URL 파라미터 > 기본값)
+  const decodedFriendName = friendName ? decodeURIComponent(friendName) : null;
+  const decodedFriendEmoji = friendEmoji ? decodeURIComponent(friendEmoji) : null;
+  const otherUserName = decodedFriendName || (state.profile.role === "owner" ? "돌보미" : "반려인");
+  const otherUserEmoji = decodedFriendEmoji || "👤";
+  const isFriendChat = !!decodedFriendName;
+
+  const roomKey = `room_${roomId}`;
+
+  // 저장된 메시지 로드
+  useEffect(() => {
+    const saved = state.chatMessages[roomKey];
+    if (saved && saved.length > 0) {
+      setMessages(saved.map((m) => ({
+        id: m.id,
+        senderId: m.senderId,
+        senderName: m.senderName,
+        content: m.content,
+        type: m.type,
+        imageUri: m.imageUri,
+        createdAt: m.createdAt,
+      })));
+    } else if (!isFriendChat) {
+      // 기존 채팅방은 데모 메시지 표시
+      setMessages([
+        {
+          id: "m1",
+          senderId: 2,
+          senderName: otherUserName,
+          content: `안녕하세요! ${otherUserName}입니다 😊`,
+          type: "text",
+          createdAt: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          id: "m2",
+          senderId: 1,
+          senderName: userName,
+          content: "안녕하세요! 반갑습니다",
+          type: "text",
+          createdAt: new Date(Date.now() - 3000000).toISOString(),
+        },
+        {
+          id: "m3",
+          senderId: 2,
+          senderName: otherUserName,
+          content: "궁금한 점 있으시면 편하게 말씀해주세요 🐾",
+          type: "text",
+          createdAt: new Date(Date.now() - 2400000).toISOString(),
+        },
+      ]);
+    } else {
+      // 친구와의 새 채팅방 - 환영 메시지
+      setMessages([
+        {
+          id: `welcome_${Date.now()}`,
+          senderId: 2,
+          senderName: otherUserName,
+          content: `안녕하세요! ${otherUserName}입니다. 반가워요! 🐾`,
+          type: "text",
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+    }
+  }, [roomKey]);
+
+  // 메시지 변경 시 저장
+  useEffect(() => {
+    if (messages.length > 0) {
+      const toSave: ChatMessageData[] = messages.map((m) => ({
+        id: m.id,
+        senderId: m.senderId,
+        senderName: m.senderName,
+        content: m.content,
+        type: m.type,
+        imageUri: m.imageUri,
+        createdAt: m.createdAt,
+      }));
+      dispatch({ type: "SET_CHAT_MESSAGES", payload: { roomId: roomKey, messages: toSave } });
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages]);
+
+  const getAutoReply = (msg: string): string => {
+    // 키워드 매칭
+    for (const [keyword, reply] of Object.entries(GENERAL_AUTO_REPLIES)) {
+      if (msg.includes(keyword)) return reply;
+    }
+    // 친구 채팅이면 랜덤 친구 응답
+    if (isFriendChat) {
+      return FRIEND_AUTO_REPLIES[Math.floor(Math.random() * FRIEND_AUTO_REPLIES.length)];
+    }
+    return "네, 알겠습니다! 더 궁금한 점 있으시면 말씀해주세요 🐾";
+  };
 
   const handleSendMessage = () => {
     if (!inputText.trim()) return;
@@ -96,6 +191,7 @@ export default function ChatScreen() {
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, newMsg]);
+    const currentInput = inputText;
     setInputText("");
 
     // 자동 응답 시뮬레이션
@@ -104,20 +200,12 @@ export default function ChatScreen() {
         id: `m${Date.now() + 1}`,
         senderId: 2,
         senderName: otherUserName,
-        content: getAutoReply(inputText),
+        content: getAutoReply(currentInput),
         type: "text",
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, autoReply]);
-    }, 1500);
-  };
-
-  const getAutoReply = (msg: string): string => {
-    if (msg.includes("사진") || msg.includes("이미지")) return "사진 잘 받았어요! 귀엽네요 🥰";
-    if (msg.includes("시간") || msg.includes("언제")) return "오후 2시~5시 사이에 가능해요!";
-    if (msg.includes("비용") || msg.includes("가격")) return "시간당 15,000원이에요. 결제는 앱에서 가능합니다!";
-    if (msg.includes("감사") || msg.includes("고마")) return "별말씀을요! 잘 부탁드려요 😊";
-    return "네, 알겠습니다! 더 궁금한 점 있으시면 말씀해주세요 🐾";
+    }, 1000 + Math.random() * 1500);
   };
 
   const pickImage = async () => {
@@ -133,21 +221,19 @@ export default function ChatScreen() {
         setSelectedImage(result.assets[0].uri);
       }
     } catch (e) {
-      // 웹 환경에서 에러 시 데모 이미지 사용
       sendDemoImage();
     }
   };
 
   const sendDemoImage = () => {
     haptic();
-    const demoUri = "demo_pet_image";
     const newMsg: ChatMessage = {
       id: `m${Date.now()}`,
       senderId: userId,
       senderName: userName,
       content: "📷 반려동물 사진",
       type: "image",
-      imageUri: demoUri,
+      imageUri: "demo_pet_image",
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, newMsg]);
@@ -199,6 +285,12 @@ export default function ChatScreen() {
 
     return (
       <View style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
+        {/* 상대방 아바타 */}
+        {!isOwn && (
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarEmoji}>{otherUserEmoji}</Text>
+          </View>
+        )}
         <View
           style={[
             styles.messageBubble,
@@ -253,9 +345,19 @@ export default function ChatScreen() {
         >
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
-        <View style={styles.headerTitle}>
-          <Text style={styles.headerName}>{otherUserName}</Text>
-          <Text style={styles.headerStatus}>🟢 온라인</Text>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerEmoji}>{otherUserEmoji}</Text>
+          <View>
+            <Text style={styles.headerName}>{otherUserName}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Text style={styles.headerStatus}>🟢 온라인</Text>
+              {isFriendChat && (
+                <View style={styles.friendBadge}>
+                  <Text style={styles.friendBadgeText}>친구</Text>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
         <View style={styles.headerSpacer} />
       </View>
@@ -268,6 +370,12 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.messageList}
         scrollEnabled={true}
+        ListEmptyComponent={
+          <View style={styles.emptyChat}>
+            <Text style={styles.emptyChatEmoji}>{otherUserEmoji}</Text>
+            <Text style={styles.emptyChatText}>{otherUserName}님과의 대화를 시작해보세요!</Text>
+          </View>
+        }
       />
 
       {/* 선택된 이미지 미리보기 */}
@@ -365,15 +473,36 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   backBtnText: { fontSize: 28, color: "#1A1A1A" },
-  headerTitle: { flex: 1, marginLeft: 8 },
+  headerInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, marginLeft: 4 },
+  headerEmoji: { fontSize: 28 },
   headerName: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
-  headerStatus: { fontSize: 12, color: "#4CAF82", marginTop: 2 },
+  headerStatus: { fontSize: 12, color: "#4CAF82", marginTop: 1 },
   headerSpacer: { width: 40 },
-  messageList: { paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
-  messageRow: { flexDirection: "row", justifyContent: "flex-start", marginVertical: 4 },
+  friendBadge: {
+    backgroundColor: "#FFF3EE",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: "#FFCCBC",
+  },
+  friendBadgeText: { fontSize: 10, color: "#FF7043", fontWeight: "700" },
+  messageList: { paddingHorizontal: 12, paddingVertical: 12, gap: 8, flexGrow: 1 },
+  messageRow: { flexDirection: "row", justifyContent: "flex-start", marginVertical: 4, alignItems: "flex-end" },
   messageRowOwn: { justifyContent: "flex-end" },
+  avatarContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+    marginBottom: 2,
+  },
+  avatarEmoji: { fontSize: 18 },
   messageBubble: {
-    maxWidth: "80%",
+    maxWidth: "75%",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
@@ -382,7 +511,7 @@ const styles = StyleSheet.create({
   messageBubbleOther: { backgroundColor: "#F5F5F5", borderBottomLeftRadius: 4 },
   messageBubbleOwn: { backgroundColor: "#FF7043", borderBottomRightRadius: 4 },
   imageBubble: { padding: 4, overflow: "hidden" },
-  senderName: { fontSize: 11, fontWeight: "700", color: "#757575", marginBottom: 2, marginHorizontal: 8 },
+  senderName: { fontSize: 11, fontWeight: "700", color: "#757575", marginBottom: 2, marginHorizontal: 4 },
   messageText: { fontSize: 14, color: "#1A1A1A", lineHeight: 20 },
   messageTextOwn: { color: "#fff" },
   messageTime: { fontSize: 10, color: "#9E9E9E", marginTop: 4, marginHorizontal: 4 },
@@ -398,6 +527,15 @@ const styles = StyleSheet.create({
   },
   demoImageEmoji: { fontSize: 48 },
   demoImageText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
+  emptyChat: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+    gap: 12,
+  },
+  emptyChatEmoji: { fontSize: 48 },
+  emptyChatText: { fontSize: 14, color: "#9E9E9E", textAlign: "center" },
   selectedImageBar: {
     flexDirection: "row",
     alignItems: "center",
