@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { initializeSocketIO } from "../socket-server";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -67,6 +68,10 @@ async function startServer() {
       createContext,
     }),
   );
+
+  // Socket.io 초기화
+  const io = initializeSocketIO(server);
+  console.log("[Socket.IO] 서버 초기화 완료");
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);

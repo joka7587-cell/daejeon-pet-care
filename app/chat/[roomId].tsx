@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,94 +14,47 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-
-interface Message {
-  id: number;
-  senderId: number;
-  senderName: string;
-  content: string;
-  createdAt: string;
-  isRead: boolean;
-}
+import { useSocketChat } from "@/hooks/use-socket-chat";
 
 export default function ChatScreen() {
   const router = useRouter();
   const { roomId } = useLocalSearchParams();
   const { state } = useApp();
-  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  const userId = 1; // TODO: 실제 사용자 ID는 인증 컨텍스트에서 가져오기
+  const userId = 1;
+  const userName = state.profile.nickname || "사용자";
   const otherUserName = state.profile.role === "owner" ? "돌보미" : "반려인";
 
-  // 더미 메시지 데이터
-  const mockMessages: Message[] = [
-    {
-      id: 1,
-      senderId: 101,
-      senderName: "산책쌤 미경",
-      content: "안녕하세요! 내일 산책 가능합니다.",
-      createdAt: "2025-03-12 10:30",
-      isRead: true,
-    },
-    {
-      id: 2,
-      senderId: userId,
-      senderName: "나",
-      content: "좋습니다! 내일 오후 2시에 만날까요?",
-      createdAt: "2025-03-12 10:35",
-      isRead: true,
-    },
-    {
-      id: 3,
-      senderId: 101,
-      senderName: "산책쌤 미경",
-      content: "네, 좋습니다. 우리집 앞에서 만나요.",
-      createdAt: "2025-03-12 10:40",
-      isRead: true,
-    },
-  ];
+  // Socket.io 채팅 후크
+  const chatRoomId = typeof roomId === "string" ? parseInt(roomId) : 1;
+  const { messages, isConnected, sendMessage, setIsTyping } = useSocketChat({
+    chatRoomId,
+    userId,
+    userName,
+    serverUrl: "http://localhost:3000",
+  });
 
   useEffect(() => {
-    // 메시지 로드
-    setTimeout(() => {
-      setMessages(mockMessages);
-      setLoading(false);
-    }, 500);
-  }, [roomId]);
-
-  useEffect(() => {
-    // 새 메시지 시 스크롤
     if (messages.length > 0) {
       flatListRef.current?.scrollToEnd({ animated: true });
     }
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+  const handleSendMessage = () => {
+    if (!inputText.trim() || !isConnected) return;
 
     setSending(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // 새 메시지 추가 (실제로는 API 호출)
-    const newMessage: Message = {
-      id: messages.length + 1,
-      senderId: userId,
-      senderName: "나",
-      content: inputText,
-      createdAt: new Date().toLocaleString(),
-      isRead: false,
-    };
-
-    setMessages([...messages, newMessage]);
+    sendMessage(inputText);
     setInputText("");
     setSending(false);
   };
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = ({ item }: { item: any }) => {
     const isOwn = item.senderId === userId;
 
     return (
@@ -149,22 +102,29 @@ export default function ChatScreen() {
         </Pressable>
         <View style={styles.headerTitle}>
           <Text style={styles.headerName}>{otherUserName}</Text>
-          <Text style={styles.headerStatus}>🟢 온라인</Text>
+          <Text style={styles.headerStatus}>
+            {isConnected ? "🟢 온라인" : "🔴 오프라인"}
+          </Text>
         </View>
         <View style={styles.headerSpacer} />
       </View>
 
       {/* 메시지 목록 */}
-      {loading ? (
+      {!isConnected ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF7043" />
+          <Text style={styles.connectingText}>연결 중...</Text>
+        </View>
+      ) : messages.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>메시지가 없습니다</Text>
         </View>
       ) : (
         <FlatList
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => (item.id || Math.random()).toString()}
           contentContainerStyle={styles.messageList}
           scrollEnabled={true}
           onEndReachedThreshold={0.1}
@@ -185,14 +145,16 @@ export default function ChatScreen() {
             onChangeText={setInputText}
             multiline
             maxLength={500}
-            editable={!sending}
+            editable={!sending && isConnected}
+            onFocus={() => setIsTyping(true)}
+            onBlur={() => setIsTyping(false)}
           />
           <Pressable
             onPress={handleSendMessage}
-            disabled={!inputText.trim() || sending}
+            disabled={!inputText.trim() || sending || !isConnected}
             style={({ pressed }) => [
               styles.sendBtn,
-              (!inputText.trim() || sending) && styles.sendBtnDisabled,
+              (!inputText.trim() || sending || !isConnected) && styles.sendBtnDisabled,
               pressed && { opacity: 0.85 },
             ]}
           >
@@ -232,6 +194,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  connectingText: {
+    fontSize: 14,
+    color: "#9E9E9E",
+    marginTop: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#9E9E9E",
   },
   messageList: {
     paddingHorizontal: 12,
