@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import {
   View,
   Text,
+  TextInput,
   ScrollView,
   Pressable,
   Dimensions,
@@ -86,7 +87,10 @@ export default function OnboardingScreen() {
     dispatch({ type: "SET_ROLE", payload: selectedRole });
     dispatch({ type: "SET_NEIGHBORHOOD", payload: selectedNeighborhood! });
     dispatch({ type: "SET_PROFILE", payload: { nickname: nick } });
-    dispatch({ type: "SET_ONBOARDED", payload: true });
+    // SET_ONBOARDED를 마지막에 dispatch하여 라우팅 트리거
+    setTimeout(() => {
+      dispatch({ type: "SET_ONBOARDED", payload: true });
+    }, 50);
   };
 
   if (step === "slides") {
@@ -230,14 +234,16 @@ export default function OnboardingScreen() {
 
         <View style={styles.inputWrap}>
           <Text style={styles.inputLabel}>닉네임</Text>
-          <View style={styles.inputBox}>
-            <Text
-              style={[styles.inputText, !nickname && styles.inputPlaceholder]}
-              onPress={() => {}}
-            >
-              {nickname || "예) 골든이 아빠, 말티즈맘"}
-            </Text>
-          </View>
+          <TextInput
+            style={styles.textInput}
+            placeholder="예) 골든이 아빠, 말티즈맘"
+            placeholderTextColor="#BDBDBD"
+            value={nickname}
+            onChangeText={setNickname}
+            maxLength={20}
+            returnKeyType="done"
+            autoFocus={true}
+          />
           <View style={styles.quickNicknames}>
             {["골든이 아빠", "말티즈맘", "포메 집사", "비글 아빠", "시바견맘"].map((n) => (
               <Pressable
@@ -335,7 +341,7 @@ const styles = StyleSheet.create({
   neighborhoodTextSelected: { color: "#FF7043" },
   inputWrap: { marginBottom: 24 },
   inputLabel: { fontSize: 14, fontWeight: "600", color: "#555", marginBottom: 8 },
-  inputBox: {
+  textInput: {
     borderWidth: 1.5,
     borderColor: "#E0E0E0",
     borderRadius: 12,
@@ -343,9 +349,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: "#fff",
     marginBottom: 12,
+    fontSize: 16,
+    color: "#1A1A1A",
   },
-  inputText: { fontSize: 16, color: "#1A1A1A" },
-  inputPlaceholder: { color: "#BDBDBD" },
   quickNicknames: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   quickNick: {
     borderWidth: 1,
