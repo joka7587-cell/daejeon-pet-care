@@ -115,3 +115,4 @@
 - [x] 닉네임 중복 검사 (기존 사용자 닉네임 중복 방지)
 - [x] 프로필 아바타 선택 (20개 이모지 아바타)
 - [x] 온보딩 '시작하기' 버튼 클릭 후 홈 화면 전환 안 되는 버그 (해결: onboarding에서 직접 router.replace 호출)
+- [x] 커뮤니티 화면 Render Error: state.posts undefined 버그 (해결: LOAD_STATE에 기본값 처리 + 방어 코드)

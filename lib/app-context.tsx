@@ -219,7 +219,20 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ),
       };
     case "LOAD_STATE":
-      return { ...action.payload, profile: { ...initialProfile, ...action.payload.profile } };
+      return {
+        ...initialState,
+        ...action.payload,
+        profile: {
+          ...initialProfile,
+          ...action.payload.profile,
+          friends: action.payload.profile?.friends ?? [],
+          reviews: action.payload.profile?.reviews ?? [],
+          pets: action.payload.profile?.pets ?? [],
+          payments: action.payload.profile?.payments ?? [],
+        },
+        posts: action.payload.posts ?? [],
+        payments: action.payload.payments ?? [],
+      };
     default:
       return state;
   }

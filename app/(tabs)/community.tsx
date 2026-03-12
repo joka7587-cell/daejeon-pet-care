@@ -114,7 +114,7 @@ export default function CommunityScreen() {
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState<"자유" | "산책" | "돌봄" | "정보">("자유");
 
-  const allPosts = [...state.posts, ...DEMO_POSTS];
+  const allPosts = [...(state.posts || []), ...DEMO_POSTS];
   const filteredPosts = selectedCategory === "전체"
     ? allPosts
     : allPosts.filter((p) => p.category === selectedCategory);
