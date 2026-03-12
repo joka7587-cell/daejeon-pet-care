@@ -1,6 +1,19 @@
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser,
+  users,
+  userProfiles,
+  userLocations,
+  pets,
+  matchingRequests,
+  matchingHistory,
+  InsertUserProfile,
+  InsertUserLocation,
+  InsertPet,
+  InsertMatchingRequest,
+  InsertMatchingHistory,
+} from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +102,262 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * User Profiles
+ */
+export async function getUserProfile(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId));
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createUserProfile(data: InsertUserProfile): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(userProfiles).values(data);
+}
+
+export async function updateUserProfile(userId: number, data: Partial<InsertUserProfile>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(userProfiles).set(data).where(eq(userProfiles.userId, userId));
+}
+
+/**
+ * User Locations
+ */
+export async function getUserLocation(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(userLocations).where(eq(userLocations.userId, userId));
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createUserLocation(data: InsertUserLocation): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(userLocations).values(data);
+}
+
+export async function updateUserLocation(userId: number, data: Partial<InsertUserLocation>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(userLocations).set(data).where(eq(userLocations.userId, userId));
+}
+
+/**
+ * Pets
+ */
+export async function getUserPets(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pets).where(eq(pets.userId, userId));
+}
+
+export async function createPet(data: InsertPet): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(pets).values(data);
+}
+
+/**
+ * Matching Requests
+ */
+export async function getMatchingRequest(requestId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(matchingRequests).where(eq(matchingRequests.id, requestId));
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getUserMatchingRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(matchingRequests).where(eq(matchingRequests.requesterId, userId));
+}
+
+/**
+ * 위치 기반 매칭 - 동네 내 돌보미 찾기
+ * Haversine 공식으로 두 GPS 좌표 간 거리 계산
+ */
+export async function findCaretakersNearby(
+  neighborhood: string,
+  latitude: number,
+  longitude: number,
+  radiusKm: number = 2,
+) {
+  const db = await getDb();
+  if (!db) return [];
+
+  // 동네 필터링 + GPS 거리 계산
+  const caretakers = await db
+    .select({
+      id: userProfiles.id,
+      userId: userProfiles.userId,
+      nickname: userProfiles.nickname,
+      bio: userProfiles.bio,
+      profileEmoji: userProfiles.profileEmoji,
+      rating: userProfiles.rating,
+      reviewCount: userProfiles.reviewCount,
+      isActive: userProfiles.isActive,
+      neighborhood: userLocations.neighborhood,
+      latitude: userLocations.latitude,
+      longitude: userLocations.longitude,
+      // Haversine 거리 계산 (km 단위)
+      distance: sql<number>`
+        (6371 * acos(cos(radians(${latitude})) * cos(radians(CAST(${userLocations.latitude} AS DECIMAL(10,6))))
+        * cos(radians(CAST(${userLocations.longitude} AS DECIMAL(10,6))) - radians(${longitude}))
+        + sin(radians(${latitude})) * sin(radians(CAST(${userLocations.latitude} AS DECIMAL(10,6))))))
+      `,
+    })
+    .from(userProfiles)
+    .innerJoin(userLocations, eq(userProfiles.userId, userLocations.userId))
+    .where(
+      and(
+        eq(userProfiles.role, "caretaker"),
+        eq(userProfiles.isActive, true),
+        eq(userLocations.neighborhood, neighborhood),
+      ),
+    );
+
+  // 거리순 정렬 및 필터링
+  return caretakers
+    .filter((c) => (c.distance as number) <= radiusKm)
+    .sort((a, b) => ((a.distance as number) || 0) - ((b.distance as number) || 0));
+}
+
+/**
+ * 동네별 반려인 찾기 (산책 친구 매칭용)
+ */
+export async function findOwnersInNeighborhood(neighborhood: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select({
+      id: userProfiles.id,
+      userId: userProfiles.userId,
+      nickname: userProfiles.nickname,
+      bio: userProfiles.bio,
+      profileEmoji: userProfiles.profileEmoji,
+      rating: userProfiles.rating,
+      reviewCount: userProfiles.reviewCount,
+      neighborhood: userLocations.neighborhood,
+    })
+    .from(userProfiles)
+    .innerJoin(userLocations, eq(userProfiles.userId, userLocations.userId))
+    .where(
+      and(
+        eq(userProfiles.role, "owner"),
+        eq(userLocations.neighborhood, neighborhood),
+      ),
+    );
+}
+
+export async function createMatchingRequest(data: InsertMatchingRequest) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(matchingRequests).values(data);
+  // 생성된 요청 조회
+  const created = await db.select().from(matchingRequests).where(eq(matchingRequests.requesterId, data.requesterId)).orderBy(sql`createdAt DESC`);
+  return created.length > 0 ? created[0].id : null;
+}
+
+export async function updateMatchingRequest(
+  requestId: number,
+  data: Partial<InsertMatchingRequest>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(matchingRequests).set(data).where(eq(matchingRequests.id, requestId));
+}
+
+export async function getNeighborhoodRequests(neighborhood: string, type?: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [
+    eq(matchingRequests.neighborhood, neighborhood),
+    eq(matchingRequests.status, "pending"),
+  ];
+
+  if (type) {
+    conditions.push(eq(matchingRequests.type, type as any));
+  }
+
+  return db
+    .select()
+    .from(matchingRequests)
+    .where(and(...conditions))
+    .orderBy(sql`CASE WHEN isUrgent = true THEN 0 ELSE 1 END, createdAt DESC`);
+}
+
+/**
+ * Matching History
+ */
+export async function createMatchingHistory(data: InsertMatchingHistory): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(matchingHistory).values(data);
+}
+
+export async function getMatchingHistoryBetween(ownerId: number, caretakerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(matchingHistory)
+    .where(and(eq(matchingHistory.ownerId, ownerId), eq(matchingHistory.caretakerId, caretakerId)));
+}
+
+export async function updateMatchingHistory(
+  historyId: number,
+  data: Partial<InsertMatchingHistory>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(matchingHistory).set(data).where(eq(matchingHistory.id, historyId));
+}
+
+/**
+ * 사용자 평점 계산
+ */
+export async function updateUserRating(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  // 해당 사용자의 모든 평가 조회
+  const history = await db
+    .select()
+    .from(matchingHistory)
+    .where(
+      // 돌보미인 경우 caretakerId, 반려인인 경우 ownerId로 필터링
+      sql`(caretakerId = ${userId} AND ownerRating IS NOT NULL) OR (ownerId = ${userId} AND caretakerRating IS NOT NULL)`,
+    );
+
+  if (history.length === 0) return;
+
+  // 평균 평점 계산 (1-5 -> 0-500)
+  let totalRating = 0;
+  let count = 0;
+
+  history.forEach((h) => {
+    if (h.caretakerId === userId && h.ownerRating) {
+      totalRating += h.ownerRating * 100;
+      count++;
+    }
+    if (h.ownerId === userId && h.caretakerRating) {
+      totalRating += h.caretakerRating * 100;
+      count++;
+    }
+  });
+
+  const avgRating = count > 0 ? Math.round(totalRating / count) : 0;
+
+  // 사용자 프로필 업데이트
+  await db
+    .update(userProfiles)
+    .set({ rating: avgRating, reviewCount: count })
+    .where(eq(userProfiles.userId, userId));
+}
