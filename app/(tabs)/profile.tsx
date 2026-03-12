@@ -5,6 +5,7 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { ScreenContainer } from "@/components/screen-container";
@@ -56,7 +57,7 @@ function MenuRow({ emoji, label, badge, onPress }: { emoji: string; label: strin
 }
 
 export default function ProfileScreen() {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, resetApp } = useApp();
   const { profile } = state;
   const router = useRouter();
   const isCaretaker = profile.role === "caretaker";
@@ -76,13 +77,7 @@ export default function ProfileScreen() {
 
   const handleAddPet = () => {
     haptic();
-    const samplePets: Pet[] = [
-      { id: Date.now().toString(), name: "초코", breed: "포메라니안", age: 2, size: "소형", emoji: "🦊" },
-      { id: (Date.now() + 1).toString(), name: "뭉치", breed: "골든 리트리버", age: 3, size: "대형", emoji: "🐕" },
-      { id: (Date.now() + 2).toString(), name: "콩이", breed: "말티즈", age: 1, size: "소형", emoji: "🐩" },
-    ];
-    const randomPet = samplePets[Math.floor(Math.random() * samplePets.length)];
-    dispatch({ type: "ADD_PET", payload: randomPet });
+    router.push("/pet/register" as never);
   };
 
   return (
@@ -295,6 +290,36 @@ export default function ProfileScreen() {
               <Text style={styles.settingText}>온보딩 다시 보기</Text>
               <Text style={styles.settingArrow}>›</Text>
             </Pressable>
+            <View style={styles.settingDivider} />
+            <Pressable
+              onPress={() => {
+                haptic();
+                const doReset = () => {
+                  resetApp();
+                  if (Platform.OS !== "web") {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }
+                };
+                if (Platform.OS === "web") {
+                  if (confirm("앱을 초기화하시겠습니까?\n모든 데이터가 삭제되고 온보딩부터 다시 시작합니다.")) {
+                    doReset();
+                  }
+                } else {
+                  Alert.alert(
+                    "앱 초기화",
+                    "모든 데이터가 삭제되고 온보딩부터 다시 시작합니다.\n이 작업은 되돌릴 수 없습니다.",
+                    [
+                      { text: "취소", style: "cancel" },
+                      { text: "초기화", style: "destructive", onPress: doReset },
+                    ]
+                  );
+                }
+              }}
+              style={({ pressed }) => [styles.resetRow, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.resetText}>앱 초기화 (데이터 전체 삭제)</Text>
+              <Text style={styles.settingArrow}>›</Text>
+            </Pressable>
           </SectionCard>
         </View>
       </ScrollView>
@@ -453,4 +478,12 @@ const styles = StyleSheet.create({
   },
   settingText: { fontSize: 14, color: "#555" },
   settingArrow: { fontSize: 20, color: "#9E9E9E" },
+  settingDivider: { height: 1, backgroundColor: "#F0F0F0", marginVertical: 4 },
+  resetRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    paddingVertical: 4,
+  },
+  resetText: { fontSize: 14, color: "#EF5350", fontWeight: "600" as const },
 });

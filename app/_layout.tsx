@@ -19,6 +19,7 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { AppProvider } from "@/lib/app-context";
+import { requestNotificationPermissions } from "@/lib/push-notifications";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -37,6 +38,11 @@ export default function RootLayout() {
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
+  }, []);
+
+  // 푸시 알림 권한 요청
+  useEffect(() => {
+    requestNotificationPermissions();
   }, []);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
@@ -103,6 +109,9 @@ export default function RootLayout() {
               <Stack.Screen name="chat/[roomId]" />
               <Stack.Screen name="chat/index" />
               <Stack.Screen name="community/write" options={{ presentation: "modal" }} />
+              <Stack.Screen name="notifications/index" />
+              <Stack.Screen name="pet/register" options={{ presentation: "modal" }} />
+              <Stack.Screen name="pet/[petId]" />
             </Stack>
             <StatusBar style="auto" />
           </AppProvider>

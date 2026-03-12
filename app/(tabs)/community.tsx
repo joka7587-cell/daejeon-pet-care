@@ -11,7 +11,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Alert,
+  Dimensions,
 } from "react-native";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Post, PostComment } from "@/lib/app-context";
 import * as Haptics from "expo-haptics";
@@ -115,6 +118,10 @@ export default function CommunityScreen() {
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState<"자유" | "산책" | "돌봄" | "정보">("자유");
+  const [newImageUri, setNewImageUri] = useState<string | null>(null);
+
+  // 이미지 전체화면 보기
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
 
   // 수정 모달 상태
   const [showEditModal, setShowEditModal] = useState(false);
@@ -184,6 +191,20 @@ export default function CommunityScreen() {
     setExpandedPost(postId);
   };
 
+  const handlePickImage = async () => {
+    haptic();
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setNewImageUri(result.assets[0].uri);
+      }
+    } catch (_) {}
+  };
+
   const handleSubmitPost = () => {
     if (!newTitle.trim() || !newContent.trim()) return;
     haptic();
@@ -196,6 +217,7 @@ export default function CommunityScreen() {
       category: newCategory,
       title: newTitle.trim(),
       content: newContent.trim(),
+      imageUri: newImageUri || undefined,
       likes: [],
       comments: [],
       createdAt: new Date().toISOString(),
@@ -205,6 +227,7 @@ export default function CommunityScreen() {
     dispatch({ type: "ADD_POST", payload: post });
     setNewTitle("");
     setNewContent("");
+    setNewImageUri(null);
     setShowWriteModal(false);
 
     if (Platform.OS !== "web") {
@@ -330,6 +353,21 @@ export default function CommunityScreen() {
         <Text style={styles.postContent} numberOfLines={isExpanded ? undefined : 3}>
           {item.content}
         </Text>
+
+        {/* 이미지 */}
+        {item.imageUri && (
+          <Pressable
+            onPress={() => setFullScreenImage(item.imageUri!)}
+            style={({ pressed }) => [pressed && { opacity: 0.9 }]}
+          >
+            <Image
+              source={{ uri: item.imageUri }}
+              style={styles.postImage}
+              contentFit="cover"
+              transition={200}
+            />
+          </Pressable>
+        )}
 
         {/* 좋아요 & 댓글 */}
         <View style={styles.postActions}>
@@ -544,8 +582,47 @@ export default function CommunityScreen() {
               maxLength={1000}
               textAlignVertical="top"
             />
+
+            {/* 이미지 첨부 */}
+            {newImageUri ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: newImageUri }} style={styles.imagePreview} contentFit="cover" />
+                <Pressable
+                  onPress={() => { haptic(); setNewImageUri(null); }}
+                  style={({ pressed }) => [styles.imageRemoveBtn, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={styles.imageRemoveBtnText}>✕</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={handlePickImage}
+                style={({ pressed }) => [styles.imageAttachBtn, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={styles.imageAttachBtnText}>📷 사진 첨부</Text>
+              </Pressable>
+            )}
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* 이미지 전체화면 모달 */}
+      <Modal visible={!!fullScreenImage} animationType="fade" transparent>
+        <Pressable
+          onPress={() => setFullScreenImage(null)}
+          style={styles.fullScreenOverlay}
+        >
+          <View style={styles.fullScreenCloseBtn}>
+            <Text style={styles.fullScreenCloseText}>✕ 닫기</Text>
+          </View>
+          {fullScreenImage && (
+            <Image
+              source={{ uri: fullScreenImage }}
+              style={styles.fullScreenImage}
+              contentFit="contain"
+            />
+          )}
+        </Pressable>
       </Modal>
 
       {/* 수정 모달 */}
@@ -795,5 +872,74 @@ const styles = StyleSheet.create({
     color: "#1A1A1A",
     minHeight: 150,
     lineHeight: 22,
+  },
+  postImage: {
+    width: "100%" as unknown as number,
+    height: 200,
+    borderRadius: 12,
+  },
+  imagePreviewContainer: {
+    position: "relative" as const,
+    borderRadius: 12,
+    overflow: "hidden" as const,
+  },
+  imagePreview: {
+    width: "100%" as unknown as number,
+    height: 160,
+    borderRadius: 12,
+  },
+  imageRemoveBtn: {
+    position: "absolute" as const,
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  imageRemoveBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700" as const,
+  },
+  imageAttachBtn: {
+    borderWidth: 1.5,
+    borderColor: "#E0E0E0",
+    borderStyle: "dashed" as const,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center" as const,
+  },
+  imageAttachBtnText: {
+    fontSize: 14,
+    color: "#9E9E9E",
+    fontWeight: "600" as const,
+  },
+  fullScreenOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  fullScreenCloseBtn: {
+    position: "absolute" as const,
+    top: 60,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  fullScreenCloseText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600" as const,
+  },
+  fullScreenImage: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height * 0.7,
   },
 });

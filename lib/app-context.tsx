@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, { createContext, useContext, useReducer, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { sendLocalNotification, updateBadge } from "@/lib/push-notifications";
 
 export type UserRole = "owner" | "caretaker" | null;
 
@@ -128,6 +129,7 @@ export interface UserProfile {
 
 interface AppState {
   isOnboarded: boolean;
+  isLoaded: boolean;
   profile: UserProfile;
   posts: Post[];
   payments: Payment[];
@@ -172,7 +174,8 @@ type AppAction =
   | { type: "UPDATE_REQUEST_STATUS"; payload: { requestId: string; status: CareRequest["status"] } }
   | { type: "ADD_CHAT_MESSAGE"; payload: { roomId: string; message: ChatMessageData } }
   | { type: "SET_CHAT_MESSAGES"; payload: { roomId: string; messages: ChatMessageData[] } }
-  | { type: "LOAD_STATE"; payload: AppState };
+  | { type: "LOAD_STATE"; payload: AppState }
+  | { type: "RESET_APP" };
 
 function generateFriendCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -202,6 +205,7 @@ const initialProfile: UserProfile = {
 
 const initialState: AppState = {
   isOnboarded: false,
+  isLoaded: false,
   profile: initialProfile,
   posts: [],
   payments: [],
@@ -298,8 +302,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
             : p
         ),
       };
-    case "ADD_NOTIFICATION":
-      return { ...state, notifications: [action.payload, ...state.notifications] };
+    case "ADD_NOTIFICATION": {
+      // 로컬 푸시 알림 전송
+      sendLocalNotification({
+        title: action.payload.title,
+        body: action.payload.body,
+        data: { type: action.payload.type, relatedId: action.payload.relatedId },
+      });
+      const newNotifications = [action.payload, ...state.notifications];
+      const unreadCount = newNotifications.filter(n => !n.isRead).length;
+      updateBadge(unreadCount);
+      return { ...state, notifications: newNotifications };
+    }
     case "MARK_NOTIFICATION_READ":
       return {
         ...state,
@@ -307,11 +321,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
           n.id === action.payload ? { ...n, isRead: true } : n
         ),
       };
-    case "MARK_ALL_NOTIFICATIONS_READ":
+    case "MARK_ALL_NOTIFICATIONS_READ": {
+      updateBadge(0);
       return {
         ...state,
         notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
       };
+    }
     case "ADD_REQUEST":
       return { ...state, requests: [action.payload, ...state.requests] };
     case "UPDATE_REQUEST_STATUS":
@@ -344,6 +360,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...initialState,
         ...action.payload,
+        isLoaded: true,
         profile: {
           ...initialProfile,
           ...action.payload.profile,
@@ -358,6 +375,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         requests: action.payload.requests ?? [],
         chatMessages: action.payload.chatMessages ?? {},
       };
+    case "RESET_APP":
+      return { ...initialState, isLoaded: true, profile: { ...initialProfile, friendCode: generateFriendCode() } };
     default:
       return state;
   }
@@ -367,6 +386,7 @@ interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   saveState: () => Promise<void>;
+  resetApp: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -383,14 +403,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (stored) {
           const parsed = JSON.parse(stored) as AppState;
           dispatch({ type: "LOAD_STATE", payload: parsed });
+        } else {
+          dispatch({ type: "LOAD_STATE", payload: initialState });
         }
-      } catch (_) {}
+      } catch (_) {
+        dispatch({ type: "LOAD_STATE", payload: initialState });
+      }
     })();
   }, []);
 
   const saveState = async () => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if (state.isLoaded) {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+    } catch (_) {}
+  };
+
+  const resetApp = async () => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      dispatch({ type: "RESET_APP" });
     } catch (_) {}
   };
 
@@ -399,7 +432,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state]);
 
   return (
-    <AppContext.Provider value={{ state, dispatch, saveState }}>
+    <AppContext.Provider value={{ state, dispatch, saveState, resetApp }}>
       {children}
     </AppContext.Provider>
   );
