@@ -15,6 +15,7 @@ import {
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, UserRole, Neighborhood } from "@/lib/app-context";
 import { NEIGHBORHOODS, MOCK_CARETAKERS, MOCK_OWNERS } from "@/lib/mock-data";
+import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 const { width } = Dimensions.get("window");
@@ -69,6 +70,7 @@ export default function OnboardingScreen() {
   const [isCompleting, setIsCompleting] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const { dispatch } = useApp();
+  const router = useRouter();
 
   // 페이드 애니메이션 값
   const fadeAnim = useRef(new RNAnimated.Value(1)).current;
@@ -183,6 +185,10 @@ export default function OnboardingScreen() {
       });
       setTimeout(() => {
         dispatch({ type: "SET_ONBOARDED", payload: true });
+        // 직접 홈 화면으로 이동
+        setTimeout(() => {
+          router.replace("/(tabs)" as never);
+        }, 200);
       }, 100);
     });
   };
