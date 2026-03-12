@@ -10,6 +10,7 @@ import {
   Modal,
   ScrollView,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Post, PostComment } from "@/lib/app-context";
@@ -114,6 +115,16 @@ export default function CommunityScreen() {
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState<"자유" | "산책" | "돌봄" | "정보">("자유");
 
+  // 수정 모달 상태
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPostId, setEditPostId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editCategory, setEditCategory] = useState<"자유" | "산책" | "돌봄" | "정보">("자유");
+
+  // 더보기 메뉴 상태
+  const [menuPostId, setMenuPostId] = useState<string | null>(null);
+
   const allPosts = [...(state.posts || []), ...DEMO_POSTS];
   const filteredPosts = selectedCategory === "전체"
     ? allPosts
@@ -170,9 +181,73 @@ export default function CommunityScreen() {
     }
   };
 
+  const handleDeletePost = (postId: string) => {
+    haptic();
+    const doDelete = () => {
+      dispatch({ type: "DELETE_POST", payload: postId });
+      setMenuPostId(null);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (confirm("이 게시글을 삭제하시겠습니까?")) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        "게시글 삭제",
+        "이 게시글을 삭제하시겠습니까?\n삭제된 게시글은 복구할 수 없습니다.",
+        [
+          { text: "취소", style: "cancel" },
+          { text: "삭제", style: "destructive", onPress: doDelete },
+        ]
+      );
+    }
+  };
+
+  const handleEditPost = (post: Post) => {
+    haptic();
+    setEditPostId(post.id);
+    setEditTitle(post.title);
+    setEditContent(post.content);
+    setEditCategory(post.category);
+    setMenuPostId(null);
+    setShowEditModal(true);
+  };
+
+  const handleSubmitEdit = () => {
+    if (!editPostId || !editTitle.trim() || !editContent.trim()) return;
+    haptic();
+
+    dispatch({
+      type: "EDIT_POST",
+      payload: {
+        postId: editPostId,
+        title: editTitle.trim(),
+        content: editContent.trim(),
+        category: editCategory,
+      },
+    });
+
+    setShowEditModal(false);
+    setEditPostId(null);
+    setEditTitle("");
+    setEditContent("");
+
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const isMyPost = (post: Post) => post.authorId === userId;
+
   const renderPost = ({ item }: { item: Post }) => {
     const isExpanded = expandedPost === item.id;
     const isLiked = item.likes.includes(userId);
+    const isMine = isMyPost(item);
+    const showMenu = menuPostId === item.id;
 
     return (
       <View style={styles.postCard}>
@@ -190,7 +265,34 @@ export default function CommunityScreen() {
               {CATEGORY_EMOJIS[item.category]} {item.category}
             </Text>
           </View>
+          {isMine && (
+            <Pressable
+              onPress={() => { haptic(); setMenuPostId(showMenu ? null : item.id); }}
+              style={({ pressed }) => [styles.moreBtn, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.moreBtnText}>⋯</Text>
+            </Pressable>
+          )}
         </View>
+
+        {/* 더보기 메뉴 */}
+        {showMenu && isMine && (
+          <View style={styles.menuDropdown}>
+            <Pressable
+              onPress={() => handleEditPost(item)}
+              style={({ pressed }) => [styles.menuItem, pressed && { backgroundColor: "#F5F5F5" }]}
+            >
+              <Text style={styles.menuItemText}>✏️ 수정하기</Text>
+            </Pressable>
+            <View style={styles.menuDivider} />
+            <Pressable
+              onPress={() => handleDeletePost(item.id)}
+              style={({ pressed }) => [styles.menuItem, pressed && { backgroundColor: "#FFF3F3" }]}
+            >
+              <Text style={[styles.menuItemText, { color: "#EF5350" }]}>🗑️ 삭제하기</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* 제목 및 내용 */}
         <Text style={styles.postTitle}>{item.title}</Text>
@@ -377,6 +479,78 @@ export default function CommunityScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* 수정 모달 */}
+      <Modal visible={showEditModal} animationType="slide" transparent>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Pressable
+                onPress={() => { haptic(); setShowEditModal(false); setEditPostId(null); }}
+                style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+              >
+                <Text style={styles.modalCancel}>취소</Text>
+              </Pressable>
+              <Text style={styles.modalTitle}>글 수정</Text>
+              <Pressable
+                onPress={handleSubmitEdit}
+                disabled={!editTitle.trim() || !editContent.trim()}
+                style={({ pressed }) => [
+                  styles.modalSubmitBtn,
+                  (!editTitle.trim() || !editContent.trim()) && { opacity: 0.4 },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.modalSubmitText}>수정</Text>
+              </Pressable>
+            </View>
+
+            {/* 카테고리 선택 */}
+            <View style={styles.modalCategoryRow}>
+              {(["자유", "산책", "돌봄", "정보"] as const).map((cat) => (
+                <Pressable
+                  key={cat}
+                  onPress={() => { haptic(); setEditCategory(cat); }}
+                  style={({ pressed }) => [
+                    styles.modalCategoryChip,
+                    editCategory === cat && { backgroundColor: getCategoryColor(cat), borderColor: getCategoryColor(cat) },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={[
+                    styles.modalCategoryText,
+                    editCategory === cat && { color: "#fff" },
+                  ]}>
+                    {CATEGORY_EMOJIS[cat]} {cat}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.modalTitleInput}
+              placeholder="제목을 입력하세요"
+              placeholderTextColor="#BDBDBD"
+              value={editTitle}
+              onChangeText={setEditTitle}
+              maxLength={50}
+            />
+            <TextInput
+              style={styles.modalContentInput}
+              placeholder="내용을 입력하세요..."
+              placeholderTextColor="#BDBDBD"
+              value={editContent}
+              onChangeText={setEditContent}
+              multiline
+              maxLength={1000}
+              textAlignVertical="top"
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -429,6 +603,23 @@ const styles = StyleSheet.create({
   postMeta: { fontSize: 11, color: "#9E9E9E", marginTop: 1 },
   categoryBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   categoryBadgeText: { fontSize: 11, fontWeight: "600" },
+  moreBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  moreBtnText: { fontSize: 20, color: "#9E9E9E", fontWeight: "700" },
+  menuDropdown: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  menuItem: { paddingHorizontal: 16, paddingVertical: 12 },
+  menuItemText: { fontSize: 14, fontWeight: "600", color: "#1A1A1A" },
+  menuDivider: { height: 1, backgroundColor: "#F0F0F0" },
   postTitle: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
   postContent: { fontSize: 14, color: "#555", lineHeight: 20 },
   postActions: { flexDirection: "row", gap: 16, paddingTop: 4 },

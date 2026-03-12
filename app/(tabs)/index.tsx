@@ -101,8 +101,19 @@ function OwnerHome() {
           <Text style={styles.greeting}>안녕하세요 👋</Text>
           <Text style={styles.nickname}>{state.profile.nickname || "반려인"}</Text>
         </View>
-        <View style={styles.neighborhoodBadge}>
-          <Text style={styles.neighborhoodText}>📍 {state.profile.neighborhood || "동네 미설정"}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Pressable
+            onPress={() => { haptic(); router.push("/notifications" as never); }}
+            style={({ pressed }) => [styles.notificationBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={{ fontSize: 20 }}>🔔</Text>
+            {(state.notifications || []).filter((n: any) => !n.isRead).length > 0 && (
+              <View style={styles.notifDot} />
+            )}
+          </Pressable>
+          <View style={styles.neighborhoodBadge}>
+            <Text style={styles.neighborhoodText}>📍 {state.profile.neighborhood || "동네 미설정"}</Text>
+          </View>
         </View>
       </View>
 
@@ -231,8 +242,19 @@ function CaretakerHome() {
           <Text style={styles.greeting}>안녕하세요 👋</Text>
           <Text style={styles.nickname}>{state.profile.nickname || "돌보미"}</Text>
         </View>
-        <View style={styles.neighborhoodBadge}>
-          <Text style={styles.neighborhoodText}>📍 {state.profile.neighborhood || "동네 미설정"}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Pressable
+            onPress={() => { haptic(); router.push("/notifications" as never); }}
+            style={({ pressed }) => [styles.notificationBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={{ fontSize: 20 }}>🔔</Text>
+            {(state.notifications || []).filter((n: any) => !n.isRead).length > 0 && (
+              <View style={styles.notifDot} />
+            )}
+          </Pressable>
+          <View style={styles.neighborhoodBadge}>
+            <Text style={styles.neighborhoodText}>📍 {state.profile.neighborhood || "동네 미설정"}</Text>
+          </View>
         </View>
       </View>
 
@@ -577,5 +599,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#616161",
+  },
+  notificationBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative" as const,
+  },
+  notifDot: {
+    position: "absolute" as const,
+    top: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#EF5350",
+    borderWidth: 2,
+    borderColor: "#F5F5F5",
   },
 });

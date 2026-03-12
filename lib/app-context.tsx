@@ -21,6 +21,7 @@ export interface Pet {
   age: number;
   size: "소형" | "중형" | "대형";
   emoji: string;
+  photoUri?: string;
 }
 
 export interface Review {
@@ -65,6 +66,18 @@ export interface PostComment {
   createdAt: string;
 }
 
+export interface Notification {
+  id: string;
+  type: "comment" | "like" | "match_request" | "message" | "friend_add";
+  title: string;
+  body: string;
+  relatedId?: string;
+  fromNickname?: string;
+  fromEmoji?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface Payment {
   id: string;
   requestId?: string;
@@ -101,6 +114,7 @@ interface AppState {
   profile: UserProfile;
   posts: Post[];
   payments: Payment[];
+  notifications: Notification[];
 }
 
 type AppAction =
@@ -109,6 +123,8 @@ type AppAction =
   | { type: "SET_NEIGHBORHOOD"; payload: Neighborhood }
   | { type: "SET_PROFILE"; payload: Partial<UserProfile> }
   | { type: "ADD_PET"; payload: Pet }
+  | { type: "UPDATE_PET"; payload: { petId: string; updates: Partial<Pet> } }
+  | { type: "REMOVE_PET"; payload: string }
   | { type: "TOGGLE_CARETAKER_ACTIVE" }
   | { type: "ADD_FRIEND"; payload: Friend }
   | { type: "REMOVE_FRIEND"; payload: string }
@@ -118,6 +134,11 @@ type AppAction =
   | { type: "ADD_COMMENT"; payload: { postId: string; comment: PostComment } }
   | { type: "ADD_PAYMENT"; payload: Payment }
   | { type: "UPDATE_PAYMENT_STATUS"; payload: { paymentId: string; status: Payment["status"] } }
+  | { type: "DELETE_POST"; payload: string }
+  | { type: "EDIT_POST"; payload: { postId: string; title: string; content: string; category: Post["category"] } }
+  | { type: "ADD_NOTIFICATION"; payload: Notification }
+  | { type: "MARK_NOTIFICATION_READ"; payload: string }
+  | { type: "MARK_ALL_NOTIFICATIONS_READ" }
   | { type: "LOAD_STATE"; payload: AppState };
 
 function generateFriendCode(): string {
@@ -151,6 +172,7 @@ const initialState: AppState = {
   profile: initialProfile,
   posts: [],
   payments: [],
+  notifications: [],
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -165,6 +187,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, profile: { ...state.profile, ...action.payload } };
     case "ADD_PET":
       return { ...state, profile: { ...state.profile, pets: [...state.profile.pets, action.payload] } };
+    case "UPDATE_PET":
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          pets: state.profile.pets.map((p) =>
+            p.id === action.payload.petId ? { ...p, ...action.payload.updates } : p
+          ),
+        },
+      };
+    case "REMOVE_PET":
+      return { ...state, profile: { ...state.profile, pets: state.profile.pets.filter((p) => p.id !== action.payload) } };
     case "TOGGLE_CARETAKER_ACTIVE":
       return { ...state, profile: { ...state.profile, isCaretakerActive: !state.profile.isCaretakerActive } };
     case "ADD_FRIEND":
@@ -218,6 +252,31 @@ function appReducer(state: AppState, action: AppAction): AppState {
           p.id === action.payload.paymentId ? { ...p, status: action.payload.status } : p
         ),
       };
+    case "DELETE_POST":
+      return { ...state, posts: state.posts.filter((p) => p.id !== action.payload) };
+    case "EDIT_POST":
+      return {
+        ...state,
+        posts: state.posts.map((p) =>
+          p.id === action.payload.postId
+            ? { ...p, title: action.payload.title, content: action.payload.content, category: action.payload.category }
+            : p
+        ),
+      };
+    case "ADD_NOTIFICATION":
+      return { ...state, notifications: [action.payload, ...state.notifications] };
+    case "MARK_NOTIFICATION_READ":
+      return {
+        ...state,
+        notifications: state.notifications.map((n) =>
+          n.id === action.payload ? { ...n, isRead: true } : n
+        ),
+      };
+    case "MARK_ALL_NOTIFICATIONS_READ":
+      return {
+        ...state,
+        notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
+      };
     case "LOAD_STATE":
       return {
         ...initialState,
@@ -232,6 +291,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
         posts: action.payload.posts ?? [],
         payments: action.payload.payments ?? [],
+        notifications: action.payload.notifications ?? [],
       };
     default:
       return state;

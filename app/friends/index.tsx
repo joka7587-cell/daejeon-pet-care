@@ -110,6 +110,12 @@ export default function FriendsScreen() {
     }
   };
 
+  const handleStartChat = (friend: Friend) => {
+    haptic();
+    const roomId = Math.abs(friend.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 10000) + 200;
+    router.push(`/chat/${roomId}?friendName=${encodeURIComponent(friend.nickname)}&friendEmoji=${encodeURIComponent(friend.profileEmoji)}` as never);
+  };
+
   const renderFriend = ({ item }: { item: Friend }) => (
     <View style={styles.friendCard}>
       <Text style={styles.friendEmoji}>{item.profileEmoji}</Text>
@@ -119,6 +125,12 @@ export default function FriendsScreen() {
           📍 {item.neighborhood} · {item.role === "owner" ? "🐶 반려인" : "🏠 돌보미"}
         </Text>
       </View>
+      <Pressable
+        onPress={() => handleStartChat(item)}
+        style={({ pressed }) => [styles.chatBtn, pressed && { opacity: 0.85 }]}
+      >
+        <Text style={styles.chatBtnText}>💬</Text>
+      </Pressable>
       <Pressable
         onPress={() => handleRemoveFriend(item.id)}
         style={({ pressed }) => [styles.removeBtn, pressed && { opacity: 0.7 }]}
@@ -323,6 +335,8 @@ const styles = StyleSheet.create({
   friendEmoji: { fontSize: 36 },
   friendName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
   friendInfo: { fontSize: 12, color: "#757575", marginTop: 2 },
+  chatBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#FF704320", borderRadius: 8, marginRight: 4 },
+  chatBtnText: { fontSize: 16 },
   removeBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#FFF3EE", borderRadius: 8 },
   removeBtnText: { fontSize: 12, color: "#EF5350", fontWeight: "600" },
   emptyContainer: { alignItems: "center", paddingVertical: 60, gap: 8 },

@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
 } from "react-native";
+import { Image } from "expo-image";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, UserRole, Neighborhood, Pet } from "@/lib/app-context";
 import { NEIGHBORHOODS } from "@/lib/mock-data";
@@ -198,13 +199,29 @@ export default function ProfileScreen() {
                 <Text style={styles.emptyText}>등록된 반려동물이 없어요</Text>
               ) : (
                 profile.pets.map((pet) => (
-                  <View key={pet.id} style={styles.petCard}>
-                    <Text style={{ fontSize: 32 }}>{pet.emoji}</Text>
+                  <Pressable
+                    key={pet.id}
+                    onPress={() => { haptic(); router.push(`/pet/${pet.id}` as never); }}
+                    style={({ pressed }) => [styles.petCard, pressed && { opacity: 0.8 }]}
+                  >
+                    {pet.photoUri ? (
+                      <Image
+                        source={{ uri: pet.photoUri }}
+                        style={styles.petPhotoThumb}
+                        contentFit="cover"
+                        transition={200}
+                      />
+                    ) : (
+                      <View style={styles.petEmojiContainer}>
+                        <Text style={{ fontSize: 28 }}>{pet.emoji}</Text>
+                      </View>
+                    )}
                     <View style={{ flex: 1 }}>
                       <Text style={styles.petName}>{pet.name}</Text>
                       <Text style={styles.petInfo}>{pet.breed} · {pet.age}살 · {pet.size}</Text>
                     </View>
-                  </View>
+                    <Text style={{ fontSize: 16, color: "#C0C0C0" }}>›</Text>
+                  </Pressable>
                 ))
               )}
               <Pressable
@@ -372,6 +389,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
     borderRadius: 12,
     padding: 12,
+  },
+  petPhotoThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  petEmojiContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFF3EE",
+    alignItems: "center",
+    justifyContent: "center",
   },
   petName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
   petInfo: { fontSize: 12, color: "#757575", marginTop: 2 },
