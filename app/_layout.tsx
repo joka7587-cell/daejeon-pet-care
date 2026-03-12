@@ -101,20 +101,22 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
-          {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
-          {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
-          <OnboardingGuard>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="oauth/callback" />
-              <Stack.Screen name="request/new" options={{ presentation: "modal" }} />
-              <Stack.Screen name="request/[id]" options={{ presentation: "modal" }} />
-              <Stack.Screen name="profile/[id]" />
-            </Stack>
-          </OnboardingGuard>
-          <StatusBar style="auto" />
+          <AppProvider>
+            {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
+            {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
+            {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
+            <OnboardingGuard>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="oauth/callback" />
+                <Stack.Screen name="request/new" options={{ presentation: "modal" }} />
+                <Stack.Screen name="request/[id]" options={{ presentation: "modal" }} />
+                <Stack.Screen name="profile/[id]" />
+              </Stack>
+            </OnboardingGuard>
+            <StatusBar style="auto" />
+          </AppProvider>
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>
@@ -125,24 +127,20 @@ export default function RootLayout() {
   if (shouldOverrideSafeArea) {
     return (
       <ThemeProvider>
-        <AppProvider>
-          <SafeAreaProvider initialMetrics={providerInitialMetrics}>
-            <SafeAreaFrameContext.Provider value={frame}>
-              <SafeAreaInsetsContext.Provider value={insets}>
-                {content}
-              </SafeAreaInsetsContext.Provider>
-            </SafeAreaFrameContext.Provider>
-          </SafeAreaProvider>
-        </AppProvider>
+        <SafeAreaProvider initialMetrics={providerInitialMetrics}>
+          <SafeAreaFrameContext.Provider value={frame}>
+            <SafeAreaInsetsContext.Provider value={insets}>
+              {content}
+            </SafeAreaInsetsContext.Provider>
+          </SafeAreaFrameContext.Provider>
+        </SafeAreaProvider>
       </ThemeProvider>
     );
   }
 
   return (
     <ThemeProvider>
-      <AppProvider>
-        <SafeAreaProvider initialMetrics={providerInitialMetrics}>{content}</SafeAreaProvider>
-      </AppProvider>
+      <SafeAreaProvider initialMetrics={providerInitialMetrics}>{content}</SafeAreaProvider>
     </ThemeProvider>
   );
 }
