@@ -139,6 +139,33 @@ interface AppState {
   notifications: Notification[];
   requests: CareRequest[];
   chatMessages: Record<string, ChatMessageData[]>;
+  walkSessions: WalkSession[];
+  activeWalkSessionId: string | null;
+}
+
+export interface WalkRoutePoint {
+  lat: number;
+  lng: number;
+  timestamp: string;
+}
+
+export interface WalkSession {
+  id: string;
+  requestId?: string; // 연결된 돌봄 요청 ID
+  petName: string;
+  petEmoji: string;
+  ownerName?: string; // 반려인 이름
+  caretakerName?: string; // 돌보미 이름
+  neighborhood: string;
+  status: "active" | "paused" | "completed";
+  startedAt: string;
+  endedAt?: string;
+  totalDistanceKm: number;
+  totalDurationSec: number;
+  routePoints: WalkRoutePoint[];
+  avgSpeedKmh: number;
+  maxSpeedKmh: number;
+  pausedDurationSec: number;
 }
 
 export interface ChatMessageData {
@@ -178,6 +205,12 @@ type AppAction =
   | { type: "ADD_CHAT_MESSAGE"; payload: { roomId: string; message: ChatMessageData } }
   | { type: "SET_CHAT_MESSAGES"; payload: { roomId: string; messages: ChatMessageData[] } }
   | { type: "TOGGLE_ONLINE" }
+  | { type: "START_WALK_SESSION"; payload: WalkSession }
+  | { type: "UPDATE_WALK_SESSION"; payload: { sessionId: string; updates: Partial<WalkSession> } }
+  | { type: "ADD_WALK_ROUTE_POINT"; payload: { sessionId: string; point: WalkRoutePoint } }
+  | { type: "COMPLETE_WALK_SESSION"; payload: string }
+  | { type: "PAUSE_WALK_SESSION"; payload: string }
+  | { type: "RESUME_WALK_SESSION"; payload: string }
   | { type: "LOAD_STATE"; payload: AppState }
   | { type: "RESET_APP" };
 
@@ -218,6 +251,8 @@ const initialState: AppState = {
   notifications: [],
   requests: [],
   chatMessages: {},
+  walkSessions: [],
+  activeWalkSessionId: null,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -364,6 +399,53 @@ function appReducer(state: AppState, action: AppAction): AppState {
           [action.payload.roomId]: action.payload.messages,
         },
       };
+    case "START_WALK_SESSION":
+      return {
+        ...state,
+        walkSessions: [action.payload, ...state.walkSessions],
+        activeWalkSessionId: action.payload.id,
+      };
+    case "UPDATE_WALK_SESSION":
+      return {
+        ...state,
+        walkSessions: state.walkSessions.map((s) =>
+          s.id === action.payload.sessionId ? { ...s, ...action.payload.updates } : s
+        ),
+      };
+    case "ADD_WALK_ROUTE_POINT": {
+      return {
+        ...state,
+        walkSessions: state.walkSessions.map((s) =>
+          s.id === action.payload.sessionId
+            ? { ...s, routePoints: [...s.routePoints, action.payload.point] }
+            : s
+        ),
+      };
+    }
+    case "PAUSE_WALK_SESSION":
+      return {
+        ...state,
+        walkSessions: state.walkSessions.map((s) =>
+          s.id === action.payload ? { ...s, status: "paused" as const } : s
+        ),
+      };
+    case "RESUME_WALK_SESSION":
+      return {
+        ...state,
+        walkSessions: state.walkSessions.map((s) =>
+          s.id === action.payload ? { ...s, status: "active" as const } : s
+        ),
+      };
+    case "COMPLETE_WALK_SESSION":
+      return {
+        ...state,
+        walkSessions: state.walkSessions.map((s) =>
+          s.id === action.payload
+            ? { ...s, status: "completed" as const, endedAt: new Date().toISOString() }
+            : s
+        ),
+        activeWalkSessionId: state.activeWalkSessionId === action.payload ? null : state.activeWalkSessionId,
+      };
     case "LOAD_STATE":
       return {
         ...initialState,
@@ -382,6 +464,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         notifications: action.payload.notifications ?? [],
         requests: action.payload.requests ?? [],
         chatMessages: action.payload.chatMessages ?? {},
+        walkSessions: (action.payload as any).walkSessions ?? [],
+        activeWalkSessionId: (action.payload as any).activeWalkSessionId ?? null,
       };
     case "RESET_APP":
       return { ...initialState, isLoaded: true, profile: { ...initialProfile, friendCode: generateFriendCode() } };

@@ -231,6 +231,13 @@ export default function ProfileScreen() {
               onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}
               colors={colors}
             />
+            <MenuRow
+              emoji="🐾"
+              label="산책 기록"
+              badge={`${(state.walkSessions || []).filter((s: any) => s.status === "completed").length}회`}
+              onPress={() => { haptic(); router.push("/walk/history" as never); }}
+              colors={colors}
+            />
           </SectionCard>
 
           {/* 기본 정보 */}

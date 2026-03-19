@@ -133,6 +133,12 @@ export default function RequestDetailScreen() {
     router.push(`/chat/${chatRoomId}?friendName=${encodeURIComponent(request.requester)}&friendEmoji=${encodeURIComponent(request.petEmoji)}` as never);
   };
 
+  const handleStartWalk = () => {
+    if (!request) return;
+    haptic("success");
+    router.push(`/walk/tracker?petName=${encodeURIComponent(request.petName)}&petEmoji=${encodeURIComponent(request.petEmoji)}&requestId=${request.id}&ownerName=${encodeURIComponent(request.requester)}` as never);
+  };
+
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]}>
       {/* 헤더 */}
@@ -246,19 +252,29 @@ export default function RequestDetailScreen() {
       {isCaretaker && accepted !== null && (
         <View style={styles.bottomActions}>
           {accepted && (
+            <>
+              <Pressable
+                onPress={handleStartWalk}
+                style={({ pressed }) => [styles.acceptBtn, { flex: 1, backgroundColor: "#4CAF82" }, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+              >
+                <Text style={styles.acceptBtnText}>🐾 산책 시작</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleOpenChat}
+                style={({ pressed }) => [styles.rejectBtn, { flex: 1 }, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={styles.rejectBtnText}>💬 채팅</Text>
+              </Pressable>
+            </>
+          )}
+          {!accepted && (
             <Pressable
-              onPress={handleOpenChat}
-              style={({ pressed }) => [styles.acceptBtn, { flex: 1, backgroundColor: "#FF7043" }, pressed && { opacity: 0.85 }]}
+              onPress={() => router.back()}
+              style={({ pressed }) => [styles.rejectBtn, { flex: 1 }, pressed && { opacity: 0.85 }]}
             >
-              <Text style={styles.acceptBtnText}>💬 채팅으로 이동</Text>
+              <Text style={styles.rejectBtnText}>목록으로 돌아가기</Text>
             </Pressable>
           )}
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [styles.rejectBtn, { flex: 1 }, pressed && { opacity: 0.85 }]}
-          >
-            <Text style={styles.rejectBtnText}>목록으로 돌아가기</Text>
-          </Pressable>
         </View>
       )}
     </ScreenContainer>

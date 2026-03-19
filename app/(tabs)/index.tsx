@@ -200,6 +200,34 @@ function OwnerHome() {
         </View>
       </View>
 
+      {/* 산책 기록 확인 */}
+      {(state.walkSessions || []).length > 0 && (
+        <View style={styles.section}>
+          <Pressable
+            onPress={() => { haptic(); router.push("/walk/history" as never); }}
+            style={({ pressed }) => [{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#FF704315",
+              borderRadius: 14,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: "#FF704330",
+              gap: 12,
+            }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+          >
+            <Text style={{ fontSize: 28 }}>🐾</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: "#E64A19" }}>산책 기록 확인</Text>
+              <Text style={{ fontSize: 12, color: "#FF7043", marginTop: 2 }}>
+                돌보미의 산책 기록을 확인해보세요
+              </Text>
+            </View>
+            <Text style={{ fontSize: 18, color: "#FF7043" }}>→</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* 추천 돌보미 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>추천 돌보미</Text>
@@ -386,6 +414,32 @@ function CaretakerHome() {
             </Pressable>
           ))}
         </View>
+      </View>
+
+      {/* 산책 기록 바로가기 */}
+      <View style={styles.section}>
+        <Pressable
+          onPress={() => { haptic(); router.push("/walk/history" as never); }}
+          style={({ pressed }) => [{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "#4CAF8215",
+            borderRadius: 14,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: "#4CAF8230",
+            gap: 12,
+          }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+        >
+          <Text style={{ fontSize: 28 }}>🐾</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: "#2E7D32" }}>산책 기록</Text>
+            <Text style={{ fontSize: 12, color: "#4CAF82", marginTop: 2 }}>
+              {(state.walkSessions || []).filter(s => s.status === "completed").length}회 산책 완료
+            </Text>
+          </View>
+          <Text style={{ fontSize: 18, color: "#4CAF82" }}>→</Text>
+        </Pressable>
       </View>
 
       {/* 새 요청 */}
