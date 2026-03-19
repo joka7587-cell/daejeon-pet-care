@@ -8,11 +8,15 @@ import {
   pets,
   matchingRequests,
   matchingHistory,
+  friendCodes,
+  friendships,
   InsertUserProfile,
   InsertUserLocation,
   InsertPet,
   InsertMatchingRequest,
   InsertMatchingHistory,
+  InsertFriendCode,
+  InsertFriendship,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -323,6 +327,73 @@ export async function updateMatchingHistory(
 /**
  * 사용자 평점 계산
  */
+/**
+ * Friend Codes - 친구 코드 관리
+ */
+
+// 친구 코드 등록 또는 업데이트
+export async function upsertFriendCode(data: InsertFriendCode): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(friendCodes).values(data).onDuplicateKeyUpdate({
+    set: {
+      nickname: data.nickname,
+      profileEmoji: data.profileEmoji,
+      neighborhood: data.neighborhood,
+      role: data.role,
+    },
+  });
+}
+
+// 친구 코드로 사용자 검색
+export async function findUserByFriendCode(code: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(friendCodes).where(eq(friendCodes.code, code)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+// 내 친구 코드 조회
+export async function getFriendCode(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(friendCodes).where(eq(friendCodes.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+// 친구 관계 추가
+export async function addFriendship(data: InsertFriendship): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(friendships).values(data);
+}
+
+// 친구 목록 조회
+export async function getFriendships(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(friendships).where(eq(friendships.userId, userId));
+}
+
+// 친구 관계 존재 확인
+export async function isFriend(userId: number, friendUserId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.select().from(friendships).where(
+    and(eq(friendships.userId, userId), eq(friendships.friendUserId, friendUserId))
+  ).limit(1);
+  return result.length > 0;
+}
+
+// 친구 삭제
+export async function removeFriendship(userId: number, friendUserId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(friendships).where(
+    and(eq(friendships.userId, userId), eq(friendships.friendUserId, friendUserId))
+  );
+}
+
 export async function updateUserRating(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;

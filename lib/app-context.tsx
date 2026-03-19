@@ -37,6 +37,7 @@ export interface Review {
 
 export interface Friend {
   id: string;
+  serverUserId?: number; // 서버 DB의 userId (실제 친구 추가 시)
   nickname: string;
   profileEmoji: string;
   neighborhood: string;
@@ -402,6 +403,7 @@ const STORAGE_KEY = "@petcare_app_state";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const hasRegisteredRef = React.useRef(false);
 
   useEffect(() => {
     (async () => {

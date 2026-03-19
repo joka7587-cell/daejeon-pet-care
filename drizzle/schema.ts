@@ -158,3 +158,38 @@ export const messages = mysqlTable("messages", {
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
+
+/**
+ * Friend Codes - 사용자별 고유 친구 코드
+ */
+export const friendCodes = mysqlTable("friendCodes", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  code: varchar("code", { length: 20 }).notNull().unique(),
+  nickname: varchar("nickname", { length: 100 }).notNull(),
+  profileEmoji: varchar("profileEmoji", { length: 10 }),
+  neighborhood: varchar("neighborhood", { length: 50 }),
+  role: mysqlEnum("role", ["owner", "caretaker"]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FriendCode = typeof friendCodes.$inferSelect;
+export type InsertFriendCode = typeof friendCodes.$inferInsert;
+
+/**
+ * Friendships - 친구 관계
+ */
+export const friendships = mysqlTable("friendships", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  friendUserId: int("friendUserId").notNull(),
+  friendNickname: varchar("friendNickname", { length: 100 }).notNull(),
+  friendEmoji: varchar("friendEmoji", { length: 10 }),
+  friendNeighborhood: varchar("friendNeighborhood", { length: 50 }),
+  friendRole: mysqlEnum("friendRole", ["owner", "caretaker"]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Friendship = typeof friendships.$inferSelect;
+export type InsertFriendship = typeof friendships.$inferInsert;

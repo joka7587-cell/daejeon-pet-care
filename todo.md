@@ -251,3 +251,13 @@
 - [x] 프로필 설정에 활동 상태 토글 스위치 추가
 - [x] 오프라인 시 "새 요청을 받지 않습니다" 안내 표시
 - [x] isOnline 상태 AsyncStorage에 영속 저장
+
+## 버그 수정 (Phase 9)
+
+### 친구 추가 기능 버그
+- [x] 서버 DB 기반 친구 코드 시스템 구현 (friendCodes, friendships 테이블)
+- [x] tRPC API 추가 (registerCode, searchByCode, addFriend, list, removeFriend)
+- [x] 프론트엔드 서버 API 연동 + 로컬 데모 코드 폴백
+- [x] 앱 시작 시 서버에 친구 코드 자동 등록
+- [x] 실제 사용자 검색 시 "실제 사용자" 배지 표시
+- [x] 서버 등록 상태 표시 (🌐 서버 등록됨)

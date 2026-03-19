@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,17 +9,21 @@ import {
   Platform,
   Alert,
   Share,
+  ActivityIndicator,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Friend } from "@/lib/app-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { trpc } from "@/lib/trpc";
+import { useColors } from "@/hooks/use-colors";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
 
+// 로컬 데모 코드 (서버 연결 실패 시 폴백)
 const MOCK_FRIEND_CODES: Record<string, { nickname: string; emoji: string; neighborhood: string; role: "owner" | "caretaker" }> = {
   "ABCD-1234": { nickname: "강아지사랑 민지", emoji: "👩", neighborhood: "유성구", role: "caretaker" },
   "EFGH-5678": { nickname: "골든리트리버 맘", emoji: "👩", neighborhood: "유성구", role: "owner" },
@@ -28,19 +32,91 @@ const MOCK_FRIEND_CODES: Record<string, { nickname: string; emoji: string; neigh
   "STUV-7890": { nickname: "펫케어 수빈", emoji: "👩‍🎓", neighborhood: "관평", role: "caretaker" },
 };
 
+// 기기 고유 ID 생성 (AsyncStorage에 저장)
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+async function getDeviceId(): Promise<string> {
+  const key = "@petcare_device_id";
+  let id = await AsyncStorage.getItem(key);
+  if (!id) {
+    id = `device_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    await AsyncStorage.setItem(key, id);
+  }
+  return id;
+}
+
 export default function FriendsScreen() {
   const router = useRouter();
   const { state, dispatch } = useApp();
+  const colors = useColors();
   const [friendCode, setFriendCode] = useState("");
   const [showCodeInput, setShowCodeInput] = useState(false);
-  const [searchResult, setSearchResult] = useState<{ nickname: string; emoji: string; neighborhood: string; role: "owner" | "caretaker" } | null>(null);
+  const [searchResult, setSearchResult] = useState<{
+    userId?: number;
+    nickname: string;
+    emoji: string;
+    neighborhood: string;
+    role: "owner" | "caretaker";
+    isServerUser: boolean;
+  } | null>(null);
   const [searchError, setSearchError] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [serverRegistered, setServerRegistered] = useState(false);
 
   const myCode = state.profile.friendCode;
   const friends = state.profile.friends;
 
-  const handleSearch = () => {
+  // 서버에 내 친구 코드 등록 (앱 시작 시)
+  const registerMyCode = useCallback(async () => {
+    if (!state.profile.nickname || !state.profile.role || isRegistering) return;
+    setIsRegistering(true);
+    try {
+      const deviceId = await getDeviceId();
+      const response = await fetch(getApiUrl("/api/trpc/friends.registerCode"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          json: {
+            deviceId,
+            code: myCode,
+            nickname: state.profile.nickname,
+            profileEmoji: state.profile.avatarEmoji || "🐶",
+            neighborhood: state.profile.neighborhood || "",
+            role: state.profile.role,
+          },
+        }),
+      });
+      if (response.ok) {
+        setServerRegistered(true);
+      }
+    } catch (_) {
+      // 서버 연결 실패 - 로컬 모드로 동작
+    } finally {
+      setIsRegistering(false);
+    }
+  }, [state.profile.nickname, state.profile.role, myCode, state.profile.avatarEmoji, state.profile.neighborhood, isRegistering]);
+
+  useEffect(() => {
+    if (state.profile.nickname && state.profile.role) {
+      registerMyCode();
+    }
+  }, [state.profile.nickname, state.profile.role]);
+
+  // API base URL 가져오기
+  function getApiUrl(path: string): string {
+    // 서버 API URL
+    if (Platform.OS === "web") {
+      return path;
+    }
+    // 네이티브에서는 절대 URL 필요
+    const Constants = require("expo-constants").default;
+    const expoUrl = Constants.expoConfig?.hostUri?.split(":").shift() || "localhost";
+    return `http://${expoUrl}:3000${path}`;
+  }
+
+  const handleSearch = async () => {
     haptic();
     const code = friendCode.trim().toUpperCase();
     setSearchError("");
@@ -56,15 +132,49 @@ export default function FriendsScreen() {
       return;
     }
 
+    setIsSearching(true);
+
+    // 1. 서버에서 검색 시도
+    try {
+      const response = await fetch(getApiUrl(`/api/trpc/friends.searchByCode?input=${encodeURIComponent(JSON.stringify({ json: { code } }))}`));
+      if (response.ok) {
+        const data = await response.json();
+        const result = data?.result?.data?.json;
+        if (result) {
+          setSearchResult({
+            userId: result.userId,
+            nickname: result.nickname,
+            emoji: result.profileEmoji || "🐶",
+            neighborhood: result.neighborhood || "대전",
+            role: result.role,
+            isServerUser: true,
+          });
+          setIsSearching(false);
+          return;
+        }
+      }
+    } catch (_) {
+      // 서버 연결 실패 - 로컬 폴백
+    }
+
+    // 2. 로컬 데모 코드에서 검색
     const found = MOCK_FRIEND_CODES[code];
     if (found) {
-      setSearchResult(found);
+      setSearchResult({
+        nickname: found.nickname,
+        emoji: found.emoji,
+        neighborhood: found.neighborhood,
+        role: found.role,
+        isServerUser: false,
+      });
     } else {
-      setSearchError("해당 코드의 사용자를 찾을 수 없어요");
+      setSearchError("해당 코드의 사용자를 찾을 수 없어요.\n코드를 다시 확인해주세요.");
     }
+
+    setIsSearching(false);
   };
 
-  const handleAddFriend = () => {
+  const handleAddFriend = async () => {
     if (!searchResult) return;
     haptic();
 
@@ -80,12 +190,36 @@ export default function FriendsScreen() {
 
     const newFriend: Friend = {
       id: `f_${Date.now()}`,
+      serverUserId: searchResult.userId,
       nickname: searchResult.nickname,
       profileEmoji: searchResult.emoji,
       neighborhood: searchResult.neighborhood,
       role: searchResult.role,
       addedAt: new Date().toISOString(),
     };
+
+    // 서버에도 친구 추가 (서버 사용자인 경우)
+    if (searchResult.isServerUser && searchResult.userId) {
+      try {
+        const deviceId = await getDeviceId();
+        await fetch(getApiUrl("/api/trpc/friends.addFriend"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            json: {
+              deviceId,
+              friendUserId: searchResult.userId,
+              friendNickname: searchResult.nickname,
+              friendEmoji: searchResult.emoji,
+              friendNeighborhood: searchResult.neighborhood,
+              friendRole: searchResult.role,
+            },
+          }),
+        });
+      } catch (_) {
+        // 서버 저장 실패해도 로컬에는 저장
+      }
+    }
 
     dispatch({ type: "ADD_FRIEND", payload: newFriend });
 
@@ -138,7 +272,6 @@ export default function FriendsScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (_) {
-      // 폴백: web에서 navigator.clipboard 사용
       try {
         await navigator.clipboard?.writeText(myCode);
         setCopyFeedback(true);
@@ -159,7 +292,6 @@ export default function FriendsScreen() {
         setFriendCode(text.trim().toUpperCase());
       }
     } catch (_) {
-      // 폴백
       try {
         const text = await navigator.clipboard?.readText();
         if (text) setFriendCode(text.trim().toUpperCase());
@@ -178,18 +310,18 @@ export default function FriendsScreen() {
 
   const handleStartChat = (friend: Friend) => {
     haptic();
-    // 친구 ID 기반으로 고유한 채팅방 ID 생성 (일관성 보장)
     const roomId = `friend_${friend.id}`;
     router.push(`/chat/${roomId}?friendName=${encodeURIComponent(friend.nickname)}&friendEmoji=${encodeURIComponent(friend.profileEmoji)}` as never);
   };
 
   const renderFriend = ({ item }: { item: Friend }) => (
-    <View style={styles.friendCard}>
+    <View style={[styles.friendCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Text style={styles.friendEmoji}>{item.profileEmoji}</Text>
       <View style={{ flex: 1 }}>
-        <Text style={styles.friendName}>{item.nickname}</Text>
-        <Text style={styles.friendInfo}>
+        <Text style={[styles.friendName, { color: colors.foreground }]}>{item.nickname}</Text>
+        <Text style={[styles.friendInfo, { color: colors.muted }]}>
           📍 {item.neighborhood} · {item.role === "owner" ? "🐶 반려인" : "🏠 돌보미"}
+          {item.serverUserId ? " · 🌐" : ""}
         </Text>
       </View>
       <Pressable
@@ -210,27 +342,34 @@ export default function FriendsScreen() {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable
           onPress={() => { haptic(); router.back(); }}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: colors.primary }]}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>친구</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>친구</Text>
         <Pressable
           onPress={() => { haptic(); setShowCodeInput(!showCodeInput); }}
           style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={styles.addBtnText}>+ 추가</Text>
+          <Text style={[styles.addBtnText, { color: colors.primary }]}>+ 추가</Text>
         </Pressable>
       </View>
 
       {/* 내 친구 코드 */}
-      <View style={styles.myCodeCard}>
-        <Text style={styles.myCodeLabel}>내 친구 코드</Text>
+      <View style={[styles.myCodeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.myCodeHeader}>
+          <Text style={[styles.myCodeLabel, { color: colors.foreground }]}>내 친구 코드</Text>
+          {serverRegistered && (
+            <View style={styles.serverBadge}>
+              <Text style={styles.serverBadgeText}>🌐 서버 등록됨</Text>
+            </View>
+          )}
+        </View>
         <View style={styles.myCodeRow}>
-          <Text style={styles.myCodeText}>{myCode}</Text>
+          <Text style={[styles.myCodeText, { color: colors.primary }]}>{myCode}</Text>
           <Pressable
             onPress={handleCopyCode}
             style={({ pressed }) => [
@@ -250,18 +389,20 @@ export default function FriendsScreen() {
             <Text style={styles.shareBtnText}>📤 링크로 공유하기</Text>
           </Pressable>
         </View>
-        <Text style={styles.myCodeHint}>코드를 복사하거나 링크로 공유하세요!</Text>
+        <Text style={[styles.myCodeHint, { color: colors.muted }]}>
+          이 코드를 친구에게 공유하면 서로 친구 추가할 수 있어요!
+        </Text>
       </View>
 
       {/* 친구 코드 입력 */}
       {showCodeInput && (
-        <View style={styles.codeInputCard}>
-          <Text style={styles.codeInputTitle}>친구 코드 입력</Text>
+        <View style={[styles.codeInputCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.codeInputTitle, { color: colors.foreground }]}>친구 코드 입력</Text>
           <View style={styles.codeInputRow}>
             <TextInput
-              style={styles.codeInput}
+              style={[styles.codeInput, { backgroundColor: colors.background, color: colors.foreground, borderColor: colors.border }]}
               placeholder="예: ABCD-1234"
-              placeholderTextColor="#BDBDBD"
+              placeholderTextColor={colors.muted}
               value={friendCode}
               onChangeText={setFriendCode}
               autoCapitalize="characters"
@@ -271,15 +412,20 @@ export default function FriendsScreen() {
             />
             <Pressable
               onPress={handlePasteCode}
-              style={({ pressed }) => [styles.pasteBtn, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.pasteBtn, { borderColor: colors.border }, pressed && { opacity: 0.7 }]}
             >
-              <Text style={styles.pasteBtnText}>붙여넣기</Text>
+              <Text style={[styles.pasteBtnText, { color: colors.primary }]}>붙여넣기</Text>
             </Pressable>
             <Pressable
               onPress={handleSearch}
+              disabled={isSearching}
               style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.85 }]}
             >
-              <Text style={styles.searchBtnText}>검색</Text>
+              {isSearching ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.searchBtnText}>검색</Text>
+              )}
             </Pressable>
           </View>
 
@@ -288,11 +434,18 @@ export default function FriendsScreen() {
           ) : null}
 
           {searchResult && (
-            <View style={styles.searchResultCard}>
+            <View style={[styles.searchResultCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
               <Text style={styles.resultEmoji}>{searchResult.emoji}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.resultName}>{searchResult.nickname}</Text>
-                <Text style={styles.resultInfo}>
+                <View style={styles.resultNameRow}>
+                  <Text style={[styles.resultName, { color: colors.foreground }]}>{searchResult.nickname}</Text>
+                  {searchResult.isServerUser && (
+                    <View style={styles.realUserBadge}>
+                      <Text style={styles.realUserBadgeText}>실제 사용자</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.resultInfo, { color: colors.muted }]}>
                   📍 {searchResult.neighborhood} · {searchResult.role === "owner" ? "🐶 반려인" : "🏠 돌보미"}
                 </Text>
               </View>
@@ -305,8 +458,10 @@ export default function FriendsScreen() {
             </View>
           )}
 
-          <Text style={styles.demoHint}>
-            체험용 코드: ABCD-1234, EFGH-5678, JKLM-9012
+          <Text style={[styles.demoHint, { color: colors.muted }]}>
+            {serverRegistered
+              ? "상대방의 친구 코드를 입력하면 서버에서 검색합니다"
+              : "체험용 코드: ABCD-1234, EFGH-5678, JKLM-9012"}
           </Text>
         </View>
       )}
@@ -318,15 +473,16 @@ export default function FriendsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.friendList}
         ListHeaderComponent={
-          <Text style={styles.friendListTitle}>
+          <Text style={[styles.friendListTitle, { color: colors.foreground }]}>
             친구 {friends.length}명
           </Text>
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>👥</Text>
-            <Text style={styles.emptyText}>아직 친구가 없어요</Text>
-            <Text style={styles.emptySubText}>친구 코드를 입력해서 추가해보세요!</Text>
+            <Text style={styles.emptyEmoji}>👋</Text>
+            <Text style={[styles.emptyText, { color: colors.muted }]}>
+              아직 친구가 없어요{"\n"}위의 + 추가 버튼으로 친구를 추가해보세요!
+            </Text>
           </View>
         }
       />
@@ -338,113 +494,154 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomWidth: 0.5,
   },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  backBtnText: { fontSize: 28, color: "#1A1A1A" },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
-  addBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: "#FF7043", borderRadius: 8 },
-  addBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  backBtn: { padding: 4 },
+  backBtnText: { fontSize: 28, fontWeight: "600" },
+  headerTitle: { fontSize: 18, fontWeight: "700" },
+  addBtn: { padding: 4 },
+  addBtnText: { fontSize: 15, fontWeight: "600" },
   myCodeCard: {
     margin: 16,
-    backgroundColor: "#FFF3EE",
+    padding: 16,
     borderRadius: 16,
-    padding: 20,
+    borderWidth: 1,
+  },
+  myCodeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  myCodeLabel: { fontSize: 14, fontWeight: "600" },
+  serverBadge: {
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  serverBadgeText: { fontSize: 11, color: "#2E7D32" },
+  myCodeRow: {
+    flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderWidth: 1,
-    borderColor: "#FFE0D0",
+    marginBottom: 8,
   },
-  myCodeLabel: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
-  myCodeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  myCodeText: { fontSize: 28, fontWeight: "800", color: "#1A1A1A", letterSpacing: 2 },
-  copyBtn: { backgroundColor: "#FF7043", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
-  copyBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  shareRow: { marginTop: 4 },
+  myCodeText: { fontSize: 24, fontWeight: "800", letterSpacing: 2 },
+  copyBtn: {
+    backgroundColor: "#FF8A50",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  copyBtnText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  shareRow: { marginBottom: 6 },
   shareBtn: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 16,
+    backgroundColor: "#E3F2FD",
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#FFCCBC",
+    borderRadius: 8,
+    alignSelf: "flex-start",
   },
-  shareBtnText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
-  myCodeHint: { fontSize: 12, color: "#9E9E9E" },
+  shareBtnText: { fontSize: 13, color: "#1565C0", fontWeight: "600" },
+  myCodeHint: { fontSize: 12, marginTop: 4 },
   codeInputCard: {
     marginHorizontal: 16,
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    marginBottom: 16,
     padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
-    gap: 12,
   },
-  codeInputTitle: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
-  codeInputRow: { flexDirection: "row", gap: 8 },
+  codeInputTitle: { fontSize: 15, fontWeight: "700", marginBottom: 10 },
+  codeInputRow: {
+    flexDirection: "row",
+    gap: 6,
+    alignItems: "center",
+  },
   codeInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: "#1A1A1A",
+    fontWeight: "600",
     letterSpacing: 1,
   },
   pasteBtn: {
-    backgroundColor: "#F5F5F5",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
   },
-  pasteBtnText: { fontSize: 12, color: "#555", fontWeight: "600" },
-  searchBtn: { backgroundColor: "#FF7043", borderRadius: 10, paddingHorizontal: 16, justifyContent: "center" },
-  searchBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  errorText: { fontSize: 13, color: "#EF5350" },
+  pasteBtnText: { fontSize: 12, fontWeight: "600" },
+  searchBtn: {
+    backgroundColor: "#FF8A50",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minWidth: 50,
+    alignItems: "center",
+  },
+  searchBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  errorText: { color: "#EF4444", fontSize: 13, marginTop: 8, textAlign: "center" },
   searchResultCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    backgroundColor: "#F0FFF4",
-    borderRadius: 12,
     padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#C8E6C9",
+    marginTop: 10,
+    gap: 10,
   },
   resultEmoji: { fontSize: 32 },
-  resultName: { fontSize: 14, fontWeight: "700", color: "#1A1A1A" },
-  resultInfo: { fontSize: 12, color: "#757575", marginTop: 2 },
-  addFriendBtn: { backgroundColor: "#4CAF82", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  addFriendBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  demoHint: { fontSize: 11, color: "#BDBDBD", textAlign: "center" },
-  friendList: { padding: 16, gap: 10, paddingBottom: 40 },
-  friendListTitle: { fontSize: 15, fontWeight: "700", color: "#1A1A1A", marginBottom: 8 },
+  resultNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  resultName: { fontSize: 15, fontWeight: "700" },
+  realUserBadge: {
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  realUserBadgeText: { fontSize: 10, color: "#2E7D32", fontWeight: "600" },
+  resultInfo: { fontSize: 12, marginTop: 2 },
+  addFriendBtn: {
+    backgroundColor: "#FF8A50",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  addFriendBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  demoHint: { fontSize: 11, marginTop: 10, textAlign: "center" },
+  friendList: { paddingHorizontal: 16, paddingBottom: 40 },
+  friendListTitle: { fontSize: 15, fontWeight: "700", marginBottom: 10 },
   friendCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    backgroundColor: "#fff",
-    borderRadius: 14,
     padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    marginBottom: 8,
+    gap: 10,
   },
-  friendEmoji: { fontSize: 36 },
-  friendName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
-  friendInfo: { fontSize: 12, color: "#757575", marginTop: 2 },
-  chatBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#FF704320", borderRadius: 8, marginRight: 4 },
-  chatBtnText: { fontSize: 16 },
-  removeBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#FFF3EE", borderRadius: 8 },
-  removeBtnText: { fontSize: 12, color: "#EF5350", fontWeight: "600" },
-  emptyContainer: { alignItems: "center", paddingVertical: 60, gap: 8 },
-  emptyEmoji: { fontSize: 48 },
-  emptyText: { fontSize: 16, fontWeight: "600", color: "#555" },
-  emptySubText: { fontSize: 13, color: "#9E9E9E" },
+  friendEmoji: { fontSize: 32 },
+  friendName: { fontSize: 15, fontWeight: "600" },
+  friendInfo: { fontSize: 12, marginTop: 2 },
+  chatBtn: {
+    backgroundColor: "#E3F2FD",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatBtnText: { fontSize: 18 },
+  removeBtn: { padding: 6 },
+  removeBtnText: { color: "#EF4444", fontSize: 12, fontWeight: "600" },
+  emptyContainer: { alignItems: "center", paddingTop: 40 },
+  emptyEmoji: { fontSize: 48, marginBottom: 12 },
+  emptyText: { fontSize: 14, textAlign: "center", lineHeight: 22 },
 });
