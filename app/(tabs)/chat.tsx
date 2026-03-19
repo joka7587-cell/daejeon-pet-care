@@ -9,8 +9,9 @@ import {
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useRouter } from "expo-router";
-import { useApp, Friend } from "@/lib/app-context";
+import { useApp } from "@/lib/app-context";
 import * as Haptics from "expo-haptics";
+import { useColors } from "@/hooks/use-colors";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -39,51 +40,17 @@ interface ChatRoom {
   unreadCount: number;
   isOnline: boolean;
   isFriend: boolean;
+  isRequest: boolean;
   friendId?: string;
 }
-
-const MOCK_CHAT_ROOMS: ChatRoom[] = [
-  {
-    id: "mock_1",
-    roomKey: "room_mock_1",
-    otherUserName: "산책쌤 미경",
-    otherUserEmoji: "👩",
-    lastMessage: "네, 좋습니다. 우리집 앞에서 만나요.",
-    lastMessageTime: "10:40",
-    unreadCount: 0,
-    isOnline: true,
-    isFriend: false,
-  },
-  {
-    id: "mock_2",
-    roomKey: "room_mock_2",
-    otherUserName: "강아지 친구 준호",
-    otherUserEmoji: "👨",
-    lastMessage: "내일 오후 2시 괜찮으세요?",
-    lastMessageTime: "어제",
-    unreadCount: 2,
-    isOnline: false,
-    isFriend: false,
-  },
-  {
-    id: "mock_3",
-    roomKey: "room_mock_3",
-    otherUserName: "돌봄 전문 지은",
-    otherUserEmoji: "👩",
-    lastMessage: "긴급 돌봄 요청 받았습니다.",
-    lastMessageTime: "3일전",
-    unreadCount: 0,
-    isOnline: true,
-    isFriend: false,
-  },
-];
 
 export default function ChatTabScreen() {
   const router = useRouter();
   const { state } = useApp();
-  const [activeTab, setActiveTab] = useState<"all" | "friends">("all");
+  const colors = useColors();
+  const [activeTab, setActiveTab] = useState<"all" | "friends" | "requests">("all");
 
-  // 친구 채팅방 생성 (친구 ID 기반 고유 키)
+  // 친구 채팅방 (친구 ID 기반 고유 키)
   const friendRooms: ChatRoom[] = useMemo(() => {
     return state.profile.friends.map((f) => {
       const roomId = `friend_${f.id}`;
@@ -103,25 +70,67 @@ export default function ChatTabScreen() {
         unreadCount: 0,
         isOnline: true,
         isFriend: true,
+        isRequest: false,
         friendId: f.id,
       };
     });
   }, [state.profile.friends, state.chatMessages]);
 
-  const allRooms = [...friendRooms, ...MOCK_CHAT_ROOMS];
+  // 요청 관련 채팅방 (수락된 요청에서 생성된 채팅방)
+  const requestRooms: ChatRoom[] = useMemo(() => {
+    const rooms: ChatRoom[] = [];
+    // chatMessages에서 request_ 로 시작하는 방 찾기
+    Object.keys(state.chatMessages).forEach((key) => {
+      if (key.startsWith("room_request_")) {
+        const msgs = state.chatMessages[key];
+        if (msgs && msgs.length > 0) {
+          const lastMsg = msgs[msgs.length - 1];
+          const roomId = key.replace("room_", "");
+          const reqId = roomId.replace("request_", "");
+
+          // 요청 정보에서 제목 가져오기
+          const request = state.requests.find(r => r.id === reqId);
+          const requestTitle = request ? request.title : "돌봄 요청";
+
+          rooms.push({
+            id: roomId,
+            roomKey: key,
+            otherUserName: request?.requester || "요청자",
+            otherUserEmoji: "🐾",
+            lastMessage: lastMsg.content,
+            lastMessageTime: timeAgo(lastMsg.createdAt),
+            unreadCount: 0,
+            isOnline: true,
+            isFriend: false,
+            isRequest: true,
+          });
+        }
+      }
+    });
+    return rooms;
+  }, [state.chatMessages, state.requests]);
+
+  const allRooms = [...friendRooms, ...requestRooms];
   const filteredRooms = activeTab === "friends"
     ? allRooms.filter((r) => r.isFriend)
+    : activeTab === "requests"
+    ? allRooms.filter((r) => r.isRequest)
     : allRooms;
 
   const totalUnread = allRooms.reduce((sum, r) => sum + r.unreadCount, 0);
 
   const handleOpenChat = (room: ChatRoom) => {
     haptic();
+    const params: Record<string, string> = {};
     if (room.isFriend) {
-      router.push(`/chat/${room.id}?friendName=${encodeURIComponent(room.otherUserName)}&friendEmoji=${encodeURIComponent(room.otherUserEmoji)}` as never);
+      params.friendName = encodeURIComponent(room.otherUserName);
+      params.friendEmoji = encodeURIComponent(room.otherUserEmoji);
     } else {
-      router.push(`/chat/${room.id}` as never);
+      params.chatName = encodeURIComponent(room.otherUserName);
+      params.chatEmoji = encodeURIComponent(room.otherUserEmoji);
     }
+    const queryStr = Object.entries(params).map(([k, v]) => `${k}=${v}`).join("&");
+    router.push(`/chat/${room.id}?${queryStr}` as never);
   };
 
   const renderChatRoom = ({ item }: { item: ChatRoom }) => (
@@ -129,11 +138,17 @@ export default function ChatTabScreen() {
       onPress={() => handleOpenChat(item)}
       style={({ pressed }) => [
         styles.chatRoomCard,
+        { backgroundColor: colors.surface, borderColor: colors.border },
         pressed && { opacity: 0.8 },
       ]}
     >
       <View style={styles.profileSection}>
-        <View style={[styles.avatarContainer, item.isFriend && styles.friendAvatarContainer]}>
+        <View style={[
+          styles.avatarContainer,
+          { backgroundColor: colors.background },
+          item.isFriend && styles.friendAvatarContainer,
+          item.isRequest && styles.requestAvatarContainer,
+        ]}>
           <Text style={styles.avatar}>{item.otherUserEmoji}</Text>
           {item.isOnline && <View style={styles.onlineIndicator} />}
           {item.isFriend && (
@@ -141,23 +156,35 @@ export default function ChatTabScreen() {
               <Text style={{ fontSize: 8 }}>👫</Text>
             </View>
           )}
+          {item.isRequest && (
+            <View style={styles.requestBadge}>
+              <Text style={{ fontSize: 8 }}>📋</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.messageInfo}>
           <View style={styles.nameRow}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flex: 1 }}>
-              <Text style={styles.userName} numberOfLines={1}>{item.otherUserName}</Text>
+              <Text style={[styles.userName, { color: colors.foreground }]} numberOfLines={1}>
+                {item.otherUserName}
+              </Text>
               {item.isFriend && (
                 <View style={styles.friendTag}>
                   <Text style={styles.friendTagText}>친구</Text>
                 </View>
               )}
+              {item.isRequest && (
+                <View style={styles.requestTag}>
+                  <Text style={styles.requestTagText}>요청</Text>
+                </View>
+              )}
             </View>
             {item.lastMessageTime ? (
-              <Text style={styles.time}>{item.lastMessageTime}</Text>
+              <Text style={[styles.time, { color: colors.muted }]}>{item.lastMessageTime}</Text>
             ) : null}
           </View>
-          <Text style={styles.lastMessage} numberOfLines={1}>
+          <Text style={[styles.lastMessage, { color: colors.muted }]} numberOfLines={1}>
             {item.lastMessage}
           </Text>
         </View>
@@ -176,7 +203,7 @@ export default function ChatTabScreen() {
   return (
     <ScreenContainer className="pt-2">
       <View style={styles.header}>
-        <Text style={styles.title}>메시지</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>메시지</Text>
         {totalUnread > 0 && (
           <View style={styles.headerBadge}>
             <Text style={styles.headerBadgeText}>{totalUnread}</Text>
@@ -186,30 +213,30 @@ export default function ChatTabScreen() {
 
       {/* 탭 전환 */}
       <View style={styles.tabRow}>
-        <Pressable
-          onPress={() => { haptic(); setActiveTab("all"); }}
-          style={({ pressed }) => [
-            styles.tab,
-            activeTab === "all" && styles.tabActive,
-            pressed && { opacity: 0.8 },
-          ]}
-        >
-          <Text style={[styles.tabText, activeTab === "all" && styles.tabTextActive]}>
-            전체 ({allRooms.length})
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => { haptic(); setActiveTab("friends"); }}
-          style={({ pressed }) => [
-            styles.tab,
-            activeTab === "friends" && styles.tabActive,
-            pressed && { opacity: 0.8 },
-          ]}
-        >
-          <Text style={[styles.tabText, activeTab === "friends" && styles.tabTextActive]}>
-            👫 친구 ({state.profile.friends.length})
-          </Text>
-        </Pressable>
+        {(["all", "friends", "requests"] as const).map((tab) => {
+          const label = tab === "all"
+            ? `전체 (${allRooms.length})`
+            : tab === "friends"
+            ? `👫 친구 (${friendRooms.length})`
+            : `📋 요청 (${requestRooms.length})`;
+          const isActive = activeTab === tab;
+          return (
+            <Pressable
+              key={tab}
+              onPress={() => { haptic(); setActiveTab(tab); }}
+              style={({ pressed }) => [
+                styles.tab,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                isActive && styles.tabActive,
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={[styles.tabText, { color: colors.muted }, isActive && styles.tabTextActive]}>
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <FlatList
@@ -221,15 +248,21 @@ export default function ChatTabScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>
-              {activeTab === "friends" ? "👫" : "💭"}
+              {activeTab === "friends" ? "👫" : activeTab === "requests" ? "📋" : "💭"}
             </Text>
-            <Text style={styles.emptyTitle}>
-              {activeTab === "friends" ? "아직 친구가 없어요" : "아직 대화가 없어요"}
-            </Text>
-            <Text style={styles.emptyDesc}>
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               {activeTab === "friends"
-                ? "프로필에서 친구 코드로 친구를 추가해보세요"
-                : "매칭된 사용자와 대화를 시작해보세요"}
+                ? "아직 친구와의 대화가 없어요"
+                : activeTab === "requests"
+                ? "아직 요청 관련 대화가 없어요"
+                : "아직 대화가 없어요"}
+            </Text>
+            <Text style={[styles.emptyDesc, { color: colors.muted }]}>
+              {activeTab === "friends"
+                ? "프로필에서 친구를 추가하고 대화를 시작해보세요"
+                : activeTab === "requests"
+                ? "돌봄 요청을 수락하면 채팅방이 생성됩니다"
+                : "친구를 추가하거나 요청을 수락해보세요"}
             </Text>
             {activeTab === "friends" && (
               <Pressable
@@ -257,7 +290,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#1A1A1A",
   },
   headerBadge: {
     backgroundColor: "#FF7043",
@@ -276,7 +308,7 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 6,
     marginBottom: 8,
   },
   tab: {
@@ -284,18 +316,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
   },
   tabActive: {
     backgroundColor: "#FFF3EE",
     borderColor: "#FF7043",
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    color: "#757575",
   },
   tabTextActive: {
     color: "#FF7043",
@@ -307,12 +336,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chatRoomCard: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 12,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
   },
   profileSection: {
     flexDirection: "row",
@@ -323,7 +350,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#F5F5F5",
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -332,6 +358,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF3EE",
     borderWidth: 1.5,
     borderColor: "#FFCCBC",
+  },
+  requestAvatarContainer: {
+    backgroundColor: "#E3F2FD",
+    borderWidth: 1.5,
+    borderColor: "#90CAF9",
   },
   avatar: { fontSize: 24 },
   onlineIndicator: {
@@ -358,6 +389,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FFCCBC",
   },
+  requestBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "#E3F2FD",
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#90CAF9",
+  },
   messageInfo: { flex: 1 },
   nameRow: {
     flexDirection: "row",
@@ -365,7 +409,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  userName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
+  userName: { fontSize: 15, fontWeight: "700" },
   friendTag: {
     backgroundColor: "#FFF3EE",
     borderRadius: 6,
@@ -375,8 +419,17 @@ const styles = StyleSheet.create({
     borderColor: "#FFCCBC",
   },
   friendTagText: { fontSize: 10, color: "#FF7043", fontWeight: "700" },
-  time: { fontSize: 12, color: "#9E9E9E" },
-  lastMessage: { fontSize: 13, color: "#757575", lineHeight: 18 },
+  requestTag: {
+    backgroundColor: "#E3F2FD",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: "#90CAF9",
+  },
+  requestTagText: { fontSize: 10, color: "#1976D2", fontWeight: "700" },
+  time: { fontSize: 12 },
+  lastMessage: { fontSize: 13, lineHeight: 18 },
   unreadBadge: {
     backgroundColor: "#FF7043",
     borderRadius: 10,
@@ -393,8 +446,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 16, fontWeight: "600", color: "#555" },
-  emptyDesc: { fontSize: 13, color: "#9E9E9E", textAlign: "center", lineHeight: 20 },
+  emptyTitle: { fontSize: 16, fontWeight: "600" },
+  emptyDesc: { fontSize: 13, textAlign: "center", lineHeight: 20 },
   addFriendBtn: {
     marginTop: 12,
     backgroundColor: "#FF7043",

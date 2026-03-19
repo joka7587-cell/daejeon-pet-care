@@ -1,4 +1,5 @@
-import { ScrollView, View, Text, Pressable, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { ScrollView, View, Text, Pressable, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { MOCK_CARETAKERS, MOCK_REQUESTS, SERVICE_TYPES } from "@/lib/mock-data";
@@ -233,9 +234,63 @@ function OwnerHome() {
 
 // 돌보미 홈
 function CaretakerHome() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const router = useRouter();
   const colors = useColors();
+  const [handledRequests, setHandledRequests] = useState<Record<string, "accepted" | "rejected">>({});
+
+  const handleAcceptRequest = (reqId: string, reqTitle: string, requesterName: string) => {
+    haptic();
+    setHandledRequests(prev => ({ ...prev, [String(reqId)]: "accepted" }));
+    // 알림 생성
+    dispatch({
+      type: "ADD_NOTIFICATION",
+      payload: {
+        id: `notif_accept_${Date.now()}`,
+        type: "match",
+        title: "요청 수락 완료",
+        body: `"${reqTitle}" 요청을 수락했습니다.`,
+        relatedId: String(reqId),
+        fromNickname: requesterName,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+    // 채팅방 생성
+    const chatRoomId = `request_${reqId}`;
+    dispatch({
+      type: "ADD_CHAT_MESSAGE",
+      payload: {
+        roomId: `room_${chatRoomId}`,
+        message: {
+          id: `sys_${Date.now()}`,
+          senderId: 0,
+          senderName: "시스템",
+          content: `요청이 수락되었습니다. ${requesterName}님과 대화를 시작해보세요!`,
+          type: "text",
+          createdAt: new Date().toISOString(),
+        },
+      },
+    });
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handleRejectRequest = (reqId: string, reqTitle: string) => {
+    haptic();
+    setHandledRequests(prev => ({ ...prev, [String(reqId)]: "rejected" }));
+    dispatch({
+      type: "ADD_NOTIFICATION",
+      payload: {
+        id: `notif_reject_${Date.now()}`,
+        type: "match",
+        title: "요청 거절",
+        body: `"${reqTitle}" 요청을 거절했습니다.`,
+        relatedId: String(reqId),
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  };
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
@@ -263,16 +318,48 @@ function CaretakerHome() {
 
       {/* 활동 상태 */}
       <View style={styles.section}>
-        <View style={styles.statusCard}>
+        <View style={[
+          styles.statusCard,
+          !state.profile.isOnline && { backgroundColor: "#FFF3EE", borderColor: "#FFCCBC" },
+        ]}>
           <View>
             <Text style={styles.statusLabel}>현재 활동 상태</Text>
-            <Text style={styles.statusValue}>🟢 온라인</Text>
+            <Text style={styles.statusValue}>
+              {state.profile.isOnline ? "🟢 온라인" : "🔴 오프라인"}
+            </Text>
+            {!state.profile.isOnline && (
+              <Text style={{ fontSize: 12, color: "#FF7043", marginTop: 2 }}>
+                새 요청을 받지 않습니다
+              </Text>
+            )}
           </View>
           <Pressable
-            style={styles.statusToggle}
-            onPress={() => haptic()}
+            style={[
+              styles.statusToggle,
+              state.profile.isOnline
+                ? { backgroundColor: "#FFEBEE" }
+                : { backgroundColor: "#E8F5E9" },
+            ]}
+            onPress={() => {
+              haptic();
+              dispatch({ type: "TOGGLE_ONLINE" });
+              if (Platform.OS !== "web") {
+                Haptics.notificationAsync(
+                  state.profile.isOnline
+                    ? Haptics.NotificationFeedbackType.Warning
+                    : Haptics.NotificationFeedbackType.Success
+                );
+              }
+            }}
           >
-            <Text style={styles.statusToggleText}>오프라인</Text>
+            <Text style={[
+              styles.statusToggleText,
+              state.profile.isOnline
+                ? { color: "#C62828" }
+                : { color: "#2E7D32" },
+            ]}>
+              {state.profile.isOnline ? "오프라인으로 전환" : "온라인으로 전환"}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -325,12 +412,34 @@ function CaretakerHome() {
               </View>
               <Text style={styles.requestDescription}>{req.description}</Text>
               <View style={styles.requestActions}>
-                <TouchableOpacity style={styles.acceptBtn}>
-                  <Text style={styles.acceptBtnText}>수락</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.rejectBtn}>
-                  <Text style={styles.rejectBtnText}>거절</Text>
-                </TouchableOpacity>
+                {handledRequests[String(req.id)] ? (
+                  <View style={[
+                    styles.statusBadge,
+                    handledRequests[String(req.id)] === "accepted" ? styles.acceptedBadge : styles.rejectedBadge
+                  ]}>
+                    <Text style={[
+                      styles.statusBadgeText,
+                      handledRequests[String(req.id)] === "accepted" ? styles.acceptedBadgeText : styles.rejectedBadgeText
+                    ]}>
+                      {handledRequests[String(req.id)] === "accepted" ? "✅ 수락됨" : "❌ 거절됨"}
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={styles.acceptBtn}
+                      onPress={() => handleAcceptRequest(req.id, req.title, "요청자")}
+                    >
+                      <Text style={styles.acceptBtnText}>수락</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.rejectBtn}
+                      onPress={() => handleRejectRequest(req.id, req.title)}
+                    >
+                      <Text style={styles.rejectBtnText}>거절</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </Pressable>
           ))}
@@ -622,5 +731,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF5350",
     borderWidth: 2,
     borderColor: "#F5F5F5",
+  },
+  statusBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center" as const,
+  },
+  acceptedBadge: {
+    backgroundColor: "#E8F5E9",
+  },
+  rejectedBadge: {
+    backgroundColor: "#FFEBEE",
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+  },
+  acceptedBadgeText: {
+    color: "#2E7D32",
+  },
+  rejectedBadgeText: {
+    color: "#C62828",
   },
 });

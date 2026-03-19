@@ -384,6 +384,42 @@ export default function ProfileScreen() {
             </Pressable>
           </SectionCard>
 
+          {/* 활동 상태 */}
+          <SectionCard title="활동 상태" colors={colors}>
+            <Pressable
+              onPress={() => {
+                haptic();
+                dispatch({ type: "TOGGLE_ONLINE" });
+                if (Platform.OS !== "web") {
+                  Haptics.notificationAsync(
+                    state.profile.isOnline
+                      ? Haptics.NotificationFeedbackType.Warning
+                      : Haptics.NotificationFeedbackType.Success
+                  );
+                }
+              }}
+              style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
+            >
+              <View>
+                <Text style={[styles.settingText, { color: colors.muted }]}>
+                  {state.profile.isOnline ? "🟢 온라인" : "🔴 오프라인"}
+                </Text>
+                <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>
+                  {state.profile.isOnline ? "새 요청과 메시지를 받습니다" : "새 요청을 받지 않습니다"}
+                </Text>
+              </View>
+              <View style={[
+                styles.toggleTrack,
+                state.profile.isOnline && styles.toggleTrackActive,
+              ]}>
+                <View style={[
+                  styles.toggleThumb,
+                  state.profile.isOnline && styles.toggleThumbActive,
+                ]} />
+              </View>
+            </Pressable>
+          </SectionCard>
+
           {/* 앱 설정 */}
           <SectionCard title="앱 설정" colors={colors}>
             <Pressable

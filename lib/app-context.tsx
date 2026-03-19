@@ -126,6 +126,7 @@ export interface UserProfile {
   friends: Friend[];
   reviews: Review[];
   payments: Payment[];
+  isOnline: boolean;
 }
 
 interface AppState {
@@ -175,6 +176,7 @@ type AppAction =
   | { type: "UPDATE_REQUEST_STATUS"; payload: { requestId: string; status: CareRequest["status"] } }
   | { type: "ADD_CHAT_MESSAGE"; payload: { roomId: string; message: ChatMessageData } }
   | { type: "SET_CHAT_MESSAGES"; payload: { roomId: string; messages: ChatMessageData[] } }
+  | { type: "TOGGLE_ONLINE" }
   | { type: "LOAD_STATE"; payload: AppState }
   | { type: "RESET_APP" };
 
@@ -203,6 +205,7 @@ const initialProfile: UserProfile = {
   friends: [],
   reviews: [],
   payments: [],
+  isOnline: true,
 };
 
 const initialState: AppState = {
@@ -242,6 +245,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, profile: { ...state.profile, pets: state.profile.pets.filter((p) => p.id !== action.payload) } };
     case "TOGGLE_CARETAKER_ACTIVE":
       return { ...state, profile: { ...state.profile, isCaretakerActive: !state.profile.isCaretakerActive } };
+    case "TOGGLE_ONLINE":
+      return { ...state, profile: { ...state.profile, isOnline: !state.profile.isOnline } };
     case "ADD_FRIEND":
       return { ...state, profile: { ...state.profile, friends: [...state.profile.friends, action.payload] } };
     case "REMOVE_FRIEND":
