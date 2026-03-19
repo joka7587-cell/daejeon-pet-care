@@ -193,3 +193,25 @@ export const friendships = mysqlTable("friendships", {
 
 export type Friendship = typeof friendships.$inferSelect;
 export type InsertFriendship = typeof friendships.$inferInsert;
+
+/**
+ * Friend Requests - 친구 요청 (수락/거절 대기)
+ */
+export const friendRequests = mysqlTable("friendRequests", {
+  id: int("id").autoincrement().primaryKey(),
+  fromUserId: int("fromUserId").notNull(), // 요청 보낸 사람
+  toUserId: int("toUserId").notNull(), // 요청 받은 사람
+  fromNickname: varchar("fromNickname", { length: 100 }).notNull(),
+  fromEmoji: varchar("fromEmoji", { length: 10 }),
+  fromNeighborhood: varchar("fromNeighborhood", { length: 50 }),
+  fromRole: mysqlEnum("fromRole", ["owner", "caretaker"]).notNull(),
+  fromCode: varchar("fromCode", { length: 20 }).notNull(),
+  toNickname: varchar("toNickname", { length: 100 }),
+  toEmoji: varchar("toEmoji", { length: 10 }),
+  status: mysqlEnum("status", ["pending", "accepted", "rejected"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FriendRequest = typeof friendRequests.$inferSelect;
+export type InsertFriendRequest = typeof friendRequests.$inferInsert;

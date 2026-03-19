@@ -117,6 +117,78 @@ export const appRouter = router({
         await db.removeFriendship(myId, input.friendUserId);
         return { success: true };
       }),
+
+    // 친구 요청 보내기
+    sendRequest: publicProcedure
+      .input(z.object({
+        deviceId: z.string().min(1),
+        toUserId: z.number(),
+        fromNickname: z.string(),
+        fromEmoji: z.string().optional(),
+        fromNeighborhood: z.string().optional(),
+        fromRole: z.enum(["owner", "caretaker"]),
+        fromCode: z.string(),
+        toNickname: z.string().optional(),
+        toEmoji: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const myId = Math.abs(hashString(input.deviceId));
+        // 이미 친구인지 확인
+        const alreadyFriend = await db.isFriend(myId, input.toUserId);
+        if (alreadyFriend) {
+          return { success: false, message: "이미 친구로 추가된 사용자입니다" };
+        }
+        // 중복 요청 확인
+        const hasPending = await db.hasPendingRequest(myId, input.toUserId);
+        if (hasPending) {
+          return { success: false, message: "이미 친구 요청을 보냈습니다" };
+        }
+        await db.createFriendRequest({
+          fromUserId: myId,
+          toUserId: input.toUserId,
+          fromNickname: input.fromNickname,
+          fromEmoji: input.fromEmoji ?? null,
+          fromNeighborhood: input.fromNeighborhood ?? null,
+          fromRole: input.fromRole,
+          fromCode: input.fromCode,
+          toNickname: input.toNickname ?? null,
+          toEmoji: input.toEmoji ?? null,
+        });
+        return { success: true };
+      }),
+
+    // 받은 친구 요청 목록
+    receivedRequests: publicProcedure
+      .input(z.object({ deviceId: z.string().min(1) }))
+      .query(async ({ input }) => {
+        const myId = Math.abs(hashString(input.deviceId));
+        return db.getReceivedFriendRequests(myId);
+      }),
+
+    // 보낸 친구 요청 목록
+    sentRequests: publicProcedure
+      .input(z.object({ deviceId: z.string().min(1) }))
+      .query(async ({ input }) => {
+        const myId = Math.abs(hashString(input.deviceId));
+        return db.getSentFriendRequests(myId);
+      }),
+
+    // 친구 요청 수락
+    acceptRequest: publicProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(async ({ input }) => {
+        const result = await db.acceptFriendRequest(input.requestId);
+        if (!result) return { success: false, message: "요청을 찾을 수 없습니다" };
+        return { success: true };
+      }),
+
+    // 친구 요청 거절
+    rejectRequest: publicProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.rejectFriendRequest(input.requestId);
+        return { success: true };
+      }),
   }),
 });
 

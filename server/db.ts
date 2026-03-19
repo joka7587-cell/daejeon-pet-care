@@ -10,6 +10,7 @@ import {
   matchingHistory,
   friendCodes,
   friendships,
+  friendRequests,
   InsertUserProfile,
   InsertUserLocation,
   InsertPet,
@@ -17,6 +18,7 @@ import {
   InsertMatchingHistory,
   InsertFriendCode,
   InsertFriendship,
+  InsertFriendRequest,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -392,6 +394,100 @@ export async function removeFriendship(userId: number, friendUserId: number): Pr
   await db.delete(friendships).where(
     and(eq(friendships.userId, userId), eq(friendships.friendUserId, friendUserId))
   );
+}
+
+// 친구 요청 보내기
+export async function createFriendRequest(data: InsertFriendRequest): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(friendRequests).values(data);
+}
+
+// 받은 친구 요청 목록
+export async function getReceivedFriendRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(friendRequests).where(
+    and(eq(friendRequests.toUserId, userId), eq(friendRequests.status, "pending"))
+  );
+}
+
+// 보낸 친구 요청 목록
+export async function getSentFriendRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(friendRequests).where(
+    and(eq(friendRequests.fromUserId, userId))
+  );
+}
+
+// 친구 요청 수락
+export async function acceptFriendRequest(requestId: number): Promise<{ fromUserId: number; toUserId: number } | null> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // 요청 조회
+  const reqs = await db.select().from(friendRequests).where(eq(friendRequests.id, requestId)).limit(1);
+  if (reqs.length === 0) return null;
+  const req = reqs[0];
+  
+  // 상태 업데이트
+  await db.update(friendRequests).set({ status: "accepted" }).where(eq(friendRequests.id, requestId));
+  
+  // 양방향 친구 관계 추가
+  // from -> to 의 정보를 가져오기 위해 to의 friendCode 조회
+  const toCode = await db.select().from(friendCodes).where(eq(friendCodes.userId, req.toUserId)).limit(1);
+  
+  // from -> to 친구 추가
+  if (toCode.length > 0) {
+    const alreadyFriend1 = await isFriend(req.fromUserId, req.toUserId);
+    if (!alreadyFriend1) {
+      await db.insert(friendships).values({
+        userId: req.fromUserId,
+        friendUserId: req.toUserId,
+        friendNickname: toCode[0].nickname,
+        friendEmoji: toCode[0].profileEmoji,
+        friendNeighborhood: toCode[0].neighborhood,
+        friendRole: toCode[0].role,
+      });
+    }
+  }
+  
+  // to -> from 친구 추가
+  const alreadyFriend2 = await isFriend(req.toUserId, req.fromUserId);
+  if (!alreadyFriend2) {
+    await db.insert(friendships).values({
+      userId: req.toUserId,
+      friendUserId: req.fromUserId,
+      friendNickname: req.fromNickname,
+      friendEmoji: req.fromEmoji,
+      friendNeighborhood: req.fromNeighborhood,
+      friendRole: req.fromRole,
+    });
+  }
+  
+  return { fromUserId: req.fromUserId, toUserId: req.toUserId };
+}
+
+// 친구 요청 거절
+export async function rejectFriendRequest(requestId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(friendRequests).set({ status: "rejected" }).where(eq(friendRequests.id, requestId));
+}
+
+// 중복 요청 확인
+export async function hasPendingRequest(fromUserId: number, toUserId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.select().from(friendRequests).where(
+    and(
+      eq(friendRequests.fromUserId, fromUserId),
+      eq(friendRequests.toUserId, toUserId),
+      eq(friendRequests.status, "pending")
+    )
+  ).limit(1);
+  return result.length > 0;
 }
 
 export async function updateUserRating(userId: number): Promise<void> {

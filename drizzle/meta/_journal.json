@@ -29,6 +29,20 @@
       "when": 1773886486654,
       "tag": "0003_dusty_captain_midlands",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1773887274715,
+      "tag": "0004_short_johnny_blaze",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1773888239522,
+      "tag": "0005_bumpy_earthquake",
+      "breakpoints": true
     }
   ]
 }
