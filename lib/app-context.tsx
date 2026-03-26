@@ -132,6 +132,8 @@ export interface UserProfile {
   payments: Payment[];
   isOnline: boolean;
   availableSlots: string[]; // 예약 가능 시간대 ["09:00-12:00", "14:00-18:00"]
+  activeNeighborhoods: string[]; // 도그워커 활동 동네 (최대 3개, 예: ["서구 둔산동", "서구 월평동", "유성구 궁동"])
+  locationVerified: boolean; // 카카오맵 역지오코딩으로 대전 위치 확인 여부
 }
 
 export interface ChatRoom {
@@ -409,6 +411,8 @@ const initialProfile: UserProfile = {
   payments: [],
   isOnline: true,
   availableSlots: [],
+  activeNeighborhoods: [],
+  locationVerified: false,
 };
 
 const initialState: AppState = {
@@ -713,6 +717,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
           pets: action.payload.profile?.pets ?? [],
           payments: action.payload.profile?.payments ?? [],
           availableSlots: action.payload.profile?.availableSlots ?? [],
+          activeNeighborhoods: action.payload.profile?.activeNeighborhoods ?? [],
+          locationVerified: action.payload.profile?.locationVerified ?? false,
         },
         posts: action.payload.posts ?? [],
         payments: action.payload.payments ?? [],

@@ -67,6 +67,53 @@ async function startServer() {
     res.json({ key });
   });
 
+  // 카카오맵 역지오코딩 프록시 (API 키를 서버에서 안전하게 사용)
+  app.get("/api/kakao-geocode", async (req, res) => {
+    const { lat, lng } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ error: "lat, lng 파라미터가 필요합니다" });
+    }
+    const apiKey = process.env.KAKAO_MAP_API_KEY || "";
+    if (!apiKey) {
+      return res.status(500).json({ error: "카카오맵 API 키가 설정되지 않았습니다" });
+    }
+    try {
+      const response = await fetch(
+        `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lng}&y=${lat}`,
+        { headers: { Authorization: `KakaoAK ${apiKey}` } }
+      );
+      if (!response.ok) {
+        throw new Error(`카카오 API 오류: ${response.status}`);
+      }
+      const data = await response.json() as any;
+      const doc = data.documents?.[0];
+      if (!doc) {
+        return res.json({
+          isDaejeon: false,
+          city: "알 수 없음",
+          district: "",
+          dong: "",
+          fullAddress: "주소를 찾을 수 없습니다",
+        });
+      }
+      const addr = doc.address || {};
+      const city = addr.region_1depth_name || "";
+      const district = addr.region_2depth_name || "";
+      const dong = addr.region_3depth_name || "";
+      const isDaejeon = city.includes("대전");
+      res.json({
+        isDaejeon,
+        city,
+        district,
+        dong,
+        fullAddress: `${city} ${district} ${dong}`.trim(),
+      });
+    } catch (error: any) {
+      console.error("[Kakao Geocode] Error:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
