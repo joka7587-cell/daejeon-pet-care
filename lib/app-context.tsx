@@ -100,7 +100,7 @@ export interface Payment {
   id: string;
   requestId?: string;
   amount: number;
-  method: "kakaopay" | "toss" | "kakao" | "card" | "escrow";
+  method: "kakaopay" | "toss" | "kakao" | "card" | "escrow" | "ontong_daejeon" | "naver_pay" | "bank_transfer" | "portone";
   status: "pending" | "completed" | "cancelled" | "escrow_held" | "escrow_released";
   fromUserId?: string;
   toUserId?: string;
