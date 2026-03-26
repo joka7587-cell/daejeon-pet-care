@@ -262,7 +262,7 @@ function OwnerExplore({ initialTab }: { initialTab?: string }) {
         <TextInput
           style={s.searchInput}
           placeholder="이름, 동네, 키워드로 검색"
-          placeholderTextColor="#AEAEB2"
+          placeholderTextColor={"#8E8E93"}
           value={searchQuery}
           onChangeText={setSearchQuery}
           returnKeyType="done"
@@ -444,7 +444,7 @@ function CaretakerExplore({ initialTab }: { initialTab?: string }) {
             ]}
           >
             <Text style={s.tabEmoji}>{tab.emoji}</Text>
-            <Text style={[s.tabLabel, activeTab === tab.id ? { color: "#fff" } : { color: "#555" }]}>
+            <Text style={[s.tabLabel, activeTab === tab.id ? { color: "#FFFFFF" } : { color: "#8E8E93" }]}>
               {tab.label}
             </Text>
           </Pressable>
@@ -554,7 +554,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 16,
     marginBottom: 4,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 42,
@@ -571,7 +571,7 @@ const s = StyleSheet.create({
   searchClear: {
     fontFamily: Fonts.medium,
     fontSize: 14,
-    color: "#AEAEB2",
+    color: "#8E8E93",
     padding: 4,
   },
 
@@ -585,7 +585,7 @@ const s = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "#E5E5EA",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   tabActive: {
     borderColor: "#FF6B35",
@@ -608,7 +608,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: "#E5E5EA",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
 
   // Neighborhood Chips
@@ -616,7 +616,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E5E5EA",
   },
@@ -645,7 +645,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
   },
   sortChipActive: {
     backgroundColor: "#FF6B35",
@@ -653,7 +653,7 @@ const s = StyleSheet.create({
   sortChipText: {
     fontFamily: Fonts.medium,
     fontSize: 12,
-    color: "#636366",
+    color: "#8E8E93",
   },
   sortChipTextActive: {
     fontFamily: Fonts.bold,
@@ -672,7 +672,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#E5E5EA",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   filterChipActive: {
     borderColor: "#FF6B35",
@@ -696,7 +696,7 @@ const s = StyleSheet.create({
   resultCountText: {
     fontFamily: Fonts.medium,
     fontSize: 12,
-    color: "#AEAEB2",
+    color: "#8E8E93",
   },
 
   // Walker Card
@@ -753,7 +753,7 @@ const s = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#F5F5F5",
+    borderTopColor: "#F8F8F8",
   },
   walkerStatItem: {
     flex: 1,
@@ -767,7 +767,7 @@ const s = StyleSheet.create({
   walkerStatLabel: {
     fontFamily: Fonts.regular,
     fontSize: 10,
-    color: "#AEAEB2",
+    color: "#8E8E93",
     marginTop: 1,
   },
   walkerStatDivider: {
@@ -893,7 +893,7 @@ const s = StyleSheet.create({
   requestDetail: {
     fontFamily: Fonts.medium,
     fontSize: 11,
-    color: "#636366",
+    color: "#8E8E93",
     marginTop: 4,
   },
   urgentBadge: {
@@ -916,7 +916,7 @@ const s = StyleSheet.create({
   },
   createBtnText: {
     fontFamily: Fonts.bold,
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 15,
   },
 
@@ -929,12 +929,12 @@ const s = StyleSheet.create({
   emptyText: {
     fontFamily: Fonts.medium,
     fontSize: 15,
-    color: "#AEAEB2",
+    color: "#8E8E93",
   },
   emptySubText: {
     fontFamily: Fonts.regular,
     fontSize: 13,
-    color: "#C7C7CC",
+    color: "#E8E8E8",
   },
   infoCard: {
     backgroundColor: "#F0FFF4",

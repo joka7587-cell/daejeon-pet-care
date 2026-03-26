@@ -3,7 +3,6 @@ import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platf
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Neighborhood } from "@/lib/app-context";
 import { useRouter } from "expo-router";
-import { useColors } from "@/hooks/use-colors";
 import * as Haptics from "expo-haptics";
 import {
   DAEJEON_NEIGHBORHOODS,
@@ -84,7 +83,6 @@ function generateMockCaretakers(
 export default function MapScreen() {
   const router = useRouter();
   const { state, dispatch } = useApp();
-  const colors = useColors();
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>(state.profile.neighborhood || "유성구");
   const [caretakers, setCaretakers] = useState<CaretakerMarker[]>([]);
   const [loading, setLoading] = useState(false);
@@ -144,7 +142,7 @@ export default function MapScreen() {
     <ScreenContainer className="pt-2">
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.foreground }]}>🗺️ 근처 돌보미</Text>
+        <Text style={[styles.title, { color: "#1A1A1A" }]}>🗺️ 근처 돌보미</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Pressable
             onPress={() => {
@@ -158,7 +156,7 @@ export default function MapScreen() {
             ]}
           >
             {locationLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={styles.locationBtnText}>📍 내 위치</Text>
             )}
@@ -177,12 +175,12 @@ export default function MapScreen() {
 
       {/* 위치 상태 표시 */}
       {userLocation && (
-        <View style={[styles.locationStatus, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.locationStatus, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
           <Text style={{ fontSize: 14 }}>📍</Text>
-          <Text style={[styles.locationStatusText, { color: colors.foreground }]}>
+          <Text style={[styles.locationStatusText, { color: "#1A1A1A" }]}>
             현재 위치 감지됨 · <Text style={{ color: "#FF7043", fontWeight: "700" }}>{selectedNeighborhood}</Text> 근처
           </Text>
-          <Text style={[styles.locationCoords, { color: colors.muted }]}>
+          <Text style={[styles.locationCoords, { color: "#8E8E93" }]}>
             {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
           </Text>
         </View>
@@ -215,7 +213,7 @@ export default function MapScreen() {
               }}
               style={({ pressed }) => [
                 styles.neighborhoodChip,
-                { backgroundColor: colors.surface, borderColor: colors.border },
+                { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" },
                 isSelected && styles.neighborhoodChipActive,
                 pressed && { opacity: 0.7 },
               ]}
@@ -223,7 +221,7 @@ export default function MapScreen() {
               <Text
                 style={[
                   styles.neighborhoodChipText,
-                  { color: colors.muted },
+                  { color: "#8E8E93" },
                   isSelected && styles.neighborhoodChipTextActive,
                 ]}
               >
@@ -241,7 +239,7 @@ export default function MapScreen() {
 
       {/* 지도 또는 플레이스홀더 */}
       {Platform.OS !== "web" && MapView ? (
-        <View style={[styles.mapContainer, { borderColor: colors.border }]}>
+        <View style={[styles.mapContainer, { borderColor: "#E8E8E8" }]}>
           <MapView
             provider={PROVIDER_GOOGLE}
             style={styles.map}
@@ -271,7 +269,7 @@ export default function MapScreen() {
           </MapView>
         </View>
       ) : (
-        <View style={[styles.mapPlaceholder, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.mapPlaceholder, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
           <View style={styles.webMapGrid}>
             {/* 간이 지도 표시 (웹용) */}
             <View style={styles.webMapCenter}>
@@ -282,7 +280,7 @@ export default function MapScreen() {
                 </View>
               )}
               <Text style={{ fontSize: 32 }}>🗺️</Text>
-              <Text style={[styles.webMapLabel, { color: colors.foreground }]}>{selectedNeighborhood}</Text>
+              <Text style={[styles.webMapLabel, { color: "#1A1A1A" }]}>{selectedNeighborhood}</Text>
             </View>
             {/* 돌보미 위치 표시 */}
             <View style={styles.webMapMarkers}>
@@ -293,12 +291,12 @@ export default function MapScreen() {
                   style={({ pressed }) => [styles.webMapMarker, pressed && { opacity: 0.7 }]}
                 >
                   <Text style={{ fontSize: 20 }}>{c.emoji}</Text>
-                  <Text style={[styles.webMapMarkerDist, { color: colors.muted }]}>{formatDistance(c.distance)}</Text>
+                  <Text style={[styles.webMapMarkerDist, { color: "#8E8E93" }]}>{formatDistance(c.distance)}</Text>
                 </Pressable>
               ))}
             </View>
           </View>
-          <Text style={[styles.mapPlaceholderSubtext, { color: colors.muted }]}>
+          <Text style={[styles.mapPlaceholderSubtext, { color: "#8E8E93" }]}>
             네이티브 앱에서 전체 지도를 이용할 수 있습니다
           </Text>
         </View>
@@ -308,35 +306,35 @@ export default function MapScreen() {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#FF7043" />
-          <Text style={[styles.loadingText, { color: colors.muted }]}>돌보미를 찾고 있어요...</Text>
+          <Text style={[styles.loadingText, { color: "#8E8E93" }]}>돌보미를 찾고 있어요...</Text>
         </View>
       )}
 
       {/* 선택된 마커 상세 정보 */}
       {selectedMarker && (
-        <View style={[styles.markerDetailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.markerDetailCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
           <View style={styles.markerDetailHeader}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={styles.detailAvatar}>
                 <Text style={{ fontSize: 24 }}>{selectedMarker.emoji}</Text>
               </View>
               <View>
-                <Text style={[styles.markerDetailName, { color: colors.foreground }]}>{selectedMarker.nickname}</Text>
+                <Text style={[styles.markerDetailName, { color: "#1A1A1A" }]}>{selectedMarker.nickname}</Text>
                 <Text style={styles.markerDetailRating}>⭐ {(selectedMarker.rating / 100).toFixed(1)}</Text>
               </View>
             </View>
             <Pressable
               onPress={() => setSelectedMarker(null)}
-              style={({ pressed }) => [styles.closeBtn, { backgroundColor: colors.background }, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.closeBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.7 }]}
             >
-              <Text style={[styles.closeBtnText, { color: colors.muted }]}>✕</Text>
+              <Text style={[styles.closeBtnText, { color: "#8E8E93" }]}>✕</Text>
             </Pressable>
           </View>
 
           <View style={styles.detailInfoRow}>
-            <View style={[styles.detailInfoChip, { backgroundColor: colors.background }]}>
+            <View style={[styles.detailInfoChip, { backgroundColor: "#FFFFFF" }]}>
               <Text style={{ fontSize: 12 }}>📍</Text>
-              <Text style={[styles.detailInfoText, { color: colors.foreground }]}>{formatDistance(selectedMarker.distance)}</Text>
+              <Text style={[styles.detailInfoText, { color: "#1A1A1A" }]}>{formatDistance(selectedMarker.distance)}</Text>
             </View>
             {selectedMarker.services.map((s, i) => (
               <View key={i} style={[styles.detailInfoChip, { backgroundColor: "#FFF3EE" }]}>
@@ -351,7 +349,7 @@ export default function MapScreen() {
                 haptic();
                 router.push(`/profile/${selectedMarker.userId}` as never);
               }}
-              style={({ pressed }) => [styles.profileBtn, { backgroundColor: colors.background }, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.profileBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.85 }]}
             >
               <Text style={styles.profileBtnText}>프로필 보기</Text>
             </Pressable>
@@ -372,10 +370,10 @@ export default function MapScreen() {
 
       {/* 돌보미 목록 */}
       {!loading && caretakers.length > 0 && !selectedMarker && (
-        <View style={[styles.listContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-          <Text style={[styles.listTitle, { color: colors.foreground }]}>
+        <View style={[styles.listContainer, { backgroundColor: "#F8F8F8", borderTopColor: "#E8E8E8" }]}>
+          <Text style={[styles.listTitle, { color: "#1A1A1A" }]}>
             근처 돌보미 ({caretakers.length}명)
-            {userLocation && <Text style={{ fontSize: 12, color: colors.muted, fontWeight: "400" }}> · 거리순</Text>}
+            {userLocation && <Text style={{ fontSize: 12, color: "#8E8E93", fontWeight: "400" }}> · 거리순</Text>}
           </Text>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
             {caretakers.map((caretaker) => (
@@ -385,16 +383,16 @@ export default function MapScreen() {
                   haptic();
                   setSelectedMarker(caretaker);
                 }}
-                style={({ pressed }) => [styles.listItem, { backgroundColor: colors.background }, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [styles.listItem, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.8 }]}
               >
                 <View style={styles.listItemLeft}>
                   <View style={[styles.listItemAvatar, { backgroundColor: "#FFF3EE" }]}>
                     <Text style={{ fontSize: 22 }}>{caretaker.emoji}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.listItemName, { color: colors.foreground }]}>{caretaker.nickname}</Text>
+                    <Text style={[styles.listItemName, { color: "#1A1A1A" }]}>{caretaker.nickname}</Text>
                     <View style={{ flexDirection: "row", gap: 6, marginTop: 2 }}>
-                      <Text style={[styles.listItemDistance, { color: colors.muted }]}>
+                      <Text style={[styles.listItemDistance, { color: "#8E8E93" }]}>
                         📍 {formatDistance(caretaker.distance)}
                       </Text>
                       <Text style={[styles.listItemService, { color: "#FF7043" }]}>
@@ -405,7 +403,7 @@ export default function MapScreen() {
                 </View>
                 <View style={styles.listItemRight}>
                   <Text style={styles.listItemRating}>⭐ {(caretaker.rating / 100).toFixed(1)}</Text>
-                  <Text style={[styles.listItemArrow, { color: colors.muted }]}>›</Text>
+                  <Text style={[styles.listItemArrow, { color: "#8E8E93" }]}>›</Text>
                 </View>
               </Pressable>
             ))}
@@ -416,8 +414,8 @@ export default function MapScreen() {
       {!loading && caretakers.length === 0 && (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyEmoji}>🌙</Text>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>근처에 활동 중인 돌보미가 없어요</Text>
-          <Text style={[styles.emptyDesc, { color: colors.muted }]}>다른 동네를 선택하거나 위치를 새로고침 해보세요</Text>
+          <Text style={[styles.emptyTitle, { color: "#1A1A1A" }]}>근처에 활동 중인 돌보미가 없어요</Text>
+          <Text style={[styles.emptyDesc, { color: "#8E8E93" }]}>다른 동네를 선택하거나 위치를 새로고침 해보세요</Text>
         </View>
       )}
     </ScreenContainer>
@@ -442,7 +440,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  locationBtnText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  locationBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   refreshBtn: {
     backgroundColor: "#FF7043",
     borderRadius: 8,
@@ -519,7 +517,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: "#4285F4",
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: "#FFFFFF",
   },
   userDotPulse: {
     position: "absolute",
@@ -553,7 +551,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -619,7 +617,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
   },
-  requestBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  requestBtnText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
   listContainer: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,

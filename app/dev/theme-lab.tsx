@@ -28,7 +28,6 @@ export default function ThemeLabScreen() {
   const [pressCount, setPressCount] = useState(0);
   const [lastAction, setLastAction] = useState<string>("None yet");
   const { colorScheme, setColorScheme } = useThemeContext();
-  const colors = useColors();
 
   const swatches = useMemo(
     () =>
@@ -184,14 +183,14 @@ export default function ThemeLabScreen() {
                 useColors()
               </Text>
               <Text className="mt-1 text-sm text-muted">
-                Background: {colors.background} • Text: {colors.text} • Tint: {colors.tint}
+                Background: {"#FFFFFF"} • Text: {"#1A1A1A"} • Tint: {"#FF6B35"}
               </Text>
               <Text className="text-xs text-muted">
                 (Pressable uses style; Tailwind on Pressable is disabled via remap)
               </Text>
               <View className="mt-3 gap-2">
                 <View className="flex-row items-center gap-2">
-                  <IconSymbol name="house.fill" color={colors.tint} size={20} />
+                  <IconSymbol name="house.fill" color="#FF6B35" size={20} />
                   <Text className="text-sm text-foreground">
                     Press count: {pressCount}
                   </Text>

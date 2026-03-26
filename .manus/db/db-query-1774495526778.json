@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `users` ADD `passwordHash` varchar(255);\nALTER TABLE `users` ADD `kakaoId` varchar(64);\nALTER TABLE `users` ADD `appRole` enum('owner','walker') DEFAULT 'owner' NOT NULL;\nALTER TABLE `users` ADD `emailVerified` boolean DEFAULT false NOT NULL;\nALTER TABLE `users` ADD CONSTRAINT `users_kakaoId_unique` UNIQUE(`kakaoId`);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ZUa6QhYhRuK1Df1.root --database DXHwUQuWWJrA2EZBKsukRA --execute ALTER TABLE `users` ADD `passwordHash` varchar(255);\nALTER TABLE `users` ADD `kakaoId` varchar(64);\nALTER TABLE `users` ADD `appRole` enum('owner','walker') DEFAULT 'owner' NOT NULL;\nALTER TABLE `users` ADD `emailVerified` boolean DEFAULT false NOT NULL;\nALTER TABLE `users` ADD CONSTRAINT `users_kakaoId_unique` UNIQUE(`kakaoId`);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 4655
+}

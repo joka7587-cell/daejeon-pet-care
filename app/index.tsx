@@ -16,14 +16,16 @@ export default function RootIndexScreen() {
     // 약간의 딜레이를 주어 라우터가 완전히 마운트되도록 함
     const timer = setTimeout(() => {
       if (state.isOnboarded) {
+        // 이미 온보딩 완료 → 메인 화면
         router.replace("/(tabs)" as never);
       } else {
-        router.replace("/onboarding" as never);
+        // 로그인/회원가입 화면으로 이동
+        router.replace("/auth/login" as never);
       }
     }, 100);
 
     return () => clearTimeout(timer);
   }, []);
 
-  return <View style={{ flex: 1, backgroundColor: "#fff" }} />;
+  return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
 }

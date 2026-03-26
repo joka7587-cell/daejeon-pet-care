@@ -9,7 +9,6 @@ import {
 import { ScreenContainer } from "@/components/screen-container";
 import { useRouter } from "expo-router";
 import { useApp, WalkSession } from "@/lib/app-context";
-import { useColors } from "@/hooks/use-colors";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
@@ -51,7 +50,6 @@ type FilterType = "all" | "completed" | "active";
 export default function WalkHistoryScreen() {
   const router = useRouter();
   const { state } = useApp();
-  const colors = useColors();
   const [filter, setFilter] = useState<FilterType>("all");
   const accentColor = state.profile.role === "caretaker" ? "#4CAF82" : "#FF7043";
 
@@ -77,7 +75,7 @@ export default function WalkHistoryScreen() {
   const totalDuration = completedSessions.reduce((sum, s) => sum + s.totalDurationSec, 0);
 
   const renderSession = ({ item }: { item: WalkSession }) => {
-    const statusColor = item.status === "active" ? "#4CAF82" : item.status === "paused" ? "#F59E0B" : colors.muted;
+    const statusColor = item.status === "active" ? "#4CAF82" : item.status === "paused" ? "#F59E0B" : "#8E8E93";
     const statusLabel = item.status === "active" ? "진행 중" : item.status === "paused" ? "일시정지" : "완료";
 
     return (
@@ -88,7 +86,7 @@ export default function WalkHistoryScreen() {
         }}
         style={({ pressed }) => [
           styles.sessionCard,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" },
           pressed && { opacity: 0.7 },
         ]}
       >
@@ -97,22 +95,22 @@ export default function WalkHistoryScreen() {
         </View>
         <View style={styles.sessionCenter}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Text style={[styles.sessionPetName, { color: colors.foreground }]}>{item.petName}</Text>
+            <Text style={[styles.sessionPetName, { color: "#1A1A1A" }]}>{item.petName}</Text>
             <View style={[styles.statusPill, { backgroundColor: statusColor + "20" }]}>
               <Text style={[styles.statusPillText, { color: statusColor }]}>{statusLabel}</Text>
             </View>
           </View>
           {item.ownerName && (
-            <Text style={[styles.sessionOwner, { color: colors.muted }]}>보호자: {item.ownerName}</Text>
+            <Text style={[styles.sessionOwner, { color: "#8E8E93" }]}>보호자: {item.ownerName}</Text>
           )}
-          <Text style={[styles.sessionTime, { color: colors.muted }]}>
+          <Text style={[styles.sessionTime, { color: "#8E8E93" }]}>
             {formatTimeOnly(item.startedAt)}
             {item.endedAt ? ` ~ ${formatTimeOnly(item.endedAt)}` : ""}
           </Text>
         </View>
         <View style={styles.sessionRight}>
           <Text style={[styles.sessionDist, { color: accentColor }]}>{formatDist(item.totalDistanceKm)}</Text>
-          <Text style={[styles.sessionDur, { color: colors.muted }]}>{formatTime(item.totalDurationSec)}</Text>
+          <Text style={[styles.sessionDur, { color: "#8E8E93" }]}>{formatTime(item.totalDurationSec)}</Text>
         </View>
       </Pressable>
     );
@@ -125,24 +123,24 @@ export default function WalkHistoryScreen() {
         <Text style={[styles.summaryTitle, { color: accentColor }]}>🐾 산책 통계</Text>
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: colors.foreground }]}>{completedSessions.length}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.muted }]}>총 산책</Text>
+            <Text style={[styles.summaryValue, { color: "#1A1A1A" }]}>{completedSessions.length}</Text>
+            <Text style={[styles.summaryLabel, { color: "#8E8E93" }]}>총 산책</Text>
           </View>
-          <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
+          <View style={[styles.summaryDivider, { backgroundColor: "#E8E8E8" }]} />
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: colors.foreground }]}>{formatDist(totalDistance)}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.muted }]}>총 거리</Text>
+            <Text style={[styles.summaryValue, { color: "#1A1A1A" }]}>{formatDist(totalDistance)}</Text>
+            <Text style={[styles.summaryLabel, { color: "#8E8E93" }]}>총 거리</Text>
           </View>
-          <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
+          <View style={[styles.summaryDivider, { backgroundColor: "#E8E8E8" }]} />
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: colors.foreground }]}>{formatTime(totalDuration)}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.muted }]}>총 시간</Text>
+            <Text style={[styles.summaryValue, { color: "#1A1A1A" }]}>{formatTime(totalDuration)}</Text>
+            <Text style={[styles.summaryLabel, { color: "#8E8E93" }]}>총 시간</Text>
           </View>
         </View>
       </View>
 
       {/* 필터 탭 */}
-      <View style={[styles.filterRow, { borderBottomColor: colors.border }]}>
+      <View style={[styles.filterRow, { borderBottomColor: "#E8E8E8" }]}>
         {([
           { key: "all" as FilterType, label: "전체" },
           { key: "completed" as FilterType, label: "완료" },
@@ -159,7 +157,7 @@ export default function WalkHistoryScreen() {
           >
             <Text style={[
               styles.filterText,
-              { color: filter === f.key ? accentColor : colors.muted },
+              { color: filter === f.key ? accentColor : "#8E8E93" },
               filter === f.key && { fontWeight: "700" },
             ]}>
               {f.label}
@@ -182,11 +180,11 @@ export default function WalkHistoryScreen() {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       {/* 헤더 */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: "#E8E8E8" }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}>
-          <Text style={{ fontSize: 24, color: colors.foreground }}>←</Text>
+          <Text style={{ fontSize: 24, color: "#1A1A1A" }}>←</Text>
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>산책 기록</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>산책 기록</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -198,7 +196,7 @@ export default function WalkHistoryScreen() {
         renderItem={({ item }) => {
           if (item.type === "header") {
             return (
-              <Text style={[styles.dateHeader, { color: colors.foreground }]}>{item.date}</Text>
+              <Text style={[styles.dateHeader, { color: "#1A1A1A" }]}>{item.date}</Text>
             );
           }
           return renderSession({ item: item.session });
@@ -206,7 +204,7 @@ export default function WalkHistoryScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={{ fontSize: 48 }}>🐕‍🦺</Text>
-            <Text style={[styles.emptyText, { color: colors.muted }]}>
+            <Text style={[styles.emptyText, { color: "#8E8E93" }]}>
               아직 산책 기록이 없어요{"\n"}산책을 시작해보세요!
             </Text>
           </View>

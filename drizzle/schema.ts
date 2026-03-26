@@ -1,4 +1,4 @@
-import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar, json } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -15,8 +15,16 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  /** 이메일/비밀번호 로그인용 해시 (bcrypt) */
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  /** 카카오 소셜 로그인 ID */
+  kakaoId: varchar("kakaoId", { length: 64 }).unique(),
   loginMethod: varchar("loginMethod", { length: 64 }),
+  /** 앱 내 역할: owner(보호자) / walker(도그워커) */
+  appRole: mysqlEnum("appRole", ["owner", "walker"]).default("owner").notNull(),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  /** 이메일 인증 여부 */
+  emailVerified: boolean("emailVerified").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

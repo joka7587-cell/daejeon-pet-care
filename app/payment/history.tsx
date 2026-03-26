@@ -84,43 +84,43 @@ export default function PaymentHistoryScreen() {
     const statusInfo = STATUS_LABELS[item.status] || STATUS_LABELS.completed;
 
     return (
-      <View style={styles.paymentCard}>
+      <View style={[styles.paymentCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
         <View style={styles.paymentHeader}>
-          <Text style={styles.paymentService}>
+          <Text style={[styles.paymentService, { color: "#1A1A1A" }]}>
             {SERVICE_LABELS[item.serviceType || ""] || item.serviceType || "돌봄 서비스"}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + "20" }]}>
             <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
           </View>
         </View>
-        <Text style={styles.paymentCaretaker}>{item.caretakerName || "돌보미"}</Text>
+        <Text style={[styles.paymentCaretaker, { color: "#8E8E93" }]}>{item.caretakerName || "돌보미"}</Text>
         <View style={styles.paymentFooter}>
-          <Text style={styles.paymentMethod}>{METHOD_LABELS[item.method] || item.method}</Text>
-          <Text style={styles.paymentDate}>{formatDate(item.createdAt)}</Text>
+          <Text style={[styles.paymentMethod, { color: "#8E8E93" }]}>{METHOD_LABELS[item.method] || item.method}</Text>
+          <Text style={[styles.paymentDate, { color: "#8E8E93" }]}>{formatDate(item.createdAt)}</Text>
         </View>
-        <Text style={styles.paymentAmount}>{item.amount.toLocaleString()}원</Text>
+        <Text style={[styles.paymentAmount, { color: "#1A1A1A" }]}>{item.amount.toLocaleString()}원</Text>
       </View>
     );
   };
 
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-      <View style={styles.header}>
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} style={{ backgroundColor: "#FFFFFF" }}>
+      <View style={[styles.header, { borderBottomColor: "#E8E8E8" }]}>
         <Pressable
           onPress={() => { haptic(); router.back(); }}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: "#1A1A1A" }]}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>결제 내역</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>결제 내역</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* 총 결제 요약 */}
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>총 결제 금액</Text>
+      <View style={[styles.summaryCard, { borderBottomColor: "#E8E8E8" }]}>
+        <Text style={[styles.summaryLabel, { color: "#8E8E93" }]}>총 결제 금액</Text>
         <Text style={styles.summaryAmount}>{totalSpent.toLocaleString()}원</Text>
-        <Text style={styles.summaryCount}>총 {allPayments.length}건</Text>
+        <Text style={[styles.summaryCount, { color: "#8E8E93" }]}>총 {allPayments.length}건</Text>
       </View>
 
       <FlatList
@@ -131,7 +131,7 @@ export default function PaymentHistoryScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>💳</Text>
-            <Text style={styles.emptyText}>결제 내역이 없어요</Text>
+            <Text style={[styles.emptyText, { color: "#8E8E93" }]}>결제 내역이 없어요</Text>
           </View>
         }
       />
@@ -146,40 +146,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  backBtnText: { fontSize: 28, color: "#1A1A1A" },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
+  backBtnText: { fontSize: 28 },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700" },
   summaryCard: {
     alignItems: "center",
     paddingVertical: 24,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
     gap: 4,
   },
-  summaryLabel: { fontSize: 13, color: "#9E9E9E" },
+  summaryLabel: { fontSize: 13 },
   summaryAmount: { fontSize: 32, fontWeight: "800", color: "#FF7043" },
-  summaryCount: { fontSize: 13, color: "#9E9E9E" },
+  summaryCount: { fontSize: 13 },
   list: { padding: 16, gap: 12, paddingBottom: 40 },
   paymentCard: {
-    backgroundColor: "#fff",
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
     gap: 6,
   },
   paymentHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  paymentService: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
+  paymentService: { fontSize: 15, fontWeight: "700" },
   statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   statusText: { fontSize: 11, fontWeight: "700" },
-  paymentCaretaker: { fontSize: 13, color: "#757575" },
+  paymentCaretaker: { fontSize: 13 },
   paymentFooter: { flexDirection: "row", gap: 8 },
-  paymentMethod: { fontSize: 12, color: "#9E9E9E" },
-  paymentDate: { fontSize: 12, color: "#9E9E9E" },
-  paymentAmount: { fontSize: 18, fontWeight: "800", color: "#1A1A1A", textAlign: "right" },
+  paymentMethod: { fontSize: 12 },
+  paymentDate: { fontSize: 12 },
+  paymentAmount: { fontSize: 18, fontWeight: "800", textAlign: "right" },
   emptyContainer: { alignItems: "center", paddingVertical: 60, gap: 12 },
   emptyEmoji: { fontSize: 48 },
-  emptyText: { fontSize: 15, color: "#9E9E9E" },
+  emptyText: { fontSize: 15 },
 });

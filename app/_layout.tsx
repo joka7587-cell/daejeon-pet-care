@@ -121,6 +121,7 @@ export default function RootLayout() {
               <Stack.Screen name="index" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="onboarding" />
+              <Stack.Screen name="auth/login" options={{ presentation: "fullScreenModal" }} />
               <Stack.Screen name="oauth/callback" />
               <Stack.Screen name="request/new" options={{ presentation: "modal" }} />
               <Stack.Screen name="request/[id]" options={{ presentation: "modal" }} />

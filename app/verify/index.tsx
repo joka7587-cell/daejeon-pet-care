@@ -14,7 +14,6 @@ import { Image } from "expo-image";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, WalkerVerification } from "@/lib/app-context";
 import { useRouter } from "expo-router";
-import { useColors } from "@/hooks/use-colors";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 
@@ -150,7 +149,6 @@ type VerifyStep = "overview" | "cert" | "identity" | "quiz" | "result";
 export default function VerifyScreen() {
   const { state, dispatch } = useApp();
   const router = useRouter();
-  const colors = useColors();
   const verification = state.walkerVerification;
 
   const [step, setStep] = useState<VerifyStep>("overview");
@@ -338,23 +336,23 @@ export default function VerifyScreen() {
       <ScreenContainer edges={["top", "left", "right"]}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
           {/* 헤더 */}
-          <View style={s.header}>
-            <Pressable onPress={() => { haptic(); router.back(); }} style={({ pressed }) => [s.backBtn, pressed && { opacity: 0.7 }]}>
+          <View style={styles.header}>
+            <Pressable onPress={() => { haptic(); router.back(); }} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
               <Text style={{ fontSize: 18 }}>←</Text>
             </Pressable>
-            <Text style={[s.headerTitle, { color: colors.foreground }]}>도그워커 인증</Text>
+            <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>도그워커 인증</Text>
             <View style={{ width: 40 }} />
           </View>
 
           {/* 인증 상태 카드 */}
-          <View style={[s.statusCard, { borderColor: getLevelColor(verification.verificationLevel) + "40" }]}>
-            <View style={s.statusTop}>
+          <View style={[styles.statusCard, { borderColor: getLevelColor(verification.verificationLevel) + "40" }]}>
+            <View style={styles.statusTop}>
               <Text style={{ fontSize: 40 }}>{getLevelEmoji(verification.verificationLevel)}</Text>
               <View style={{ flex: 1, marginLeft: 16 }}>
-                <Text style={[s.statusLevel, { color: getLevelColor(verification.verificationLevel) }]}>
+                <Text style={[styles.statusLevel, { color: getLevelColor(verification.verificationLevel) }]}>
                   {getLevelLabel(verification.verificationLevel)}
                 </Text>
-                <Text style={[s.statusDesc, { color: colors.muted }]}>
+                <Text style={[styles.statusDesc, { color: "#8E8E93" }]}>
                   {verification.isVerified
                     ? "인증이 완료되었습니다. 프로필에 인증 마크가 표시됩니다."
                     : "아래 단계를 완료하여 인증 마크를 획득하세요."}
@@ -362,36 +360,36 @@ export default function VerifyScreen() {
               </View>
             </View>
             {/* 진행률 바 */}
-            <View style={s.progressBar}>
-              <View style={[s.progressFill, { width: `${(progress / 3) * 100}%`, backgroundColor: getLevelColor(verification.verificationLevel) }]} />
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${(progress / 3) * 100}%`, backgroundColor: getLevelColor(verification.verificationLevel) }]} />
             </View>
-            <Text style={[s.progressText, { color: colors.muted }]}>{progress}/3 단계 완료</Text>
+            <Text style={[styles.progressText, { color: "#8E8E93" }]}>{progress}/3 단계 완료</Text>
           </View>
 
           {/* 인증 단계 카드들 */}
-          <View style={s.stepsContainer}>
+          <View style={styles.stepsContainer}>
             {/* 1. 자격증 업로드 */}
             <Pressable
               onPress={() => { haptic(); setStep("cert"); }}
               style={({ pressed }) => [
-                s.stepCard,
-                { borderColor: verification.certUploaded ? accentColor + "60" : colors.border, backgroundColor: verification.certUploaded ? accentColor + "08" : colors.surface },
+                styles.stepCard,
+                { borderColor: verification.certUploaded ? accentColor + "60" : "#E8E8E8", backgroundColor: verification.certUploaded ? accentColor + "08" : "#F8F8F8" },
                 pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
               ]}
             >
-              <View style={s.stepHeader}>
-                <View style={[s.stepNumber, { backgroundColor: verification.certUploaded ? accentColor : colors.muted + "40" }]}>
-                  <Text style={s.stepNumberText}>{verification.certUploaded ? "✓" : "1"}</Text>
+              <View style={styles.stepHeader}>
+                <View style={[styles.stepNumber, { backgroundColor: verification.certUploaded ? accentColor : "#8E8E93" + "40" }]}>
+                  <Text style={styles.stepNumberText}>{verification.certUploaded ? "✓" : "1"}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.stepTitle, { color: colors.foreground }]}>자격증 업로드</Text>
-                  <Text style={[s.stepSubtitle, { color: colors.muted }]}>
+                  <Text style={[styles.stepTitle, { color: "#1A1A1A" }]}>자격증 업로드</Text>
+                  <Text style={[styles.stepSubtitle, { color: "#8E8E93" }]}>
                     {verification.certUploaded
                       ? `${CERT_TYPES.find(c => c.id === verification.certType)?.label || "자격증"} 업로드 완료`
                       : "반려동물 관련 자격증을 업로드하세요"}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 16, color: colors.muted }}>→</Text>
+                <Text style={{ fontSize: 16, color: "#8E8E93" }}>→</Text>
               </View>
             </Pressable>
 
@@ -399,24 +397,24 @@ export default function VerifyScreen() {
             <Pressable
               onPress={() => { haptic(); setStep("identity"); }}
               style={({ pressed }) => [
-                s.stepCard,
-                { borderColor: (verification.identityAgreed && verification.backgroundCheckAgreed) ? accentColor + "60" : colors.border, backgroundColor: (verification.identityAgreed && verification.backgroundCheckAgreed) ? accentColor + "08" : colors.surface },
+                styles.stepCard,
+                { borderColor: (verification.identityAgreed && verification.backgroundCheckAgreed) ? accentColor + "60" : "#E8E8E8", backgroundColor: (verification.identityAgreed && verification.backgroundCheckAgreed) ? accentColor + "08" : "#F8F8F8" },
                 pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
               ]}
             >
-              <View style={s.stepHeader}>
-                <View style={[s.stepNumber, { backgroundColor: (verification.identityAgreed && verification.backgroundCheckAgreed) ? accentColor : colors.muted + "40" }]}>
-                  <Text style={s.stepNumberText}>{(verification.identityAgreed && verification.backgroundCheckAgreed) ? "✓" : "2"}</Text>
+              <View style={styles.stepHeader}>
+                <View style={[styles.stepNumber, { backgroundColor: (verification.identityAgreed && verification.backgroundCheckAgreed) ? accentColor : "#8E8E93" + "40" }]}>
+                  <Text style={styles.stepNumberText}>{(verification.identityAgreed && verification.backgroundCheckAgreed) ? "✓" : "2"}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.stepTitle, { color: colors.foreground }]}>신원 확인</Text>
-                  <Text style={[s.stepSubtitle, { color: colors.muted }]}>
+                  <Text style={[styles.stepTitle, { color: "#1A1A1A" }]}>신원 확인</Text>
+                  <Text style={[styles.stepSubtitle, { color: "#8E8E93" }]}>
                     {(verification.identityAgreed && verification.backgroundCheckAgreed)
                       ? "신분증 대조 및 범죄이력 조회 동의 완료"
                       : "신분증 대조 및 범죄이력 조회에 동의하세요"}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 16, color: colors.muted }}>→</Text>
+                <Text style={{ fontSize: 16, color: "#8E8E93" }}>→</Text>
               </View>
             </Pressable>
 
@@ -424,50 +422,50 @@ export default function VerifyScreen() {
             <Pressable
               onPress={() => { haptic(); setStep("quiz"); }}
               style={({ pressed }) => [
-                s.stepCard,
-                { borderColor: verification.quizPassed ? accentColor + "60" : colors.border, backgroundColor: verification.quizPassed ? accentColor + "08" : colors.surface },
+                styles.stepCard,
+                { borderColor: verification.quizPassed ? accentColor + "60" : "#E8E8E8", backgroundColor: verification.quizPassed ? accentColor + "08" : "#F8F8F8" },
                 pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
               ]}
             >
-              <View style={s.stepHeader}>
-                <View style={[s.stepNumber, { backgroundColor: verification.quizPassed ? accentColor : colors.muted + "40" }]}>
-                  <Text style={s.stepNumberText}>{verification.quizPassed ? "✓" : "3"}</Text>
+              <View style={styles.stepHeader}>
+                <View style={[styles.stepNumber, { backgroundColor: verification.quizPassed ? accentColor : "#8E8E93" + "40" }]}>
+                  <Text style={styles.stepNumberText}>{verification.quizPassed ? "✓" : "3"}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.stepTitle, { color: colors.foreground }]}>전문성 테스트</Text>
-                  <Text style={[s.stepSubtitle, { color: colors.muted }]}>
+                  <Text style={[styles.stepTitle, { color: "#1A1A1A" }]}>전문성 테스트</Text>
+                  <Text style={[styles.stepSubtitle, { color: "#8E8E93" }]}>
                     {verification.quizPassed
                       ? `${verification.quizScore}점으로 통과! (80점 이상)`
                       : "반려동물 관리 퀴즈 10문항 (80점 이상 통과)"}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 16, color: colors.muted }}>→</Text>
+                <Text style={{ fontSize: 16, color: "#8E8E93" }}>→</Text>
               </View>
             </Pressable>
           </View>
 
           {/* 인증 혜택 안내 */}
-          <View style={[s.benefitCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[s.benefitTitle, { color: colors.foreground }]}>인증 혜택</Text>
-            <View style={s.benefitRow}>
+          <View style={[styles.benefitCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+            <Text style={[styles.benefitTitle, { color: "#1A1A1A" }]}>인증 혜택</Text>
+            <View style={styles.benefitRow}>
               <Text style={{ fontSize: 20 }}>🟡</Text>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[s.benefitLabel, { color: colors.foreground }]}>기본 인증</Text>
-                <Text style={[s.benefitDesc, { color: colors.muted }]}>퀴즈 통과 시 기본 인증 마크 부여</Text>
+                <Text style={[styles.benefitLabel, { color: "#1A1A1A" }]}>기본 인증</Text>
+                <Text style={[styles.benefitDesc, { color: "#8E8E93" }]}>퀴즈 통과 시 기본 인증 마크 부여</Text>
               </View>
             </View>
-            <View style={s.benefitRow}>
+            <View style={styles.benefitRow}>
               <Text style={{ fontSize: 20 }}>🔵</Text>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[s.benefitLabel, { color: colors.foreground }]}>전문 인증</Text>
-                <Text style={[s.benefitDesc, { color: colors.muted }]}>퀴즈 + 자격증 또는 신원확인 완료</Text>
+                <Text style={[styles.benefitLabel, { color: "#1A1A1A" }]}>전문 인증</Text>
+                <Text style={[styles.benefitDesc, { color: "#8E8E93" }]}>퀴즈 + 자격증 또는 신원확인 완료</Text>
               </View>
             </View>
-            <View style={s.benefitRow}>
+            <View style={styles.benefitRow}>
               <Text style={{ fontSize: 20 }}>🟣</Text>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[s.benefitLabel, { color: colors.foreground }]}>프리미엄 인증</Text>
-                <Text style={[s.benefitDesc, { color: colors.muted }]}>전체 3단계 완료 시 최고 등급 부여, 검색 상위 노출</Text>
+                <Text style={[styles.benefitLabel, { color: "#1A1A1A" }]}>프리미엄 인증</Text>
+                <Text style={[styles.benefitDesc, { color: "#8E8E93" }]}>전체 3단계 완료 시 최고 등급 부여, 검색 상위 노출</Text>
               </View>
             </View>
           </View>
@@ -481,32 +479,32 @@ export default function VerifyScreen() {
     return (
       <ScreenContainer edges={["top", "left", "right"]}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-          <View style={s.header}>
-            <Pressable onPress={() => { haptic(); setStep("overview"); }} style={({ pressed }) => [s.backBtn, pressed && { opacity: 0.7 }]}>
+          <View style={styles.header}>
+            <Pressable onPress={() => { haptic(); setStep("overview"); }} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
               <Text style={{ fontSize: 18 }}>←</Text>
             </Pressable>
-            <Text style={[s.headerTitle, { color: colors.foreground }]}>자격증 업로드</Text>
+            <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>자격증 업로드</Text>
             <View style={{ width: 40 }} />
           </View>
 
-          <View style={s.formSection}>
-            <Text style={[s.formLabel, { color: colors.foreground }]}>자격증 종류 선택</Text>
-            <View style={s.certGrid}>
+          <View style={styles.formSection}>
+            <Text style={[styles.formLabel, { color: "#1A1A1A" }]}>자격증 종류 선택</Text>
+            <View style={styles.certGrid}>
               {CERT_TYPES.map((cert) => (
                 <Pressable
                   key={cert.id}
                   onPress={() => { haptic(); setSelectedCertType(cert.id); }}
                   style={({ pressed }) => [
-                    s.certChip,
+                    styles.certChip,
                     {
-                      borderColor: selectedCertType === cert.id ? accentColor : colors.border,
-                      backgroundColor: selectedCertType === cert.id ? accentColor + "15" : colors.surface,
+                      borderColor: selectedCertType === cert.id ? accentColor : "#E8E8E8",
+                      backgroundColor: selectedCertType === cert.id ? accentColor + "15" : "#F8F8F8",
                     },
                     pressed && { opacity: 0.8 },
                   ]}
                 >
                   <Text style={{ fontSize: 20 }}>{cert.emoji}</Text>
-                  <Text style={[s.certChipLabel, { color: selectedCertType === cert.id ? accentColor : colors.foreground }]}>
+                  <Text style={[styles.certChipLabel, { color: selectedCertType === cert.id ? accentColor : "#1A1A1A" }]}>
                     {cert.label}
                   </Text>
                 </Pressable>
@@ -514,23 +512,23 @@ export default function VerifyScreen() {
             </View>
           </View>
 
-          <View style={s.formSection}>
-            <Text style={[s.formLabel, { color: colors.foreground }]}>자격증 이미지</Text>
+          <View style={styles.formSection}>
+            <Text style={[styles.formLabel, { color: "#1A1A1A" }]}>자격증 이미지</Text>
             <Pressable
               onPress={handlePickCert}
               style={({ pressed }) => [
-                s.uploadArea,
-                { borderColor: certImageUri ? accentColor : colors.border, backgroundColor: colors.surface },
+                styles.uploadArea,
+                { borderColor: certImageUri ? accentColor : "#E8E8E8", backgroundColor: "#F8F8F8" },
                 pressed && { opacity: 0.8 },
               ]}
             >
               {certImageUri ? (
-                <Image source={{ uri: certImageUri }} style={s.certPreview} contentFit="contain" />
+                <Image source={{ uri: certImageUri }} style={styles.certPreview} contentFit="contain" />
               ) : (
-                <View style={s.uploadPlaceholder}>
+                <View style={styles.uploadPlaceholder}>
                   <Text style={{ fontSize: 40 }}>📄</Text>
-                  <Text style={[s.uploadText, { color: colors.muted }]}>탭하여 자격증 이미지를 선택하세요</Text>
-                  <Text style={[s.uploadHint, { color: colors.muted }]}>JPG, PNG 형식 지원</Text>
+                  <Text style={[styles.uploadText, { color: "#8E8E93" }]}>탭하여 자격증 이미지를 선택하세요</Text>
+                  <Text style={[styles.uploadHint, { color: "#8E8E93" }]}>JPG, PNG 형식 지원</Text>
                 </View>
               )}
             </Pressable>
@@ -539,12 +537,12 @@ export default function VerifyScreen() {
           <Pressable
             onPress={handleCertSubmit}
             style={({ pressed }) => [
-              s.submitBtn,
-              { backgroundColor: (certImageUri && selectedCertType) ? accentColor : colors.muted + "40" },
+              styles.submitBtn,
+              { backgroundColor: (certImageUri && selectedCertType) ? accentColor : "#8E8E93" + "40" },
               pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
             ]}
           >
-            <Text style={s.submitBtnText}>자격증 제출하기</Text>
+            <Text style={styles.submitBtnText}>자격증 제출하기</Text>
           </Pressable>
         </ScrollView>
       </ScreenContainer>
@@ -556,42 +554,42 @@ export default function VerifyScreen() {
     return (
       <ScreenContainer edges={["top", "left", "right"]}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-          <View style={s.header}>
-            <Pressable onPress={() => { haptic(); setStep("overview"); }} style={({ pressed }) => [s.backBtn, pressed && { opacity: 0.7 }]}>
+          <View style={styles.header}>
+            <Pressable onPress={() => { haptic(); setStep("overview"); }} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
               <Text style={{ fontSize: 18 }}>←</Text>
             </Pressable>
-            <Text style={[s.headerTitle, { color: colors.foreground }]}>신원 확인</Text>
+            <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>신원 확인</Text>
             <View style={{ width: 40 }} />
           </View>
 
-          <View style={[s.infoCard, { backgroundColor: "#FFF8E1", borderColor: "#FFE082" }]}>
+          <View style={[styles.infoCard, { backgroundColor: "#FFF8E1", borderColor: "#FFE082" }]}>
             <Text style={{ fontSize: 20 }}>🔒</Text>
-            <Text style={[s.infoText, { color: "#F57F17" }]}>
+            <Text style={[styles.infoText, { color: "#F57F17" }]}>
               개인정보는 안전하게 암호화되어 저장되며, 인증 목적으로만 사용됩니다.
             </Text>
           </View>
 
-          <View style={s.formSection}>
-            <Text style={[s.formLabel, { color: colors.foreground }]}>신원 확인 동의</Text>
+          <View style={styles.formSection}>
+            <Text style={[styles.formLabel, { color: "#1A1A1A" }]}>신원 확인 동의</Text>
 
             {/* 신분증 대조 동의 */}
             <Pressable
               onPress={() => { haptic(); setIdentityAgreed(!identityAgreed); }}
               style={({ pressed }) => [
-                s.agreementCard,
+                styles.agreementCard,
                 {
-                  borderColor: identityAgreed ? accentColor : colors.border,
-                  backgroundColor: identityAgreed ? accentColor + "08" : colors.surface,
+                  borderColor: identityAgreed ? accentColor : "#E8E8E8",
+                  backgroundColor: identityAgreed ? accentColor + "08" : "#F8F8F8",
                 },
                 pressed && { opacity: 0.8 },
               ]}
             >
-              <View style={[s.checkbox, { borderColor: identityAgreed ? accentColor : colors.muted, backgroundColor: identityAgreed ? accentColor : "transparent" }]}>
-                {identityAgreed && <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>✓</Text>}
+              <View style={[styles.checkbox, { borderColor: identityAgreed ? accentColor : "#8E8E93", backgroundColor: identityAgreed ? accentColor : "transparent" }]}>
+                {identityAgreed && <Text style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "700" }}>✓</Text>}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.agreementTitle, { color: colors.foreground }]}>신분증 대조 동의</Text>
-                <Text style={[s.agreementDesc, { color: colors.muted }]}>
+                <Text style={[styles.agreementTitle, { color: "#1A1A1A" }]}>신분증 대조 동의</Text>
+                <Text style={[styles.agreementDesc, { color: "#8E8E93" }]}>
                   본인 확인을 위해 신분증(주민등록증, 운전면허증) 정보를 제공하는 것에 동의합니다. 제공된 정보는 본인 확인 후 즉시 폐기됩니다.
                 </Text>
               </View>
@@ -601,20 +599,20 @@ export default function VerifyScreen() {
             <Pressable
               onPress={() => { haptic(); setBgCheckAgreed(!bgCheckAgreed); }}
               style={({ pressed }) => [
-                s.agreementCard,
+                styles.agreementCard,
                 {
-                  borderColor: bgCheckAgreed ? accentColor : colors.border,
-                  backgroundColor: bgCheckAgreed ? accentColor + "08" : colors.surface,
+                  borderColor: bgCheckAgreed ? accentColor : "#E8E8E8",
+                  backgroundColor: bgCheckAgreed ? accentColor + "08" : "#F8F8F8",
                 },
                 pressed && { opacity: 0.8 },
               ]}
             >
-              <View style={[s.checkbox, { borderColor: bgCheckAgreed ? accentColor : colors.muted, backgroundColor: bgCheckAgreed ? accentColor : "transparent" }]}>
-                {bgCheckAgreed && <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>✓</Text>}
+              <View style={[styles.checkbox, { borderColor: bgCheckAgreed ? accentColor : "#8E8E93", backgroundColor: bgCheckAgreed ? accentColor : "transparent" }]}>
+                {bgCheckAgreed && <Text style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "700" }}>✓</Text>}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.agreementTitle, { color: colors.foreground }]}>범죄이력 조회 동의</Text>
-                <Text style={[s.agreementDesc, { color: colors.muted }]}>
+                <Text style={[styles.agreementTitle, { color: "#1A1A1A" }]}>범죄이력 조회 동의</Text>
+                <Text style={[styles.agreementDesc, { color: "#8E8E93" }]}>
                   반려동물 돌봄 서비스의 안전을 위해 범죄이력 조회에 동의합니다. 조회 결과는 서비스 이용 적격 여부 판단에만 사용됩니다.
                 </Text>
               </View>
@@ -622,21 +620,21 @@ export default function VerifyScreen() {
 
             {/* 개인정보 처리방침 */}
             <Pressable
-              style={({ pressed }) => [s.policyLink, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.policyLink, pressed && { opacity: 0.7 }]}
             >
-              <Text style={[s.policyText, { color: accentColor }]}>📋 개인정보 처리방침 전문 보기</Text>
+              <Text style={[styles.policyText, { color: accentColor }]}>📋 개인정보 처리방침 전문 보기</Text>
             </Pressable>
           </View>
 
           <Pressable
             onPress={handleIdentitySubmit}
             style={({ pressed }) => [
-              s.submitBtn,
-              { backgroundColor: (identityAgreed && bgCheckAgreed) ? accentColor : colors.muted + "40" },
+              styles.submitBtn,
+              { backgroundColor: (identityAgreed && bgCheckAgreed) ? accentColor : "#8E8E93" + "40" },
               pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
             ]}
           >
-            <Text style={s.submitBtnText}>동의 및 제출</Text>
+            <Text style={styles.submitBtnText}>동의 및 제출</Text>
           </Pressable>
         </ScrollView>
       </ScreenContainer>
@@ -650,23 +648,23 @@ export default function VerifyScreen() {
       return (
         <ScreenContainer edges={["top", "left", "right"]}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-            <View style={s.header}>
-              <Pressable onPress={() => { haptic(); setStep("overview"); }} style={({ pressed }) => [s.backBtn, pressed && { opacity: 0.7 }]}>
+            <View style={styles.header}>
+              <Pressable onPress={() => { haptic(); setStep("overview"); }} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
                 <Text style={{ fontSize: 18 }}>←</Text>
               </Pressable>
-              <Text style={[s.headerTitle, { color: colors.foreground }]}>테스트 결과</Text>
+              <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>테스트 결과</Text>
               <View style={{ width: 40 }} />
             </View>
 
-            <View style={[s.resultCard, { backgroundColor: passed ? "#E8F5E9" : "#FFEBEE", borderColor: passed ? "#66BB6A" : "#EF5350" }]}>
+            <View style={[styles.resultCard, { backgroundColor: passed ? "#E8F5E9" : "#FFEBEE", borderColor: passed ? "#66BB6A" : "#EF5350" }]}>
               <Text style={{ fontSize: 60 }}>{passed ? "🎉" : "😢"}</Text>
-              <Text style={[s.resultTitle, { color: passed ? "#2E7D32" : "#C62828" }]}>
+              <Text style={[styles.resultTitle, { color: passed ? "#2E7D32" : "#C62828" }]}>
                 {passed ? "축하합니다!" : "아쉽네요..."}
               </Text>
-              <View style={s.scoreCircle}>
-                <Text style={[s.scoreText, { color: passed ? "#2E7D32" : "#C62828" }]}>{quizScore}점</Text>
+              <View style={styles.scoreCircle}>
+                <Text style={[styles.scoreText, { color: passed ? "#2E7D32" : "#C62828" }]}>{quizScore}점</Text>
               </View>
-              <Text style={[s.resultDesc, { color: passed ? "#388E3C" : "#D32F2F" }]}>
+              <Text style={[styles.resultDesc, { color: passed ? "#388E3C" : "#D32F2F" }]}>
                 {passed
                   ? `10문항 중 ${Math.round(quizScore / 10)}문항 정답!\n인증 마크가 부여되었습니다.`
                   : `10문항 중 ${Math.round(quizScore / 10)}문항 정답.\n80점 이상이 필요합니다. 다시 도전해보세요!`}
@@ -676,16 +674,16 @@ export default function VerifyScreen() {
             {passed ? (
               <Pressable
                 onPress={() => { haptic(); setStep("overview"); }}
-                style={({ pressed }) => [s.submitBtn, { backgroundColor: accentColor }, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [styles.submitBtn, { backgroundColor: accentColor }, pressed && { opacity: 0.8 }]}
               >
-                <Text style={s.submitBtnText}>인증 현황 확인</Text>
+                <Text style={styles.submitBtnText}>인증 현황 확인</Text>
               </Pressable>
             ) : (
               <Pressable
                 onPress={handleQuizRetry}
-                style={({ pressed }) => [s.submitBtn, { backgroundColor: "#FF7043" }, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [styles.submitBtn, { backgroundColor: "#FF7043" }, pressed && { opacity: 0.8 }]}
               >
-                <Text style={s.submitBtnText}>다시 도전하기</Text>
+                <Text style={styles.submitBtnText}>다시 도전하기</Text>
               </Pressable>
             )}
           </ScrollView>
@@ -697,27 +695,27 @@ export default function VerifyScreen() {
     return (
       <ScreenContainer edges={["top", "left", "right"]}>
         <View style={{ flex: 1, padding: 16 }}>
-          <View style={s.header}>
-            <Pressable onPress={() => { haptic(); setStep("overview"); }} style={({ pressed }) => [s.backBtn, pressed && { opacity: 0.7 }]}>
+          <View style={styles.header}>
+            <Pressable onPress={() => { haptic(); setStep("overview"); }} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
               <Text style={{ fontSize: 18 }}>←</Text>
             </Pressable>
-            <Text style={[s.headerTitle, { color: colors.foreground }]}>전문성 테스트</Text>
+            <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>전문성 테스트</Text>
             <View style={{ width: 40 }} />
           </View>
 
           {/* 진행률 */}
-          <View style={s.quizProgress}>
-            <View style={[s.quizProgressBar, { backgroundColor: colors.border }]}>
-              <View style={[s.quizProgressFill, { width: `${((quizIndex + 1) / QUIZ_QUESTIONS.length) * 100}%`, backgroundColor: accentColor }]} />
+          <View style={styles.quizProgress}>
+            <View style={[styles.quizProgressBar, { backgroundColor: "#E8E8E8" }]}>
+              <View style={[styles.quizProgressFill, { width: `${((quizIndex + 1) / QUIZ_QUESTIONS.length) * 100}%`, backgroundColor: accentColor }]} />
             </View>
-            <Text style={[s.quizProgressText, { color: colors.muted }]}>
+            <Text style={[styles.quizProgressText, { color: "#8E8E93" }]}>
               {quizIndex + 1} / {QUIZ_QUESTIONS.length}
             </Text>
           </View>
 
           {/* 문제 */}
-          <View style={[s.questionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[s.questionText, { color: colors.foreground }]}>{q.question}</Text>
+          <View style={[styles.questionCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+            <Text style={[styles.questionText, { color: "#1A1A1A" }]}>{q.question}</Text>
           </View>
 
           {/* 보기 */}
@@ -727,20 +725,20 @@ export default function VerifyScreen() {
                 key={i}
                 onPress={() => handleQuizAnswer(i)}
                 style={({ pressed }) => [
-                  s.optionCard,
+                  styles.optionCard,
                   {
-                    borderColor: selectedAnswer === i ? accentColor : colors.border,
-                    backgroundColor: selectedAnswer === i ? accentColor + "12" : colors.surface,
+                    borderColor: selectedAnswer === i ? accentColor : "#E8E8E8",
+                    backgroundColor: selectedAnswer === i ? accentColor + "12" : "#F8F8F8",
                   },
                   pressed && { opacity: 0.8 },
                 ]}
               >
-                <View style={[s.optionNumber, { backgroundColor: selectedAnswer === i ? accentColor : colors.muted + "30" }]}>
-                  <Text style={[s.optionNumberText, { color: selectedAnswer === i ? "#fff" : colors.foreground }]}>
+                <View style={[styles.optionNumber, { backgroundColor: selectedAnswer === i ? accentColor : "#8E8E93" + "30" }]}>
+                  <Text style={[styles.optionNumberText, { color: selectedAnswer === i ? "#FFFFFF" : "#1A1A1A" }]}>
                     {String.fromCharCode(65 + i)}
                   </Text>
                 </View>
-                <Text style={[s.optionText, { color: colors.foreground }]}>{opt}</Text>
+                <Text style={[styles.optionText, { color: "#1A1A1A" }]}>{opt}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -749,12 +747,12 @@ export default function VerifyScreen() {
           <Pressable
             onPress={handleQuizNext}
             style={({ pressed }) => [
-              s.submitBtn,
-              { backgroundColor: selectedAnswer !== null ? accentColor : colors.muted + "40", marginTop: 12 },
+              styles.submitBtn,
+              { backgroundColor: selectedAnswer !== null ? accentColor : "#8E8E93" + "40", marginTop: 12 },
               pressed && selectedAnswer !== null && { opacity: 0.8, transform: [{ scale: 0.97 }] },
             ]}
           >
-            <Text style={s.submitBtnText}>
+            <Text style={styles.submitBtnText}>
               {quizIndex < QUIZ_QUESTIONS.length - 1 ? "다음 문제" : "제출하기"}
             </Text>
           </Pressable>
@@ -766,11 +764,11 @@ export default function VerifyScreen() {
   return null;
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#f0f0f0", alignItems: "center", justifyContent: "center" },
   headerTitle: { flex: 1, fontSize: 18, fontWeight: "700", textAlign: "center" },
-  statusCard: { marginHorizontal: 16, marginTop: 8, padding: 20, borderRadius: 16, borderWidth: 1.5, backgroundColor: "#fff" },
+  statusCard: { marginHorizontal: 16, marginTop: 8, padding: 20, borderRadius: 16, borderWidth: 1.5, backgroundColor: "#FFFFFF" },
   statusTop: { flexDirection: "row", alignItems: "center" },
   statusLevel: { fontSize: 20, fontWeight: "800" },
   statusDesc: { fontSize: 13, marginTop: 4, lineHeight: 18 },
@@ -781,7 +779,7 @@ const s = StyleSheet.create({
   stepCard: { borderRadius: 14, borderWidth: 1, padding: 16 },
   stepHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   stepNumber: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  stepNumberText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  stepNumberText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   stepTitle: { fontSize: 16, fontWeight: "700" },
   stepSubtitle: { fontSize: 12, marginTop: 2 },
   benefitCard: { marginHorizontal: 16, padding: 16, borderRadius: 14, borderWidth: 1, gap: 12 },
@@ -800,7 +798,7 @@ const s = StyleSheet.create({
   uploadHint: { fontSize: 12 },
   certPreview: { width: "100%", height: 200, borderRadius: 10 },
   submitBtn: { marginHorizontal: 16, paddingVertical: 16, borderRadius: 14, alignItems: "center" },
-  submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  submitBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   infoCard: { flexDirection: "row", alignItems: "center", marginHorizontal: 16, padding: 14, borderRadius: 12, borderWidth: 1, gap: 10, marginBottom: 8 },
   infoText: { flex: 1, fontSize: 13, lineHeight: 18 },
   agreementCard: { flexDirection: "row", alignItems: "flex-start", padding: 16, borderRadius: 14, borderWidth: 1, gap: 12, marginBottom: 12 },
@@ -811,7 +809,7 @@ const s = StyleSheet.create({
   policyText: { fontSize: 13, fontWeight: "600" },
   resultCard: { marginHorizontal: 16, marginTop: 8, padding: 32, borderRadius: 20, borderWidth: 1.5, alignItems: "center", gap: 12 },
   resultTitle: { fontSize: 24, fontWeight: "800" },
-  scoreCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginVertical: 8 },
+  scoreCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", marginVertical: 8 },
   scoreText: { fontSize: 28, fontWeight: "800" },
   resultDesc: { fontSize: 14, textAlign: "center", lineHeight: 22 },
   quizProgress: { paddingHorizontal: 0, marginBottom: 16 },

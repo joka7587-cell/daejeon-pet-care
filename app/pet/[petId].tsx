@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   backBtnText: { fontSize: 28, color: "#1A1A1A" },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
   saveBtn: { backgroundColor: "#FF7043", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
-  saveBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  saveBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   editHeaderBtn: { paddingHorizontal: 10, paddingVertical: 6 },
   editHeaderBtnText: { color: "#FF7043", fontSize: 14, fontWeight: "600" },
   photoSection: {
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     borderRadius: 70,
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#fff",
+    borderColor: "#FFFFFF",
   },
   photoHint: {
     fontSize: 12,
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     marginHorizontal: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   sizeChipActive: {
     borderColor: "#FF7043",
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   },
   sizeChipText: {
     fontSize: 13,
-    color: "#555",
+    color: "#8E8E93",
     fontWeight: "500",
   },
   sizeChipTextActive: {
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   emojiChipActive: {
     borderColor: "#FF7043",
@@ -535,5 +535,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyEmoji: { fontSize: 48 },
-  emptyText: { fontSize: 16, fontWeight: "600", color: "#555" },
+  emptyText: { fontSize: 16, fontWeight: "600", color: "#8E8E93" },
 });

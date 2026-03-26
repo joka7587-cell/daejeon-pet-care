@@ -343,3 +343,47 @@
 - [x] Pretendard 폰트 설치 및 앱 전체 적용
 - [x] Phase 12 유닛 테스트 31개 추가 (총 250개 통과)
 - [x] TypeScript 에러 0건 확인
+
+## 버그 수정 및 문서 작성 (Phase 13)
+
+### 버그 수정
+- [x] 다크모드에서 폰트(텍스트)가 보이지 않는 문제 수정 (다크모드 완전 제거로 해결)
+
+### 문서 작성
+- [x] DB ERD 설계 (User, Dog, Walker, Booking, Review, LocationLog 테이블 관계)
+- [x] API 명세서 작성 (결제 PortOne API, 지도 API 연동 상세 기술)
+- [x] 보안 기획서 작성 (개인정보 암호화, 위치정보 활용 동의 절차)
+
+## 로그인 시스템 구현 (Phase 14)
+
+### 서버 인증 API
+- [x] DB 스키마 설계 (users 테이블에 email, passwordHash, role, kakaoId 필드)
+- [x] 이메일/비밀번호 회원가입 API (POST /auth/register)
+- [x] 이메일/비밀번호 로그인 API (POST /auth/login)
+- [x] 카카오 소셜 로그인 API (POST /auth/kakao)
+- [x] JWT 세션 토큰 발급 및 검증
+- [x] 역할(보호자/도그워커) DB Role 필드 저장
+
+### 프론트엔드 UI
+- [x] 로그인 화면 (이메일/비밀번호 입력 + 카카오 로그인 버튼)
+- [x] 회원가입 화면 (이메일/비밀번호 + 역할 선택)
+- [x] 로그인 성공 후 메인 화면 리다이렉트
+- [x] 세션 유지 (SecureStore 토큰 저장)
+- [x] 로그아웃 기능
+
+### 이전 버그 수정
+- [x] 다크모드 하드코딩 색상 잔여 수정 (다크모드 완전 제거로 해결)
+- [x] booking/index.tsx TS 에러 수정
+
+### 문서 작성
+- [x] DB ERD 설계 문서
+- [x] API 명세서 (결제 PortOne, 지도 API 포함)
+- [x] 보안 기획서 (개인정보 암호화, 위치정보 동의)
+
+## 다크모드 제거 + 프로필 등록 (Phase 15)
+
+- [x] 다크모드 완전 제거 (라이트 모드 전용)
+- [x] theme.config.js에서 dark 값을 light와 동일하게 통일
+- [x] 모든 파일에서 colors.xxx 참조를 라이트 모드 고정 색상으로 변환
+- [x] TS 에러 0건 달성
+- [x] 대전 5개 구 주소 선택 프로필 등록 화면

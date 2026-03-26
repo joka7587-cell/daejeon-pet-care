@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Platform,
   Alert,
+  useColorScheme,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Review } from "@/lib/app-context";
@@ -56,6 +57,7 @@ export default function WriteReviewScreen() {
   const [content, setContent] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const colorScheme = useColorScheme();
 
   const targetName = (params.targetName as string) || "돌보미";
   const serviceType = (params.serviceType as string) || "emergency";
@@ -109,11 +111,11 @@ export default function WriteReviewScreen() {
 
   if (submitted) {
     return (
-      <ScreenContainer edges={["top", "bottom", "left", "right"]} className="p-6">
+      <ScreenContainer edges={["top", "bottom", "left", "right"]} style={{ backgroundColor: "#FFFFFF", padding: 24 }}>
         <View style={styles.successContainer}>
           <Text style={styles.successEmoji}>🎉</Text>
-          <Text style={styles.successTitle}>후기 작성 완료!</Text>
-          <Text style={styles.successDesc}>
+          <Text style={[styles.successTitle, { color: "#1A1A1A" }]}>후기 작성 완료!</Text>
+          <Text style={[styles.successDesc, { color: "#8E8E93" }]}>
             {targetName}님에게 {rating}점 후기를 남겼습니다.
           </Text>
           <Pressable
@@ -128,25 +130,25 @@ export default function WriteReviewScreen() {
   }
 
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+    <ScreenContainer edges={["top", "bottom", "left", "right"]} style={{ backgroundColor: "#FFFFFF" }}>
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: "#E8E8E8" }]}>
         <Pressable
           onPress={() => { haptic(); router.back(); }}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: "#1A1A1A" }]}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>후기 작성</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>후기 작성</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 대상 정보 */}
-        <View style={styles.targetCard}>
+        <View style={[styles.targetCard, { backgroundColor: colorScheme === 'light' ? '#FFF3EE' : "#F8F8F8" }]}>
           <Text style={styles.targetEmoji}>{reviewType === "owner" ? "🏠" : "🐕‍🦺"}</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.targetName}>{targetName}</Text>
+            <Text style={[styles.targetName, { color: "#1A1A1A" }]}>{targetName}</Text>
             <Text style={styles.targetService}>
               {SERVICE_LABELS[serviceType] || serviceType} · {reviewType === "owner" ? "보호자 리뷰" : "도그워커 리뷰"}
             </Text>
@@ -155,7 +157,7 @@ export default function WriteReviewScreen() {
 
         {/* 별점 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>별점</Text>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>별점</Text>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((star) => (
               <Pressable
@@ -163,13 +165,13 @@ export default function WriteReviewScreen() {
                 onPress={() => { haptic(); setRating(star); }}
                 style={({ pressed }) => [pressed && { transform: [{ scale: 1.1 }] }]}
               >
-                <Text style={[styles.star, star <= rating && styles.starActive]}>
+                <Text style={[styles.star, { color: "#E8E8E8" }, star <= rating && styles.starActive]}>
                   {star <= rating ? "★" : "☆"}
                 </Text>
               </Pressable>
             ))}
           </View>
-          <Text style={styles.ratingLabel}>
+          <Text style={[styles.ratingLabel, { color: "#8E8E93" }]}>
             {rating === 0 ? "별점을 선택해주세요" :
              rating === 1 ? "별로예요" :
              rating === 2 ? "그저 그래요" :
@@ -180,15 +182,23 @@ export default function WriteReviewScreen() {
 
         {/* 태그 선택 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>이런 점이 좋았어요</Text>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>이런 점이 좋았어요</Text>
           <View style={styles.tagsWrap}>
             {tags.map((tag) => (
               <Pressable
                 key={tag}
                 onPress={() => toggleTag(tag)}
-                style={[styles.tag, selectedTags.includes(tag) && styles.tagActive]}
+                style={[
+                  styles.tag,
+                  { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" },
+                  selectedTags.includes(tag) && styles.tagActive
+                ]}
               >
-                <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextActive]}>
+                <Text style={[
+                  styles.tagText,
+                  { color: "#8E8E93" },
+                  selectedTags.includes(tag) && styles.tagTextActive
+                ]}>
                   {tag}
                 </Text>
               </Pressable>
@@ -198,18 +208,18 @@ export default function WriteReviewScreen() {
 
         {/* 후기 내용 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>상세 후기 (선택)</Text>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>상세 후기 (선택)</Text>
           <TextInput
-            style={styles.textArea}
+            style={[styles.textArea, { borderColor: "#E8E8E8", color: "#1A1A1A" }]}
             placeholder="돌봄 서비스는 어떠셨나요? 다른 반려인에게 도움이 될 후기를 남겨주세요."
-            placeholderTextColor="#BDBDBD"
+            placeholderTextColor={"#8E8E93"}
             value={content}
             onChangeText={setContent}
             multiline
             maxLength={500}
             textAlignVertical="top"
           />
-          <Text style={styles.charCount}>{content.length}/500</Text>
+          <Text style={[styles.charCount, { color: "#8E8E93" }]}>{content.length}/500</Text>
         </View>
 
         {/* 제출 버튼 */}
@@ -234,51 +244,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  backBtnText: { fontSize: 28, color: "#1A1A1A" },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
+  backBtnText: { fontSize: 28 },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700" },
   content: { padding: 20, gap: 24, paddingBottom: 40 },
   targetCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#FFF3EE",
     borderRadius: 16,
     padding: 16,
   },
   targetEmoji: { fontSize: 40 },
-  targetName: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
+  targetName: { fontSize: 16, fontWeight: "700" },
   targetService: { fontSize: 13, color: "#FF7043", marginTop: 2 },
   section: { gap: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
+  sectionTitle: { fontSize: 16, fontWeight: "700" },
   starsRow: { flexDirection: "row", justifyContent: "center", gap: 12 },
-  star: { fontSize: 40, color: "#E0E0E0" },
+  star: { fontSize: 40 },
   starActive: { color: "#FFB300" },
-  ratingLabel: { textAlign: "center", fontSize: 14, color: "#757575" },
+  ratingLabel: { textAlign: "center", fontSize: 14 },
   textArea: {
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     padding: 16,
     fontSize: 14,
-    color: "#1A1A1A",
     minHeight: 120,
     lineHeight: 22,
   },
-  charCount: { textAlign: "right", fontSize: 12, color: "#9E9E9E" },
+  charCount: { textAlign: "right", fontSize: 12 },
   tagsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tag: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#F5F5F5",
     borderWidth: 1,
-    borderColor: "#E5E5EA",
   },
   tagActive: { backgroundColor: "#FFF5F0", borderColor: "#FF6B35" },
-  tagText: { fontFamily: Fonts.medium, fontSize: 13, color: "#636366" },
+  tagText: { fontFamily: Fonts.medium, fontSize: 13 },
   tagTextActive: { color: "#FF6B35" },
   submitBtn: {
     backgroundColor: "#FF7043",
@@ -286,7 +290,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
   },
-  submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  submitBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   successContainer: {
     flex: 1,
     alignItems: "center",
@@ -294,8 +298,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   successEmoji: { fontSize: 64 },
-  successTitle: { fontSize: 22, fontWeight: "800", color: "#1A1A1A" },
-  successDesc: { fontSize: 15, color: "#757575", textAlign: "center" },
+  successTitle: { fontSize: 22, fontWeight: "800" },
+  successDesc: { fontSize: 15, textAlign: "center" },
   doneBtn: {
     backgroundColor: "#FF7043",
     borderRadius: 14,
@@ -303,5 +307,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginTop: 16,
   },
-  doneBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  doneBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
 });

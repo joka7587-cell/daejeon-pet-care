@@ -72,7 +72,7 @@ export default function WalkReportScreen() {
       <ScreenContainer edges={["top", "bottom", "left", "right"]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 40 }}>📋</Text>
-          <Text style={st.emptyText}>리포트를 찾을 수 없습니다</Text>
+          <Text style={[st.emptyText, { color: "#8E8E93" }]}>리포트를 찾을 수 없습니다</Text>
           <Pressable onPress={() => router.back()} style={st.backBtnAlt}>
             <Text style={st.backBtnAltText}>돌아가기</Text>
           </Pressable>
@@ -108,25 +108,25 @@ export default function WalkReportScreen() {
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-      <View style={st.header}>
+      <View style={[st.header, { borderBottomColor: "#E8E8E8" }]}>
         <Pressable onPress={() => { haptic(); router.back(); }}>
           <Text style={st.headerBack}>‹ 뒤로</Text>
         </Pressable>
-        <Text style={st.headerTitle}>산책 리포트</Text>
+        <Text style={[st.headerTitle, { color: "#1A1A1A" }]}>산책 리포트</Text>
         <View style={{ width: 50 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         {/* 리포트 헤더 */}
-        <View style={st.reportHeader}>
-          <View style={st.reportPetAvatar}>
+        <View style={[st.reportHeader, { backgroundColor: "#F8F8F8" }]}>
+          <View style={[st.reportPetAvatar, { backgroundColor: "#FFFFFF" }]}>
             <Text style={{ fontSize: 40 }}>{session.petEmoji}</Text>
           </View>
-          <Text style={st.reportPetName}>{session.petName}의 산책 리포트</Text>
-          <Text style={st.reportDate}>
+          <Text style={[st.reportPetName, { color: "#1A1A1A" }]}>{session.petName}의 산책 리포트</Text>
+          <Text style={[st.reportDate, { color: "#8E8E93" }]}>
             {reportData.startTime.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" })}
           </Text>
-          <Text style={st.reportTime}>
+          <Text style={[st.reportTime, { color: "#8E8E93" }]}>
             {reportData.startTime.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
             {" ~ "}
             {reportData.endTime.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
@@ -135,41 +135,41 @@ export default function WalkReportScreen() {
 
         {/* 핵심 지표 */}
         <View style={st.metricsGrid}>
-          <View style={[st.metricCard, st.metricCardLarge]}>
+          <View style={[st.metricCard, st.metricCardLarge, { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" }]}>
             <Text style={{ fontSize: 28 }}>📏</Text>
             <Text style={st.metricValue}>{formatDist(session.totalDistanceKm)}</Text>
-            <Text style={st.metricLabel}>총 이동 거리</Text>
+            <Text style={[st.metricLabel, { color: "#8E8E93" }]}>총 이동 거리</Text>
           </View>
-          <View style={[st.metricCard, st.metricCardLarge]}>
+          <View style={[st.metricCard, st.metricCardLarge, { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" }]}>
             <Text style={{ fontSize: 28 }}>⏱</Text>
             <Text style={st.metricValue}>{formatTime(session.totalDurationSec)}</Text>
-            <Text style={st.metricLabel}>총 산책 시간</Text>
+            <Text style={[st.metricLabel, { color: "#8E8E93" }]}>총 산책 시간</Text>
           </View>
         </View>
 
         <View style={st.metricsGrid}>
-          <View style={st.metricCard}>
+          <View style={[st.metricCard, { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" }]}>
             <Text style={{ fontSize: 20 }}>🔥</Text>
-            <Text style={st.metricValueSm}>{reportData.calories}</Text>
-            <Text style={st.metricLabel}>소모 칼로리 (kcal)</Text>
+            <Text style={[st.metricValueSm, { color: "#1A1A1A" }]}>{reportData.calories}</Text>
+            <Text style={[st.metricLabel, { color: "#8E8E93" }]}>소모 칼로리 (kcal)</Text>
           </View>
-          <View style={st.metricCard}>
+          <View style={[st.metricCard, { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" }]}>
             <Text style={{ fontSize: 20 }}>👣</Text>
-            <Text style={st.metricValueSm}>{reportData.steps.toLocaleString()}</Text>
-            <Text style={st.metricLabel}>추정 걸음 수</Text>
+            <Text style={[st.metricValueSm, { color: "#1A1A1A" }]}>{reportData.steps.toLocaleString()}</Text>
+            <Text style={[st.metricLabel, { color: "#8E8E93" }]}>추정 걸음 수</Text>
           </View>
-          <View style={st.metricCard}>
+          <View style={[st.metricCard, { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" }]}>
             <Text style={{ fontSize: 20 }}>⚡</Text>
-            <Text style={st.metricValueSm}>{session.avgSpeedKmh.toFixed(1)}</Text>
-            <Text style={st.metricLabel}>평균 속도 (km/h)</Text>
+            <Text style={[st.metricValueSm, { color: "#1A1A1A" }]}>{session.avgSpeedKmh.toFixed(1)}</Text>
+            <Text style={[st.metricLabel, { color: "#8E8E93" }]}>평균 속도 (km/h)</Text>
           </View>
         </View>
 
         {/* 경로 시각화 */}
         {routeSvg && (
           <View style={st.routeSection}>
-            <Text style={st.sectionTitle}>🗺 산책 경로</Text>
-            <View style={st.routeMap}>
+            <Text style={[st.sectionTitle, { color: "#1A1A1A" }]}>🗺 산책 경로</Text>
+            <View style={[st.routeMap, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
               <Svg width={routeSvg.svgW} height={routeSvg.svgH}>
                 <Polyline
                   points={routeSvg.points}
@@ -181,14 +181,14 @@ export default function WalkReportScreen() {
                 />
               </Svg>
             </View>
-            <Text style={st.routeNote}>GPS 좌표 {routePoints.length}개 기록됨</Text>
+            <Text style={[st.routeNote, { color: "#8E8E93" }]}>GPS 좌표 {routePoints.length}개 기록됨</Text>
           </View>
         )}
 
         {/* 상세 통계 */}
         <View style={st.detailSection}>
-          <Text style={st.sectionTitle}>📊 상세 통계</Text>
-          <View style={st.detailCard}>
+          <Text style={[st.sectionTitle, { color: "#1A1A1A" }]}>📊 상세 통계</Text>
+          <View style={[st.detailCard, { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" }]}>
             <DetailRow label="실제 이동 시간" value={formatTime(session.totalDurationSec - (session.pausedDurationSec || 0))} />
             <DetailRow label="정지 시간" value={formatTime(session.pausedDurationSec || 0)} />
             <DetailRow label="최고 속도" value={`${session.maxSpeedKmh.toFixed(1)} km/h`} />
@@ -198,11 +198,11 @@ export default function WalkReportScreen() {
         </View>
 
         {/* 리뷰 유도 */}
-        <View style={st.reviewPrompt}>
+        <View style={[st.reviewPrompt, { backgroundColor: "#F8F8F8", borderColor: "#FFD9C7" }]}>
           <Text style={{ fontSize: 24 }}>⭐</Text>
           <View style={{ flex: 1 }}>
-            <Text style={st.reviewPromptTitle}>산책은 어떠셨나요?</Text>
-            <Text style={st.reviewPromptSub}>돌보미에게 리뷰를 남겨주세요</Text>
+            <Text style={[st.reviewPromptTitle, { color: "#1A1A1A" }]}>산책은 어떠셨나요?</Text>
+            <Text style={[st.reviewPromptSub, { color: "#8E8E93" }]}>돌보미에게 리뷰를 남겨주세요</Text>
           </View>
           <Pressable
             onPress={() => { haptic(); router.push("/review/write" as never); }}
@@ -218,9 +218,9 @@ export default function WalkReportScreen() {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <View style={st.detailRow}>
-      <Text style={st.detailLabel}>{label}</Text>
-      <Text style={st.detailValue}>{value}</Text>
+    <View style={[st.detailRow, { borderBottomColor: "#F8F8F8" }]}>
+      <Text style={[st.detailLabel, { color: "#8E8E93" }]}>{label}</Text>
+      <Text style={[st.detailValue, { color: "#1A1A1A" }]}>{value}</Text>
     </View>
   );
 }
@@ -233,22 +233,19 @@ const st = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
   headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#FF6B35" },
-  headerTitle: { fontFamily: Fonts.bold, fontSize: 17, color: "#1A1A1A" },
+  headerTitle: { fontFamily: Fonts.bold, fontSize: 17 },
 
   reportHeader: {
     alignItems: "center",
     paddingVertical: 24,
     paddingHorizontal: 20,
-    backgroundColor: "#FFF5F0",
   },
   reportPetAvatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -258,9 +255,9 @@ const st = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  reportPetName: { fontFamily: Fonts.extraBold, fontSize: 20, color: "#1A1A1A", marginBottom: 4 },
-  reportDate: { fontFamily: Fonts.medium, fontSize: 14, color: "#636366" },
-  reportTime: { fontFamily: Fonts.regular, fontSize: 13, color: "#AEAEB2", marginTop: 2 },
+  reportPetName: { fontFamily: Fonts.extraBold, fontSize: 20, marginBottom: 4 },
+  reportDate: { fontFamily: Fonts.medium, fontSize: 14 },
+  reportTime: { fontFamily: Fonts.regular, fontSize: 13, marginTop: 2 },
 
   metricsGrid: {
     flexDirection: "row",
@@ -270,69 +267,60 @@ const st = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 14,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F0F0F0",
     gap: 4,
   },
   metricCardLarge: { paddingVertical: 20 },
   metricValue: { fontFamily: Fonts.extraBold, fontSize: 24, color: "#FF6B35" },
-  metricValueSm: { fontFamily: Fonts.bold, fontSize: 18, color: "#1A1A1A" },
-  metricLabel: { fontFamily: Fonts.regular, fontSize: 10, color: "#AEAEB2", textAlign: "center" },
+  metricValueSm: { fontFamily: Fonts.bold, fontSize: 18 },
+  metricLabel: { fontFamily: Fonts.regular, fontSize: 10, textAlign: "center" },
 
   routeSection: {
     marginTop: 20,
     paddingHorizontal: 16,
   },
-  sectionTitle: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A", marginBottom: 12 },
+  sectionTitle: { fontFamily: Fonts.bold, fontSize: 16, marginBottom: 12 },
   routeMap: {
-    backgroundColor: "#F8F8F8",
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F0F0F0",
   },
-  routeNote: { fontFamily: Fonts.regular, fontSize: 11, color: "#AEAEB2", textAlign: "center", marginTop: 6 },
+  routeNote: { fontFamily: Fonts.regular, fontSize: 11, textAlign: "center", marginTop: 6 },
 
   detailSection: {
     marginTop: 20,
     paddingHorizontal: 16,
   },
   detailCard: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
   },
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#F8F8F8",
   },
-  detailLabel: { fontFamily: Fonts.regular, fontSize: 13, color: "#8E8E93" },
-  detailValue: { fontFamily: Fonts.semiBold, fontSize: 13, color: "#1A1A1A" },
+  detailLabel: { fontFamily: Fonts.regular, fontSize: 13 },
+  detailValue: { fontFamily: Fonts.semiBold, fontSize: 13 },
 
   reviewPrompt: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 20,
     marginHorizontal: 16,
-    backgroundColor: "#FFF5F0",
     borderRadius: 16,
     padding: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: "#FFD9C7",
   },
-  reviewPromptTitle: { fontFamily: Fonts.bold, fontSize: 14, color: "#1A1A1A" },
-  reviewPromptSub: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93", marginTop: 2 },
+  reviewPromptTitle: { fontFamily: Fonts.bold, fontSize: 14 },
+  reviewPromptSub: { fontFamily: Fonts.regular, fontSize: 11, marginTop: 2 },
   reviewBtn: {
     backgroundColor: "#FF6B35",
     paddingHorizontal: 14,
@@ -341,7 +329,7 @@ const st = StyleSheet.create({
   },
   reviewBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: "#FFFFFF" },
 
-  emptyText: { fontFamily: Fonts.medium, fontSize: 15, color: "#AEAEB2", marginTop: 12 },
+  emptyText: { fontFamily: Fonts.medium, fontSize: 15, marginTop: 12 },
   backBtnAlt: {
     marginTop: 16,
     backgroundColor: "#FF6B35",

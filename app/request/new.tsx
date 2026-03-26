@@ -102,10 +102,10 @@ export default function NewRequestScreen() {
   if (submitted) {
     return (
       <ScreenContainer edges={["top", "left", "right", "bottom"]}>
-        <View style={styles.successContainer}>
+        <View style={[styles.successContainer, { backgroundColor: "#FFFFFF" }]}>
           <Text style={styles.successEmoji}>🎉</Text>
-          <Text style={styles.successTitle}>요청이 전송됐어요!</Text>
-          <Text style={styles.successDesc}>
+          <Text style={[styles.successTitle, { color: "#1A1A1A" }]}>요청이 전송됐어요!</Text>
+          <Text style={[styles.successDesc, { color: "#8E8E93" }]}>
             근처 돌보미에게 알림이 전송됩니다.{"\n"}수락 시 알림으로 알려드릴게요.
           </Text>
           <Pressable
@@ -116,9 +116,9 @@ export default function NewRequestScreen() {
           </Pressable>
           <Pressable
             onPress={() => { haptic(); router.replace("/(tabs)/requests" as never); }}
-            style={({ pressed }) => [styles.viewRequestsBtn, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.viewRequestsBtn, { backgroundColor: "#F8F8F8" }, pressed && { opacity: 0.85 }]}
           >
-            <Text style={styles.viewRequestsBtnText}>내 요청 보기</Text>
+            <Text style={[styles.viewRequestsBtnText, { color: "#1A1A1A" }]}>내 요청 보기</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -128,18 +128,18 @@ export default function NewRequestScreen() {
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]}>
       {/* 헤더 */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}>
-          <Text style={styles.closeBtnText}>✕</Text>
+      <View style={[styles.header, { borderBottomColor: "#E8E8E8", backgroundColor: "#FFFFFF" }]}>
+        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.closeBtn, { backgroundColor: "#F8F8F8" }, pressed && { opacity: 0.7 }]}>
+          <Text style={[styles.closeBtnText, { color: "#8E8E93" }]}>✕</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>요청하기</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>요청하기</Text>
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[{ backgroundColor: "#FFFFFF", padding: 16, paddingBottom: 100 }]}>
         {/* 서비스 선택 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>어떤 서비스가 필요하신가요?</Text>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>어떤 서비스가 필요하신가요?</Text>
           <View style={styles.serviceGrid}>
             {services.map((svc) => (
               <Pressable
@@ -147,12 +147,13 @@ export default function NewRequestScreen() {
                 onPress={() => { haptic(); setSelectedService(svc.id); }}
                 style={({ pressed }) => [
                   styles.serviceCard,
+                  { borderColor: "#E8E8E8", backgroundColor: "#FFFFFF" },
                   selectedService === svc.id && { borderColor: svc.color, backgroundColor: svc.color + "15" },
                   pressed && { opacity: 0.8 },
                 ]}
               >
                 <Text style={styles.serviceEmoji}>{svc.emoji}</Text>
-                <Text style={[styles.serviceTitle, selectedService === svc.id && { color: svc.color }]}>
+                <Text style={[styles.serviceTitle, { color: "#8E8E93" }, selectedService === svc.id && { color: svc.color }]}>
                   {svc.title}
                 </Text>
               </Pressable>
@@ -162,7 +163,7 @@ export default function NewRequestScreen() {
 
         {/* 날짜 선택 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>날짜를 선택해주세요</Text>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>날짜를 선택해주세요</Text>
           <View style={styles.optionRow}>
             {DATE_OPTIONS.map((d) => (
               <Pressable
@@ -170,11 +171,12 @@ export default function NewRequestScreen() {
                 onPress={() => { haptic(); setSelectedDate(d); }}
                 style={({ pressed }) => [
                   styles.optionChip,
+                  { backgroundColor: "#F8F8F8" },
                   selectedDate === d && styles.optionChipActive,
                   pressed && { opacity: 0.8 },
                 ]}
               >
-                <Text style={[styles.optionText, selectedDate === d && styles.optionTextActive]}>{d}</Text>
+                <Text style={[styles.optionText, { color: "#1A1A1A" }, selectedDate === d && styles.optionTextActive]}>{d}</Text>
               </Pressable>
             ))}
           </View>
@@ -182,7 +184,7 @@ export default function NewRequestScreen() {
 
         {/* 시간 선택 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>시간을 선택해주세요</Text>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>시간을 선택해주세요</Text>
           <View style={styles.optionRow}>
             {TIME_OPTIONS.map((t) => (
               <Pressable
@@ -190,11 +192,12 @@ export default function NewRequestScreen() {
                 onPress={() => { haptic(); setSelectedTime(t); }}
                 style={({ pressed }) => [
                   styles.optionChip,
+                  { backgroundColor: "#F8F8F8" },
                   selectedTime === t && styles.optionChipActive,
                   pressed && { opacity: 0.8 },
                 ]}
               >
-                <Text style={[styles.optionText, selectedTime === t && styles.optionTextActive]}>{t}</Text>
+                <Text style={[styles.optionText, { color: "#1A1A1A" }, selectedTime === t && styles.optionTextActive]}>{t}</Text>
               </Pressable>
             ))}
           </View>
@@ -202,7 +205,7 @@ export default function NewRequestScreen() {
 
         {/* 소요 시간 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>소요 시간</Text>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>소요 시간</Text>
           <View style={styles.optionRow}>
             {DURATION_OPTIONS.map((d) => (
               <Pressable
@@ -210,11 +213,12 @@ export default function NewRequestScreen() {
                 onPress={() => { haptic(); setSelectedDuration(d); }}
                 style={({ pressed }) => [
                   styles.optionChip,
+                  { backgroundColor: "#F8F8F8" },
                   selectedDuration === d && styles.optionChipActive,
                   pressed && { opacity: 0.8 },
                 ]}
               >
-                <Text style={[styles.optionText, selectedDuration === d && styles.optionTextActive]}>{d}</Text>
+                <Text style={[styles.optionText, { color: "#1A1A1A" }, selectedDuration === d && styles.optionTextActive]}>{d}</Text>
               </Pressable>
             ))}
           </View>
@@ -222,15 +226,15 @@ export default function NewRequestScreen() {
 
         {/* 메모 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>추가 메모 (선택)</Text>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>추가 메모 (선택)</Text>
           <TextInput
             value={memo}
             onChangeText={setMemo}
             placeholder="반려동물 특이사항, 요청 사항 등을 적어주세요"
             multiline
             numberOfLines={4}
-            style={styles.memoInput}
-            placeholderTextColor="#BDBDBD"
+            style={[styles.memoInput, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", color: "#1A1A1A" }]}
+            placeholderTextColor={"#8E8E93"}
             returnKeyType="done"
           />
         </View>
@@ -238,11 +242,11 @@ export default function NewRequestScreen() {
         {/* 반려동물 정보 */}
         {firstPet && (
           <View style={styles.section}>
-            <View style={styles.petInfoCard}>
+            <View style={[styles.petInfoCard, { backgroundColor: "#F8F8F8" }]}>
               <Text style={{ fontSize: 32 }}>{petEmoji}</Text>
               <View>
-                <Text style={styles.petInfoName}>{petName}</Text>
-                <Text style={styles.petInfoDetail}>{firstPet.breed} · {firstPet.age}살 · {firstPet.size}</Text>
+                <Text style={[styles.petInfoName, { color: "#1A1A1A" }]}>{petName}</Text>
+                <Text style={[styles.petInfoDetail, { color: "#8E8E93" }]}>{firstPet.breed} · {firstPet.age}살 · {firstPet.size}</Text>
               </View>
             </View>
           </View>
@@ -250,18 +254,18 @@ export default function NewRequestScreen() {
 
         {/* 요청 동네 */}
         <View style={styles.section}>
-          <View style={styles.locationCard}>
+          <View style={[styles.locationCard, { backgroundColor: "#F8F8F8" }]}>
             <Text style={styles.locationEmoji}>📍</Text>
             <View>
-              <Text style={styles.locationLabel}>요청 동네</Text>
-              <Text style={styles.locationValue}>{state.profile.neighborhood || "동네 미설정"}</Text>
+              <Text style={[styles.locationLabel, { color: "#8E8E93" }]}>요청 동네</Text>
+              <Text style={[styles.locationValue, { color: "#1A1A1A" }]}>{state.profile.neighborhood || "동네 미설정"}</Text>
             </View>
           </View>
         </View>
       </ScrollView>
 
       {/* 하단 버튼 */}
-      <View style={styles.bottomActions}>
+      <View style={[styles.bottomActions, { backgroundColor: "#FFFFFF", borderTopColor: "#E8E8E8" }]}>
         <Pressable
           onPress={handleSubmit}
           disabled={!selectedService || !selectedDate || !selectedTime}
@@ -286,120 +290,108 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
+  headerTitle: { fontSize: 17, fontWeight: "700" },
   closeBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F5F5F5",
     alignItems: "center",
     justifyContent: "center",
   },
-  closeBtnText: { fontSize: 16, color: "#555" },
+  closeBtnText: { fontSize: 16 },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1A1A1A", marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
   serviceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   serviceCard: {
     width: "47%",
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
     borderRadius: 14,
     padding: 14,
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#fff",
   },
   serviceEmoji: { fontSize: 28 },
-  serviceTitle: { fontSize: 13, fontWeight: "700", color: "#555", textAlign: "center" },
+  serviceTitle: { fontSize: 13, fontWeight: "700", textAlign: "center" },
   optionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   optionChip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
   },
-  optionChipActive: { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
-  optionText: { fontSize: 13, fontWeight: "600", color: "#757575" },
-  optionTextActive: { color: "#FF7043" },
+  optionChipActive: {
+    backgroundColor: "#FF6B35",
+  },
+  optionText: { fontSize: 14, fontWeight: "600" },
+  optionTextActive: { color: "#FFFFFF" },
   memoInput: {
-    borderWidth: 1.5,
-    borderColor: "#E0E0E0",
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 14,
-    color: "#1A1A1A",
-    backgroundColor: "#fff",
-    textAlignVertical: "top",
     minHeight: 100,
-    lineHeight: 22,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    textAlignVertical: "top",
   },
   petInfoCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#F5F5FF",
     borderRadius: 14,
     padding: 14,
-    borderWidth: 1,
-    borderColor: "#E8E8FF",
   },
-  petInfoName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
-  petInfoDetail: { fontSize: 12, color: "#757575", marginTop: 2 },
+  petInfoName: { fontSize: 15, fontWeight: "700", marginBottom: 2 },
+  petInfoDetail: { fontSize: 13 },
   locationCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#FFF3EE",
     borderRadius: 14,
     padding: 14,
-    borderWidth: 1,
-    borderColor: "#FFCCBC",
   },
-  locationEmoji: { fontSize: 24 },
-  locationLabel: { fontSize: 12, color: "#757575" },
-  locationValue: { fontSize: 15, fontWeight: "700", color: "#FF7043", marginTop: 2 },
+  locationEmoji: { fontSize: 20 },
+  locationLabel: { fontSize: 13, fontWeight: "600", marginBottom: 2 },
+  locationValue: { fontSize: 15, fontWeight: "700" },
   bottomActions: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 16,
+    paddingBottom: 32, // for safe area
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
-    backgroundColor: "#fff",
   },
   submitBtn: {
-    backgroundColor: "#FF7043",
-    borderRadius: 14,
-    paddingVertical: 16,
+    backgroundColor: "#FF6B35",
+    padding: 16,
+    borderRadius: 16,
     alignItems: "center",
   },
-  submitBtnDisabled: { backgroundColor: "#BDBDBD" },
-  submitBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  submitBtnDisabled: { backgroundColor: "#E0E0E0" },
+  submitBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  // Success screen
   successContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 32,
-    gap: 16,
+    padding: 24,
   },
-  successEmoji: { fontSize: 72 },
-  successTitle: { fontSize: 26, fontWeight: "800", color: "#1A1A1A" },
-  successDesc: { fontSize: 15, color: "#757575", textAlign: "center", lineHeight: 24 },
+  successEmoji: { fontSize: 64, marginBottom: 16 },
+  successTitle: { fontSize: 24, fontWeight: "800", marginBottom: 8 },
+  successDesc: { fontSize: 15, textAlign: "center", lineHeight: 22, marginBottom: 32 },
   doneBtn: {
-    backgroundColor: "#FF7043",
-    borderRadius: 14,
-    paddingHorizontal: 40,
-    paddingVertical: 14,
-    marginTop: 8,
+    width: "100%",
+    backgroundColor: "#FF6B35",
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    marginBottom: 12,
   },
-  doneBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  doneBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   viewRequestsBtn: {
-    borderWidth: 1.5,
-    borderColor: "#FF7043",
-    borderRadius: 14,
-    paddingHorizontal: 40,
-    paddingVertical: 14,
+    width: "100%",
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
   },
-  viewRequestsBtnText: { color: "#FF7043", fontSize: 16, fontWeight: "700" },
+  viewRequestsBtnText: { fontSize: 16, fontWeight: "700" },
 });

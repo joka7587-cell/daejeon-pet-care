@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -27,21 +27,21 @@ const SLIDES = [
     title: "반려이음",
     subtitle: "대전 동네 반려동물\n돌봄 매칭 서비스",
     description: "가까운 이웃과 함께\n반려동물을 돌봐요",
-    bg: "#FFF3EE",
+    bg: "#FFF3EE", // This will be handled dynamically
   },
   {
     emoji: "🚶",
     title: "산책 친구 찾기",
     subtitle: "혼자 산책하기 심심하다면?",
     description: "같은 동네 반려인과\n함께 산책해요",
-    bg: "#F0FFF4",
+    bg: "#F0FFF4", // This will be handled dynamically
   },
   {
     emoji: "🏠",
     title: "긴급 돌봄 매칭",
     subtitle: "갑자기 외출이 생겼나요?",
     description: "근처 돌보미에게\n빠르게 요청하세요",
-    bg: "#EEF4FF",
+    bg: "#EEF4FF", // This will be handled dynamically
   },
 ];
 
@@ -84,7 +84,6 @@ export default function OnboardingScreen() {
   const { dispatch } = useApp();
   const router = useRouter();
 
-  // 페이드 애니메이션 값
   const fadeAnim = useRef(new RNAnimated.Value(1)).current;
   const slideAnim = useRef(new RNAnimated.Value(0)).current;
   const completeFadeAnim = useRef(new RNAnimated.Value(0)).current;
@@ -95,7 +94,6 @@ export default function OnboardingScreen() {
     }
   };
 
-  // 스텝 전환 시 페이드 애니메이션
   const animateStepTransition = (nextStep: Step) => {
     RNAnimated.timing(fadeAnim, {
       toValue: 0,
@@ -140,7 +138,6 @@ export default function OnboardingScreen() {
   const handleNeighborhoodSelect = (n: Neighborhood) => {
     haptic();
     setSelectedNeighborhood(n);
-    // 돌보미 역할이면 서비스 설정 단계로, 반려인이면 프로필로
     if (selectedRole === "caretaker") {
       animateStepTransition("caretaker_setup");
     } else {
@@ -162,7 +159,6 @@ export default function OnboardingScreen() {
     animateStepTransition("profile");
   };
 
-  // 닉네임 중복 검사
   const validateNickname = (name: string): string => {
     const trimmed = name.trim();
     if (trimmed.length === 0) return "";
@@ -198,7 +194,6 @@ export default function OnboardingScreen() {
     haptic();
     setIsCompleting(true);
 
-    // 완료 애니메이션
     RNAnimated.timing(completeFadeAnim, {
       toValue: 1,
       duration: 400,
@@ -221,7 +216,6 @@ export default function OnboardingScreen() {
       });
       setTimeout(() => {
         dispatch({ type: "SET_ONBOARDED", payload: true });
-        // 직접 홈 화면으로 이동
         setTimeout(() => {
           router.replace("/(tabs)" as never);
         }, 200);
@@ -231,10 +225,10 @@ export default function OnboardingScreen() {
 
   const canComplete = nickname.trim().length >= 2 && !nicknameError;
 
-  // 슬라이드 화면
   if (step === "slides") {
+    const slideBgColors = ["#F8F8F8", "#F0FFF4", "#EEF4FF"];
     return (
-      <View style={[styles.container, { backgroundColor: SLIDES[currentSlide].bg }]}>
+      <View style={[styles.container, { backgroundColor: slideBgColors[currentSlide] }]}>
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -246,9 +240,9 @@ export default function OnboardingScreen() {
           {SLIDES.map((slide, i) => (
             <View key={i} style={[styles.slide, { width }]}>
               <Text style={styles.slideEmoji}>{slide.emoji}</Text>
-              <Text style={styles.slideTitle}>{slide.title}</Text>
+              <Text style={[styles.slideTitle, { color: "#1A1A1A" }]}>{slide.title}</Text>
               <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
-              <Text style={styles.slideDesc}>{slide.description}</Text>
+              <Text style={[styles.slideDesc, { color: "#8E8E93" }]}>{slide.description}</Text>
             </View>
           ))}
         </ScrollView>
@@ -280,25 +274,23 @@ export default function OnboardingScreen() {
     );
   }
 
-  // 완료 오버레이
   if (isCompleting) {
     return (
       <RNAnimated.View
         style={[
           styles.completeOverlay,
-          { opacity: completeFadeAnim },
+          { opacity: completeFadeAnim, backgroundColor: "#F8F8F8" },
         ]}
       >
         <Text style={styles.completeEmoji}>{selectedAvatar}</Text>
         <Text style={styles.completeTitle}>환영합니다!</Text>
-        <Text style={styles.completeSubtitle}>
+        <Text style={[styles.completeSubtitle, { color: "#8E8E93" }]}>
           {nickname}님, 반려이음을 시작합니다
         </Text>
       </RNAnimated.View>
     );
   }
 
-  // 역할 선택
   if (step === "role") {
     return (
       <ScreenContainer className="px-6">
@@ -308,21 +300,21 @@ export default function OnboardingScreen() {
             { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
           ]}
         >
-          <Text style={styles.stepTitle}>어떤 역할로 시작할까요?</Text>
-          <Text style={styles.stepSubtitle}>나중에 프로필에서 변경할 수 있어요</Text>
+          <Text style={[styles.stepTitle, { color: "#1A1A1A" }]}>어떤 역할로 시작할까요?</Text>
+          <Text style={[styles.stepSubtitle, { color: "#8E8E93" }]}>나중에 프로필에서 변경할 수 있어요</Text>
 
           <View style={styles.roleCards}>
             <Pressable
               onPress={() => handleRoleSelect("owner")}
               style={({ pressed }) => [
                 styles.roleCard,
-                { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
+                { borderColor: "#FF7043", backgroundColor: "#F8F8F8" },
                 pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
               ]}
             >
               <Text style={styles.roleEmoji}>🐶</Text>
               <Text style={[styles.roleTitle, { color: "#FF7043" }]}>반려인</Text>
-              <Text style={styles.roleDesc}>
+              <Text style={[styles.roleDesc, { color: "#8E8E93" }]}>
                 산책 친구 찾기{"\n"}돌보미 찾기{"\n"}산책 부탁하기{"\n"}단기 돌봄 교환
               </Text>
               <View style={[styles.roleBadge, { backgroundColor: "#FF7043" }]}>
@@ -340,7 +332,7 @@ export default function OnboardingScreen() {
             >
               <Text style={styles.roleEmoji}>🏠</Text>
               <Text style={[styles.roleTitle, { color: "#4CAF82" }]}>돌보미</Text>
-              <Text style={styles.roleDesc}>
+              <Text style={[styles.roleDesc, { color: "#8E8E93" }]}>
                 긴급 방문 돌봄{"\n"}대신 산책해주기
               </Text>
               <View style={[styles.roleBadge, { backgroundColor: "#4CAF82" }]}>
@@ -353,7 +345,6 @@ export default function OnboardingScreen() {
     );
   }
 
-  // 돌보미 서비스 설정
   if (step === "caretaker_setup") {
     return (
       <ScreenContainer className="px-6">
@@ -373,8 +364,8 @@ export default function OnboardingScreen() {
                 { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
               ]}
             >
-              <Text style={styles.stepTitle}>돌보미 서비스 설정</Text>
-              <Text style={styles.stepSubtitle}>제공할 수 있는 서비스를 선택해주세요</Text>
+              <Text style={[styles.stepTitle, { color: "#1A1A1A" }]}>돌보미 서비스 설정</Text>
+              <Text style={[styles.stepSubtitle, { color: "#8E8E93" }]}>제공할 수 있는 서비스를 선택해주세요</Text>
 
               <View style={{ gap: 10, marginBottom: 24 }}>
                 {CARETAKER_SERVICES.map((svc) => {
@@ -385,6 +376,7 @@ export default function OnboardingScreen() {
                       onPress={() => toggleService(svc.id)}
                       style={({ pressed }) => [
                         styles.serviceCard,
+                        { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
                         isSelected && styles.serviceCardSelected,
                         pressed && { opacity: 0.85 },
                       ]}
@@ -393,15 +385,17 @@ export default function OnboardingScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={[
                           styles.serviceLabel,
+                          { color: "#1A1A1A" },
                           isSelected && { color: "#4CAF82" },
                         ]}>{svc.label}</Text>
-                        <Text style={styles.serviceDesc}>{svc.desc}</Text>
+                        <Text style={[styles.serviceDesc, { color: "#8E8E93" }]}>{svc.desc}</Text>
                       </View>
                       <View style={[
                         styles.serviceCheck,
+                        { borderColor: "#E8E8E8" },
                         isSelected && styles.serviceCheckSelected,
                       ]}>
-                        <Text style={{ color: isSelected ? "#fff" : "#ccc", fontSize: 14 }}>
+                        <Text style={{ color: isSelected ? "#FFFFFF" : "#ccc", fontSize: 14 }}>
                           {isSelected ? "✓" : ""}
                         </Text>
                       </View>
@@ -411,18 +405,18 @@ export default function OnboardingScreen() {
               </View>
 
               <View style={styles.inputWrap}>
-                <Text style={styles.sectionLabel}>자기소개 (선택)</Text>
+                <Text style={[styles.sectionLabel, { color: "#1A1A1A" }]}>자기소개 (선택)</Text>
                 <TextInput
-                  style={[styles.textInput, { height: 80, textAlignVertical: "top" }]}
+                  style={[styles.textInput, { height: 80, textAlignVertical: "top", backgroundColor: "#FFFFFF", borderColor: "#E8E8E8", color: "#1A1A1A" }]}
                   placeholder="예) 반려동물 돌봄 경력 3년, 대형견도 가능해요!"
-                  placeholderTextColor="#BDBDBD"
+                  placeholderTextColor={"#8E8E93"}
                   value={caretakerBio}
                   onChangeText={setCaretakerBio}
                   maxLength={100}
                   multiline
                   returnKeyType="done"
                 />
-                <Text style={styles.hintText}>{caretakerBio.length}/100</Text>
+                <Text style={[styles.hintText, { color: "#8E8E93" }]}>{caretakerBio.length}/100</Text>
               </View>
 
               <Pressable
@@ -448,7 +442,6 @@ export default function OnboardingScreen() {
     );
   }
 
-  // 동네 선택
   if (step === "neighborhood") {
     return (
       <ScreenContainer className="px-6">
@@ -458,8 +451,8 @@ export default function OnboardingScreen() {
             { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
           ]}
         >
-          <Text style={styles.stepTitle}>우리 동네를 선택해주세요</Text>
-          <Text style={styles.stepSubtitle}>대전 동네 단위로 매칭해드려요</Text>
+          <Text style={[styles.stepTitle, { color: "#1A1A1A" }]}>우리 동네를 선택해주세요</Text>
+          <Text style={[styles.stepSubtitle, { color: "#8E8E93" }]}>대전 동네 단위로 매칭해드려요</Text>
 
           <Pressable
             onPress={async () => {
@@ -489,13 +482,15 @@ export default function OnboardingScreen() {
                 onPress={() => handleNeighborhoodSelect(item as Neighborhood)}
                 style={({ pressed }) => [
                   styles.neighborhoodBtn,
-                  selectedNeighborhood === item && styles.neighborhoodBtnSelected,
+                  { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
+                  selectedNeighborhood === item && [styles.neighborhoodBtnSelected, { backgroundColor: "#F8F8F8" }],
                   pressed && { opacity: 0.8 },
                 ]}
               >
                 <Text
                   style={[
                     styles.neighborhoodText,
+                    { color: "#8E8E93" },
                     selectedNeighborhood === item && styles.neighborhoodTextSelected,
                   ]}
                 >
@@ -509,7 +504,6 @@ export default function OnboardingScreen() {
     );
   }
 
-  // 프로필 설정 (닉네임 + 아바타)
   return (
     <ScreenContainer className="px-6">
       <KeyboardAvoidingView
@@ -528,14 +522,13 @@ export default function OnboardingScreen() {
               { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
             ]}
           >
-            <Text style={styles.stepTitle}>프로필을 설정해주세요</Text>
-            <Text style={styles.stepSubtitle}>다른 반려인에게 보여지는 정보예요</Text>
+            <Text style={[styles.stepTitle, { color: "#1A1A1A" }]}>프로필을 설정해주세요</Text>
+            <Text style={[styles.stepSubtitle, { color: "#8E8E93" }]}>다른 반려인에게 보여지는 정보예요</Text>
 
-            {/* 아바타 선택 */}
             <View style={styles.avatarSection}>
-              <Text style={styles.sectionLabel}>프로필 아바타</Text>
+              <Text style={[styles.sectionLabel, { color: "#1A1A1A" }]}>프로필 아바타</Text>
               <View style={styles.selectedAvatarWrap}>
-                <View style={styles.selectedAvatarCircle}>
+                <View style={[styles.selectedAvatarCircle, { backgroundColor: "#F8F8F8" }]}>
                   <Text style={styles.selectedAvatarEmoji}>{selectedAvatar}</Text>
                 </View>
               </View>
@@ -546,7 +539,8 @@ export default function OnboardingScreen() {
                     onPress={() => { haptic(); setSelectedAvatar(emoji); }}
                     style={({ pressed }) => [
                       styles.avatarBtn,
-                      selectedAvatar === emoji && styles.avatarBtnSelected,
+                      { backgroundColor: "#F8F8F8" },
+                      selectedAvatar === emoji && [styles.avatarBtnSelected, { backgroundColor: "#F8F8F8" }],
                       pressed && { opacity: 0.7 },
                     ]}
                   >
@@ -556,17 +550,17 @@ export default function OnboardingScreen() {
               </View>
             </View>
 
-            {/* 닉네임 입력 */}
             <View style={styles.inputWrap}>
-              <Text style={styles.sectionLabel}>닉네임</Text>
+              <Text style={[styles.sectionLabel, { color: "#1A1A1A" }]}>닉네임</Text>
               <TextInput
                 style={[
                   styles.textInput,
+                  { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8", color: "#1A1A1A" },
                   nicknameError ? styles.textInputError : null,
                   nickname.trim().length >= 2 && !nicknameError ? styles.textInputValid : null,
                 ]}
                 placeholder="예) 골든이 아빠, 말티즈맘"
-                placeholderTextColor="#BDBDBD"
+                placeholderTextColor={"#8E8E93"}
                 value={nickname}
                 onChangeText={handleNicknameChange}
                 maxLength={20}
@@ -577,7 +571,7 @@ export default function OnboardingScreen() {
               ) : nickname.trim().length >= 2 ? (
                 <Text style={styles.validText}>사용 가능한 닉네임이에요</Text>
               ) : (
-                <Text style={styles.hintText}>2~20자 사이로 입력해주세요</Text>
+                <Text style={[styles.hintText, { color: "#8E8E93" }]}>2~20자 사이로 입력해주세요</Text>
               )}
               <View style={styles.quickNicknames}>
                 {["골든이 아빠", "말티즈맘", "포메 집사", "비글 아빠", "시바견맘"].map((n) => (
@@ -603,24 +597,23 @@ export default function OnboardingScreen() {
               </View>
             </View>
 
-            {/* 선택 정보 확인 */}
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>선택 정보 확인</Text>
+            <View style={[styles.summaryCard, { backgroundColor: "#F8F8F8" }]}>
+              <Text style={[styles.summaryTitle, { color: "#8E8E93" }]}>선택 정보 확인</Text>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>프로필</Text>
-                <Text style={styles.summaryValue}>
+                <Text style={[styles.summaryLabel, { color: "#8E8E93" }]}>프로필</Text>
+                <Text style={[styles.summaryValue, { color: "#1A1A1A" }]}>
                   {selectedAvatar} {nickname || "미입력"}
                 </Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>역할</Text>
-                <Text style={styles.summaryValue}>
+                <Text style={[styles.summaryLabel, { color: "#8E8E93" }]}>역할</Text>
+                <Text style={[styles.summaryValue, { color: "#1A1A1A" }]}>
                   {selectedRole === "owner" ? "🐶 반려인" : "🏠 돌보미"}
                 </Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>동네</Text>
-                <Text style={styles.summaryValue}>📍 {selectedNeighborhood}</Text>
+                <Text style={[styles.summaryLabel, { color: "#8E8E93" }]}>동네</Text>
+                <Text style={[styles.summaryValue, { color: "#1A1A1A" }]}>📍 {selectedNeighborhood}</Text>
               </View>
             </View>
 
@@ -628,7 +621,7 @@ export default function OnboardingScreen() {
               onPress={handleComplete}
               style={({ pressed }) => [
                 styles.completeBtn,
-                !canComplete && styles.completeBtnDisabled,
+                !canComplete && [styles.completeBtnDisabled, { backgroundColor: "#E8E8E8" }],
                 pressed && canComplete && { opacity: 0.85, transform: [{ scale: 0.97 }] },
               ]}
               disabled={!canComplete}
@@ -636,7 +629,7 @@ export default function OnboardingScreen() {
               <Text
                 style={[
                   styles.completeBtnText,
-                  !canComplete && styles.completeBtnTextDisabled,
+                  !canComplete && [styles.completeBtnTextDisabled, { color: "#8E8E93" }],
                 ]}
               >
                 반려이음 시작하기 🐾
@@ -663,7 +656,6 @@ const styles = StyleSheet.create({
   slideTitle: {
     fontSize: 32,
     fontWeight: "800",
-    color: "#1A1A1A",
     marginBottom: 8,
     textAlign: "center",
   },
@@ -674,7 +666,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: "center",
   },
-  slideDesc: { fontSize: 16, color: "#555", textAlign: "center", lineHeight: 24 },
+  slideDesc: { fontSize: 16, textAlign: "center", lineHeight: 24 },
   dotsRow: {
     flexDirection: "row",
     justifyContent: "center",
@@ -690,15 +682,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
   },
-  nextBtnText: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  nextBtnText: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
   stepContainer: { flex: 1, paddingTop: 40 },
   stepTitle: {
     fontSize: 26,
     fontWeight: "800",
-    color: "#1A1A1A",
     marginBottom: 8,
   },
-  stepSubtitle: { fontSize: 15, color: "#757575", marginBottom: 28 },
+  stepSubtitle: { fontSize: 15, marginBottom: 28 },
   roleCards: { flexDirection: "row", gap: 12 },
   roleCard: {
     flex: 1,
@@ -710,14 +701,14 @@ const styles = StyleSheet.create({
   },
   roleEmoji: { fontSize: 48 },
   roleTitle: { fontSize: 20, fontWeight: "800" },
-  roleDesc: { fontSize: 13, color: "#555", textAlign: "center", lineHeight: 20 },
+  roleDesc: { fontSize: 13, textAlign: "center", lineHeight: 20 },
   roleBadge: {
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginTop: 4,
   },
-  roleBadgeText: { color: "#fff", fontSize: 11, fontWeight: "600" },
+  roleBadgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "600" },
   autoDetectBtn: {
     backgroundColor: "#4CAF82",
     borderRadius: 12,
@@ -726,32 +717,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   autoDetectText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700" as const,
   },
   neighborhoodBtn: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
-    backgroundColor: "#fff",
   },
   neighborhoodBtnSelected: {
     borderColor: "#FF7043",
-    backgroundColor: "#FFF3EE",
   },
-  neighborhoodText: { fontSize: 14, fontWeight: "600", color: "#555" },
+  neighborhoodText: { fontSize: 14, fontWeight: "600" },
   neighborhoodTextSelected: { color: "#FF7043" },
 
-  // 아바타 섹션
   avatarSection: { marginBottom: 24 },
   sectionLabel: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#333",
     marginBottom: 12,
   },
   selectedAvatarWrap: { alignItems: "center", marginBottom: 16 },
@@ -759,7 +745,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#FFF3EE",
     borderWidth: 3,
     borderColor: "#FF7043",
     alignItems: "center",
@@ -776,7 +761,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#F5F5F5",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -784,11 +768,9 @@ const styles = StyleSheet.create({
   },
   avatarBtnSelected: {
     borderColor: "#FF7043",
-    backgroundColor: "#FFF3EE",
   },
   avatarEmoji: { fontSize: 24 },
 
-  // 돌보미 서비스 설정
   serviceCard: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -796,8 +778,6 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
   },
   serviceCardSelected: {
     borderColor: "#4CAF82",
@@ -806,11 +786,9 @@ const styles = StyleSheet.create({
   serviceLabel: {
     fontSize: 15,
     fontWeight: "700" as const,
-    color: "#1A1A1A",
   },
   serviceDesc: {
     fontSize: 12,
-    color: "#757575",
     marginTop: 2,
   },
   serviceCheck: {
@@ -818,7 +796,6 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#E0E0E0",
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
@@ -827,24 +804,20 @@ const styles = StyleSheet.create({
     borderColor: "#4CAF82",
   },
 
-  // 닉네임 입력
   inputWrap: { marginBottom: 24 },
   textInput: {
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: "#fff",
     marginBottom: 6,
     fontSize: 16,
-    color: "#1A1A1A",
   },
   textInputError: { borderColor: "#EF5350" },
   textInputValid: { borderColor: "#4CAF82" },
   errorText: { fontSize: 12, color: "#EF5350", marginBottom: 8 },
   validText: { fontSize: 12, color: "#4CAF82", marginBottom: 8 },
-  hintText: { fontSize: 12, color: "#9E9E9E", marginBottom: 8 },
+  hintText: { fontSize: 12, marginBottom: 8 },
   quickNicknames: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   quickNick: {
     borderWidth: 1,
@@ -857,11 +830,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF7043",
   },
   quickNickText: { color: "#FF7043", fontSize: 13, fontWeight: "500" },
-  quickNickTextSelected: { color: "#fff" },
+  quickNickTextSelected: { color: "#FFFFFF" },
 
-  // 요약 카드
   summaryCard: {
-    backgroundColor: "#F5F5F5",
     borderRadius: 16,
     padding: 16,
     gap: 8,
@@ -870,14 +841,12 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#555",
     marginBottom: 4,
   },
   summaryRow: { flexDirection: "row", justifyContent: "space-between" },
-  summaryLabel: { fontSize: 14, color: "#757575" },
-  summaryValue: { fontSize: 14, fontWeight: "600", color: "#1A1A1A" },
+  summaryLabel: { fontSize: 14 },
+  summaryValue: { fontSize: 14, fontWeight: "600" },
 
-  // 완료 버튼
   completeBtn: {
     backgroundColor: "#FF7043",
     borderRadius: 16,
@@ -887,13 +856,11 @@ const styles = StyleSheet.create({
   completeBtnDisabled: {
     backgroundColor: "#E0E0E0",
   },
-  completeBtnText: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  completeBtnText: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
   completeBtnTextDisabled: { color: "#9E9E9E" },
 
-  // 완료 오버레이
   completeOverlay: {
     flex: 1,
-    backgroundColor: "#FFF3EE",
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
@@ -906,7 +873,6 @@ const styles = StyleSheet.create({
   },
   completeSubtitle: {
     fontSize: 18,
-    color: "#555",
     textAlign: "center",
   },
 });

@@ -75,23 +75,24 @@ export default function ChatListScreen() {
       onPress={() => handleOpenChat(item.id)}
       style={({ pressed }) => [
         styles.chatRoomCard,
+        { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
         pressed && { opacity: 0.8 },
       ]}
     >
       {/* 프로필 섹션 */}
       <View style={styles.profileSection}>
-        <View style={styles.avatarContainer}>
+        <View style={[styles.avatarContainer, { backgroundColor: "#F8F8F8" }]}>
           <Text style={styles.avatar}>{item.otherUserEmoji}</Text>
-          {item.isOnline && <View style={styles.onlineIndicator} />}
+          {item.isOnline && <View style={[styles.onlineIndicator, { borderColor: "#FFFFFF" }]} />}
         </View>
 
         {/* 메시지 정보 */}
         <View style={styles.messageInfo}>
           <View style={styles.nameRow}>
-            <Text style={styles.userName}>{item.otherUserName}</Text>
-            <Text style={styles.time}>{item.lastMessageTime}</Text>
+            <Text style={[styles.userName, { color: "#1A1A1A" }]}>{item.otherUserName}</Text>
+            <Text style={[styles.time, { color: "#8E8E93" }]}>{item.lastMessageTime}</Text>
           </View>
-          <Text style={styles.lastMessage} numberOfLines={1}>
+          <Text style={[styles.lastMessage, { color: "#8E8E93" }]} numberOfLines={1}>
             {item.lastMessage}
           </Text>
         </View>
@@ -112,8 +113,8 @@ export default function ChatListScreen() {
     <ScreenContainer className="pt-2">
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.title}>💬 메시지</Text>
-        <Text style={styles.subtitle}>{chatRooms.length}개의 대화</Text>
+        <Text style={[styles.title, { color: "#1A1A1A" }]}>💬 메시지</Text>
+        <Text style={[styles.subtitle, { color: "#8E8E93" }]}>{chatRooms.length}개의 대화</Text>
       </View>
 
       {/* 채팅방 목록 */}
@@ -133,8 +134,8 @@ export default function ChatListScreen() {
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyEmoji}>💭</Text>
-          <Text style={styles.emptyTitle}>아직 대화가 없어요</Text>
-          <Text style={styles.emptyDesc}>
+          <Text style={[styles.emptyTitle, { color: "#8E8E93" }]}>아직 대화가 없어요</Text>
+          <Text style={[styles.emptyDesc, { color: "#8E8E93" }]}>
             매칭된 사용자와 대화를 시작해보세요
           </Text>
         </View>
@@ -151,11 +152,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#1A1A1A",
+    // color: "#1A1A1A",
   },
   subtitle: {
     fontSize: 13,
-    color: "#9E9E9E",
+    // color: "#9E9E9E",
     marginTop: 2,
   },
   loadingContainer: {
@@ -169,12 +170,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chatRoomCard: {
-    backgroundColor: "#fff",
+    // backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 12,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    // borderColor: "#F0F0F0",
   },
   profileSection: {
     flexDirection: "row",
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#FFF3EE",
+    // backgroundColor: "#FFF3EE",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: "#4CAF82",
     borderWidth: 2,
-    borderColor: "#fff",
+    // borderColor: "#FFFFFF",
   },
   messageInfo: {
     flex: 1,
@@ -217,15 +218,15 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1A1A1A",
+    // color: "#1A1A1A",
   },
   time: {
     fontSize: 12,
-    color: "#9E9E9E",
+    // color: "#9E9E9E",
   },
   lastMessage: {
     fontSize: 13,
-    color: "#757575",
+    // color: "#8E8E93",
     lineHeight: 18,
   },
   badge: {
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   badgeText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -254,11 +255,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#555",
+    // color: "#8E8E93",
   },
   emptyDesc: {
     fontSize: 13,
-    color: "#9E9E9E",
+    // color: "#9E9E9E",
     textAlign: "center",
   },
 });

@@ -38,7 +38,7 @@ export default function ProfileDetailScreen() {
       <ScreenContainer className="p-6">
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 48 }}>😕</Text>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#555", marginTop: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#8E8E93", marginTop: 12 }}>
             프로필을 찾을 수 없어요
           </Text>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -212,11 +212,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
     alignItems: "center",
     justifyContent: "center",
   },
-  backBtnSmallText: { fontSize: 22, color: "#555", lineHeight: 28 },
+  backBtnSmallText: { fontSize: 22, color: "#8E8E93", lineHeight: 28 },
   profileHeader: {
     alignItems: "center",
     paddingVertical: 28,
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     height: 80,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 40,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -250,23 +250,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#4CAF82",
     borderWidth: 2.5,
-    borderColor: "#fff",
+    borderColor: "#FFFFFF",
   },
   userName: { fontSize: 22, fontWeight: "800", color: "#1A1A1A" },
   roleBadge: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5 },
   roleBadgeOrange: { backgroundColor: "#FF7043" },
   roleBadgeGreen: { backgroundColor: "#4CAF82" },
-  roleBadgeText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  roleBadgeText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   neighborhoodBadge: { flexDirection: "row", alignItems: "center" },
-  neighborhoodBadgeText: { fontSize: 13, color: "#555" },
+  neighborhoodBadgeText: { fontSize: 13, color: "#8E8E93" },
   distanceText: { fontSize: 13, color: "#9E9E9E" },
   statsRow: { flexDirection: "row", alignItems: "center", gap: 24, marginTop: 4 },
   statItem: { alignItems: "center", gap: 2 },
   statValue: { fontSize: 18, fontWeight: "800", color: "#1A1A1A" },
-  statLabel: { fontSize: 11, color: "#757575" },
+  statLabel: { fontSize: 11, color: "#8E8E93" },
   statDivider: { width: 1, height: 28, backgroundColor: "#E0E0E0" },
   infoCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoCardTitle: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
-  infoCardText: { fontSize: 14, color: "#555", lineHeight: 22 },
+  infoCardText: { fontSize: 14, color: "#8E8E93", lineHeight: 22 },
   serviceItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -296,10 +296,10 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   petName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
-  petInfo: { fontSize: 12, color: "#757575", marginTop: 2 },
+  petInfo: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
   reviewItem: {
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
+    borderBottomColor: "#F8F8F8",
     paddingBottom: 12,
     gap: 4,
   },
@@ -308,12 +308,12 @@ const styles = StyleSheet.create({
   reviewDate: { fontSize: 12, color: "#9E9E9E" },
   reviewStars: { flexDirection: "row", gap: 2 },
   star: { fontSize: 12 },
-  reviewText: { fontSize: 13, color: "#555", lineHeight: 20 },
+  reviewText: { fontSize: 13, color: "#8E8E93", lineHeight: 20 },
   bottomActions: {
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#F0F0F0",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   requestBtn: {
     borderRadius: 14,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   },
   requestBtnOrange: { backgroundColor: "#FF7043" },
   requestBtnGreen: { backgroundColor: "#4CAF82" },
-  requestBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  requestBtnText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
   requestedCard: {
     backgroundColor: "#F0FFF4",
     borderRadius: 14,
@@ -339,5 +339,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
-  backBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  backBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
 });

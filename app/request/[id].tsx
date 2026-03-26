@@ -38,7 +38,7 @@ export default function RequestDetailScreen() {
       <ScreenContainer className="p-6">
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 48 }}>😕</Text>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#555", marginTop: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#8E8E93", marginTop: 12 }}>
             요청을 찾을 수 없어요
           </Text>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -296,11 +296,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
     alignItems: "center",
     justifyContent: "center",
   },
-  closeBtnText: { fontSize: 16, color: "#555" },
+  closeBtnText: { fontSize: 16, color: "#8E8E93" },
   urgentBanner: {
     backgroundColor: "#FFEBEE",
     borderRadius: 12,
@@ -324,9 +324,9 @@ const styles = StyleSheet.create({
   },
   petEmoji: { fontSize: 48 },
   petName: { fontSize: 20, fontWeight: "800", color: "#1A1A1A" },
-  petOwner: { fontSize: 13, color: "#757575", marginTop: 4 },
+  petOwner: { fontSize: 13, color: "#8E8E93", marginTop: 4 },
   neighborhoodTag: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   neighborhoodTagText: { fontSize: 12, color: "#FF7043", fontWeight: "600" },
   infoCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -344,9 +344,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   infoCardTitle: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
-  infoCardDesc: { fontSize: 14, color: "#555", lineHeight: 22 },
+  infoCardDesc: { fontSize: 14, color: "#8E8E93", lineHeight: 22 },
   scheduleCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -371,14 +371,14 @@ const styles = StyleSheet.create({
   resultCardAccepted: { backgroundColor: "#F0FFF4", borderColor: "#C8E6C9" },
   resultCardRejected: { backgroundColor: "#FFEBEE", borderColor: "#FFCDD2" },
   resultEmoji: { fontSize: 28 },
-  resultText: { flex: 1, fontSize: 14, fontWeight: "600", color: "#555", lineHeight: 20 },
+  resultText: { flex: 1, fontSize: 14, fontWeight: "600", color: "#8E8E93", lineHeight: 20 },
   bottomActions: {
     flexDirection: "row",
     gap: 12,
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#F0F0F0",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   rejectBtn: {
     flex: 1,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
   },
-  rejectBtnText: { color: "#555", fontSize: 16, fontWeight: "700" },
+  rejectBtnText: { color: "#8E8E93", fontSize: 16, fontWeight: "700" },
   acceptBtn: {
     flex: 2,
     backgroundColor: "#4CAF82",
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
   },
-  acceptBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  acceptBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   backBtn: {
     marginTop: 16,
     backgroundColor: "#FF7043",
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
-  backBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  backBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   chatLinkBtn: {
     marginTop: 8,
     backgroundColor: "#FF7043",
@@ -413,5 +413,5 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignSelf: "flex-start",
   },
-  chatLinkBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  chatLinkBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 });

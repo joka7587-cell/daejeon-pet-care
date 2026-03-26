@@ -528,3 +528,130 @@ export async function updateUserRating(userId: number): Promise<void> {
     .set({ rating: avgRating, reviewCount: count })
     .where(eq(userProfiles.userId, userId));
 }
+
+
+// ============================================
+// 인증 시스템 (이메일/비밀번호 + 카카오 소셜 로그인)
+// ============================================
+
+/**
+ * 이메일로 사용자 조회
+ */
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * 카카오 ID로 사용자 조회
+ */
+export async function getUserByKakaoId(kakaoId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(users).where(eq(users.kakaoId, kakaoId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * 이메일/비밀번호 회원가입
+ */
+export async function createEmailUser(data: {
+  email: string;
+  passwordHash: string;
+  name: string;
+  appRole: "owner" | "walker";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const openId = `email_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  
+  await db.insert(users).values({
+    openId,
+    email: data.email,
+    passwordHash: data.passwordHash,
+    name: data.name,
+    loginMethod: "email",
+    appRole: data.appRole,
+    role: "user",
+    emailVerified: false,
+    lastSignedIn: new Date(),
+  });
+
+  const created = await db.select().from(users).where(eq(users.email, data.email)).limit(1);
+  return created.length > 0 ? created[0] : null;
+}
+
+/**
+ * 카카오 소셜 로그인 - 사용자 생성 또는 업데이트
+ */
+export async function upsertKakaoUser(data: {
+  kakaoId: string;
+  email?: string;
+  name?: string;
+  appRole?: "owner" | "walker";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // 기존 카카오 사용자 확인
+  const existing = await getUserByKakaoId(data.kakaoId);
+  
+  if (existing) {
+    // 로그인 시간 업데이트
+    await db.update(users).set({
+      lastSignedIn: new Date(),
+      ...(data.name && { name: data.name }),
+      ...(data.email && { email: data.email }),
+    }).where(eq(users.kakaoId, data.kakaoId));
+    
+    const updated = await getUserByKakaoId(data.kakaoId);
+    return updated;
+  }
+
+  // 신규 카카오 사용자 생성
+  const openId = `kakao_${data.kakaoId}`;
+  await db.insert(users).values({
+    openId,
+    kakaoId: data.kakaoId,
+    email: data.email ?? null,
+    name: data.name ?? null,
+    loginMethod: "kakao",
+    appRole: data.appRole ?? "owner",
+    role: "user",
+    emailVerified: false,
+    lastSignedIn: new Date(),
+  });
+
+  return getUserByKakaoId(data.kakaoId);
+}
+
+/**
+ * 사용자 역할(appRole) 업데이트
+ */
+export async function updateUserAppRole(userId: number, appRole: "owner" | "walker") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ appRole }).where(eq(users.id, userId));
+}
+
+/**
+ * 사용자 ID로 조회
+ */
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * 로그인 시간 업데이트
+ */
+export async function updateLastSignedIn(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
+}

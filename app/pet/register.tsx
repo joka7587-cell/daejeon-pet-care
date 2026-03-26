@@ -130,54 +130,54 @@ export default function PetRegisterScreen() {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: "#FFFFFF", borderBottomColor: "#E8E8E8" }]}>
         <Pressable
           onPress={() => { haptic(); router.back(); }}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: "#1A1A1A" }]}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>반려동물 등록</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>반려동물 등록</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: "#FFFFFF" }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* 사진 업로드 */}
         <View style={styles.photoSection}>
           <Pressable
             onPress={handlePickPhoto}
-            style={({ pressed }) => [styles.photoCircle, pressed && { opacity: 0.8 }]}
+            style={({ pressed }) => [styles.photoCircle, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }, pressed && { opacity: 0.8 }]}
           >
             {photoUri ? (
               <Image source={{ uri: photoUri }} style={styles.photoImage} contentFit="cover" />
             ) : (
               <>
                 <Text style={styles.photoEmoji}>{emoji}</Text>
-                <Text style={styles.photoHint}>사진 추가</Text>
+                <Text style={[styles.photoHint, { color: "#8E8E93" }]}>사진 추가</Text>
               </>
             )}
           </Pressable>
           <View style={styles.photoActions}>
             <Pressable
               onPress={handlePickPhoto}
-              style={({ pressed }) => [styles.photoActionBtn, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.photoActionBtn, { backgroundColor: "#F8F8F8" }, pressed && { opacity: 0.7 }]}
             >
-              <Text style={styles.photoActionText}>📷 앨범</Text>
+              <Text style={[styles.photoActionText, { color: "#1A1A1A" }]}>📷 앨범</Text>
             </Pressable>
             <Pressable
               onPress={handleTakePhoto}
-              style={({ pressed }) => [styles.photoActionBtn, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.photoActionBtn, { backgroundColor: "#F8F8F8" }, pressed && { opacity: 0.7 }]}
             >
-              <Text style={styles.photoActionText}>📸 카메라</Text>
+              <Text style={[styles.photoActionText, { color: "#1A1A1A" }]}>📸 카메라</Text>
             </Pressable>
             {photoUri && (
               <Pressable
                 onPress={() => { haptic(); setPhotoUri(null); }}
-                style={({ pressed }) => [styles.photoActionBtn, styles.photoRemoveBtn, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [styles.photoActionBtn, styles.photoRemoveBtn, { backgroundColor: "#F8F8F8" }, pressed && { opacity: 0.7 }]}
               >
                 <Text style={[styles.photoActionText, { color: "#EF5350" }]}>삭제</Text>
               </Pressable>
@@ -187,22 +187,23 @@ export default function PetRegisterScreen() {
 
         {/* 이모지 선택 */}
         <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>아이콘</Text>
+          <Text style={[styles.fieldLabel, { color: "#8E8E93" }]}>아이콘</Text>
           <Pressable
             onPress={() => { haptic(); setShowEmojiPicker(!showEmojiPicker); }}
-            style={({ pressed }) => [styles.emojiSelector, pressed && { opacity: 0.8 }]}
+            style={({ pressed }) => [styles.emojiSelector, { backgroundColor: "#F8F8F8", borderColor: "#FFCCBC" }, pressed && { opacity: 0.8 }]}
           >
             <Text style={styles.selectedEmoji}>{emoji}</Text>
             <Text style={styles.emojiSelectorText}>변경</Text>
           </Pressable>
           {showEmojiPicker && (
-            <View style={styles.emojiGrid}>
+            <View style={[styles.emojiGrid, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
               {PET_EMOJIS.map((e) => (
                 <Pressable
                   key={e}
                   onPress={() => { haptic(); setEmoji(e); setShowEmojiPicker(false); }}
                   style={({ pressed }) => [
                     styles.emojiOption,
+                    { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
                     emoji === e && styles.emojiOptionActive,
                     pressed && { opacity: 0.7 },
                   ]}
@@ -216,11 +217,11 @@ export default function PetRegisterScreen() {
 
         {/* 이름 입력 */}
         <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>이름 *</Text>
+          <Text style={[styles.fieldLabel, { color: "#8E8E93" }]}>이름 *</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", color: "#1A1A1A" }]}
             placeholder="반려동물 이름"
-            placeholderTextColor="#BDBDBD"
+            placeholderTextColor={"#8E8E93"}
             value={name}
             onChangeText={setName}
             maxLength={20}
@@ -230,29 +231,30 @@ export default function PetRegisterScreen() {
 
         {/* 품종 입력 */}
         <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>품종 *</Text>
+          <Text style={[styles.fieldLabel, { color: "#8E8E93" }]}>품종 *</Text>
           <Pressable
             onPress={() => { haptic(); setShowBreedPicker(!showBreedPicker); }}
-            style={({ pressed }) => [styles.selectInput, pressed && { opacity: 0.8 }]}
+            style={({ pressed }) => [styles.selectInput, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }, pressed && { opacity: 0.8 }]}
           >
-            <Text style={breed ? styles.selectInputText : styles.selectInputPlaceholder}>
+            <Text style={breed ? [styles.selectInputText, { color: "#1A1A1A" }] : [styles.selectInputPlaceholder, { color: "#8E8E93" }]}>
               {breed || "품종을 선택하세요"}
             </Text>
-            <Text style={{ color: "#9E9E9E" }}>{showBreedPicker ? "▲" : "▼"}</Text>
+            <Text style={{ color: "#8E8E93" }}>{showBreedPicker ? "▲" : "▼"}</Text>
           </Pressable>
           {showBreedPicker && (
-            <View style={styles.breedGrid}>
+            <View style={[styles.breedGrid, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
               {POPULAR_BREEDS.map((b) => (
                 <Pressable
                   key={b}
                   onPress={() => { haptic(); setBreed(b); setShowBreedPicker(false); }}
                   style={({ pressed }) => [
                     styles.breedChip,
+                    { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
                     breed === b && styles.breedChipActive,
                     pressed && { opacity: 0.7 },
                   ]}
                 >
-                  <Text style={[styles.breedChipText, breed === b && styles.breedChipTextActive]}>
+                  <Text style={[styles.breedChipText, { color: "#8E8E93" }, breed === b && styles.breedChipTextActive]}>
                     {b}
                   </Text>
                 </Pressable>
@@ -261,9 +263,9 @@ export default function PetRegisterScreen() {
           )}
           {breed === "기타" && (
             <TextInput
-              style={[styles.textInput, { marginTop: 8 }]}
+              style={[styles.textInput, { marginTop: 8, backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", color: "#1A1A1A" }]}
               placeholder="품종을 직접 입력하세요"
-              placeholderTextColor="#BDBDBD"
+              placeholderTextColor={"#8E8E93"}
               value={breed === "기타" ? "" : breed}
               onChangeText={(text) => setBreed(text || "기타")}
               maxLength={30}
@@ -273,11 +275,11 @@ export default function PetRegisterScreen() {
 
         {/* 나이 입력 */}
         <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>나이 (살) *</Text>
+          <Text style={[styles.fieldLabel, { color: "#8E8E93" }]}>나이 (살) *</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", color: "#1A1A1A" }]}
             placeholder="숫자만 입력 (예: 3)"
-            placeholderTextColor="#BDBDBD"
+            placeholderTextColor={"#8E8E93"}
             value={age}
             onChangeText={(text) => setAge(text.replace(/[^0-9]/g, ""))}
             keyboardType="number-pad"
@@ -288,7 +290,7 @@ export default function PetRegisterScreen() {
 
         {/* 크기 선택 */}
         <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>크기 *</Text>
+          <Text style={[styles.fieldLabel, { color: "#8E8E93" }]}>크기 *</Text>
           <View style={styles.sizeRow}>
             {SIZE_OPTIONS.map((opt) => (
               <Pressable
@@ -296,138 +298,65 @@ export default function PetRegisterScreen() {
                 onPress={() => { haptic(); setSize(opt.value); }}
                 style={({ pressed }) => [
                   styles.sizeOption,
+                  { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
                   size === opt.value && styles.sizeOptionActive,
                   pressed && { opacity: 0.8 },
                 ]}
               >
-                <Text style={[styles.sizeLabel, size === opt.value && styles.sizeLabelActive]}>
+                <Text
+                  style={[
+                    styles.sizeLabel,
+                    { color: "#8E8E93" },
+                    size === opt.value && styles.sizeLabelActive,
+                  ]}
+                >
                   {opt.label}
                 </Text>
-                <Text style={[styles.sizeDesc, size === opt.value && { color: "#FF7043" }]}>
-                  {opt.desc}
-                </Text>
+                <Text style={[styles.sizeDesc, { color: "#8E8E93" }]}>{opt.desc}</Text>
               </Pressable>
             ))}
           </View>
         </View>
 
-        {/* 체중 입력 */}
+        {/* 추가 정보 */}
         <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>체중 (kg)</Text>
+          <Text style={[styles.fieldLabel, { color: "#8E8E93" }]}>추가 정보 (선택)</Text>
           <TextInput
-            style={styles.textInput}
-            placeholder="예: 5.2"
-            placeholderTextColor="#BDBDBD"
+            style={[styles.textInput, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", color: "#1A1A1A" }]}
+            placeholder="몸무게 (kg)"
+            placeholderTextColor={"#8E8E93"}
             value={weight}
             onChangeText={(text) => setWeight(text.replace(/[^0-9.]/g, ""))}
-            keyboardType="decimal-pad"
+            keyboardType="numeric"
             maxLength={5}
-            returnKeyType="done"
           />
-        </View>
-
-        {/* 공격성 여부 */}
-        <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>공격성 여부</Text>
-          <View style={styles.sizeRow}>
-            {(["없음", "주의", "위험"] as const).map((level) => {
-              const aggrEmoji = level === "없음" ? "😊" : level === "주의" ? "⚠️" : "🚨";
-              const aggrColor = level === "없음" ? "#4CAF50" : level === "주의" ? "#FF9800" : "#F44336";
-              return (
-                <Pressable
-                  key={level}
-                  onPress={() => { haptic(); setAggression(level); }}
-                  style={({ pressed }) => [
-                    styles.sizeOption,
-                    aggression === level && { borderColor: aggrColor, backgroundColor: aggrColor + "10" },
-                    pressed && { opacity: 0.8 },
-                  ]}
-                >
-                  <Text style={{ fontSize: 20 }}>{aggrEmoji}</Text>
-                  <Text style={[styles.sizeLabel, aggression === level && { color: aggrColor }]}>{level}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* 지병 정보 */}
-        <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>지병 정보</Text>
           <TextInput
-            style={[styles.textInput, { minHeight: 60, textAlignVertical: "top" }]}
-            placeholder="알레르기, 관절 질환, 심장병 등 (없으면 비워두세요)"
-            placeholderTextColor="#BDBDBD"
+            style={[styles.textInput, { marginTop: 8, backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", color: "#1A1A1A" }]}
+            placeholder="주의해야 할 공격성 (없으면 비워두세요)"
+            placeholderTextColor={"#8E8E93"}
+            value={aggression === "없음" ? "" : aggression}
+            onChangeText={(t) => setAggression(t ? "주의" : "없음")}
+          />
+          <TextInput
+            style={[styles.textInput, { marginTop: 8, minHeight: 80, paddingTop: 12, textAlignVertical: "top", backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", color: "#1A1A1A" }]}
+            placeholder="앓고 있는 질병이나 복용 중인 약 (없으면 비워두세요)"
+            placeholderTextColor={"#8E8E93"}
             value={medicalConditions}
             onChangeText={setMedicalConditions}
             multiline
-            maxLength={200}
           />
         </View>
 
-        {/* 산책 시 주의사항 */}
-        <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>산책 시 주의사항</Text>
-          <View style={styles.breedGrid}>
-            {["입마개 필수", "목줄 필수", "하네스 착용", "다른 개 접근 금지", "소음 민감", "간식 금지", "물 자주 필요", "뛰기 금지"].map((note) => (
-              <Pressable
-                key={note}
-                onPress={() => {
-                  haptic();
-                  setWalkNotes((prev) => prev.includes(note) ? prev.filter((n) => n !== note) : [...prev, note]);
-                }}
-                style={({ pressed }) => [
-                  styles.breedChip,
-                  walkNotes.includes(note) && { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={[styles.breedChipText, walkNotes.includes(note) && { color: "#FF7043", fontWeight: "700" }]}>
-                  {note}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* 선호 산책로 */}
-        <View style={styles.fieldSection}>
-          <Text style={styles.fieldLabel}>선호 산책로 (대전)</Text>
-          <View style={styles.breedGrid}>
-            {["갑천변 산책로", "대전숲 둘레길", "한밭수목원", "엑스포과학공원", "유성온천 산책로", "계족산 황톳길", "보문산 산책로", "대청호 오백리길", "뿌리공원", "동춘당공원"].map((trail) => (
-              <Pressable
-                key={trail}
-                onPress={() => {
-                  haptic();
-                  setPreferredTrails((prev) => prev.includes(trail) ? prev.filter((t) => t !== trail) : [...prev, trail]);
-                }}
-                style={({ pressed }) => [
-                  styles.breedChip,
-                  preferredTrails.includes(trail) && { borderColor: "#4CAF82", backgroundColor: "#E8F5E9" },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={[styles.breedChipText, preferredTrails.includes(trail) && { color: "#4CAF82", fontWeight: "700" }]}>
-                  {trail}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* 등록 버튼 */}
         <Pressable
           onPress={handleSubmit}
           disabled={!isValid}
           style={({ pressed }) => [
             styles.submitBtn,
             !isValid && styles.submitBtnDisabled,
-            pressed && isValid && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+            pressed && { opacity: 0.8 },
           ]}
         >
-          <Text style={styles.submitBtnText}>
-            {emoji} 반려동물 등록하기
-          </Text>
+          <Text style={styles.submitBtnText}>등록하기</Text>
         </Pressable>
       </ScrollView>
     </ScreenContainer>
@@ -438,76 +367,64 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  backBtnText: { fontSize: 28, color: "#1A1A1A" },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
-  scrollContent: { padding: 20, gap: 20, paddingBottom: 40 },
-  photoSection: { alignItems: "center", gap: 12 },
+  backBtn: { padding: 6 },
+  backBtnText: { fontSize: 28, fontWeight: "300" },
+  headerTitle: { fontSize: 17, fontWeight: "600" },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  photoSection: { alignItems: "center", marginBottom: 24 },
   photoCircle: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#FFF3EE",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: "#FFCCBC",
-    borderStyle: "dashed",
     overflow: "hidden",
+    marginBottom: 12,
   },
-  photoImage: { width: 120, height: 120, borderRadius: 60 },
-  photoEmoji: { fontSize: 48 },
-  photoHint: { fontSize: 11, color: "#FF7043", fontWeight: "600", marginTop: 4 },
-  photoActions: { flexDirection: "row", gap: 8 },
+  photoImage: { width: "100%", height: "100%" },
+  photoEmoji: { fontSize: 52 },
+  photoHint: { fontSize: 13, fontWeight: "500", marginTop: 4 },
+  photoActions: { flexDirection: "row", gap: 10 },
   photoActionBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    paddingVertical: 8,
+    borderRadius: 10,
   },
-  photoRemoveBtn: { borderColor: "#FFCDD2", backgroundColor: "#FFF5F5" },
-  photoActionText: { fontSize: 13, color: "#555", fontWeight: "600" },
-  fieldSection: { gap: 8 },
-  fieldLabel: { fontSize: 14, fontWeight: "700", color: "#1A1A1A" },
+  photoActionText: { fontSize: 13, fontWeight: "600" },
+  photoRemoveBtn: {},
+  fieldSection: { marginBottom: 24 },
+  fieldLabel: { fontSize: 14, fontWeight: "600", marginBottom: 8, marginLeft: 4 },
   textInput: {
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 15,
-    color: "#1A1A1A",
-    backgroundColor: "#fff",
   },
   selectInput: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
+    paddingVertical: 14,
   },
-  selectInputText: { fontSize: 15, color: "#1A1A1A" },
-  selectInputPlaceholder: { fontSize: 15, color: "#BDBDBD" },
+  selectInputText: { fontSize: 15 },
+  selectInputPlaceholder: { fontSize: 15 },
   emojiSelector: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#FFF3EE",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#FFCCBC",
   },
   selectedEmoji: { fontSize: 32 },
   emojiSelectorText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
@@ -515,11 +432,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    backgroundColor: "#FAFAFA",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    marginTop: 8,
   },
   emojiOption: {
     width: 48,
@@ -527,9 +443,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
   },
   emojiOptionActive: {
     borderColor: "#FF7043",
@@ -540,22 +454,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    backgroundColor: "#FAFAFA",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    marginTop: 8,
   },
   breedChip: {
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
   },
   breedChipActive: { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
-  breedChipText: { fontSize: 13, color: "#555" },
+  breedChipText: { fontSize: 13 },
   breedChipTextActive: { color: "#FF7043", fontWeight: "700" },
   sizeRow: { flexDirection: "row", gap: 10 },
   sizeOption: {
@@ -564,17 +475,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
     gap: 4,
   },
   sizeOptionActive: {
     borderColor: "#FF7043",
     backgroundColor: "#FFF3EE",
   },
-  sizeLabel: { fontSize: 15, fontWeight: "700", color: "#555" },
+  sizeLabel: { fontSize: 15, fontWeight: "700" },
   sizeLabelActive: { color: "#FF7043" },
-  sizeDesc: { fontSize: 11, color: "#9E9E9E" },
+  sizeDesc: { fontSize: 11 },
   submitBtn: {
     backgroundColor: "#FF7043",
     borderRadius: 14,
@@ -583,5 +492,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   submitBtnDisabled: { backgroundColor: "#BDBDBD", opacity: 0.6 },
-  submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  submitBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
 });

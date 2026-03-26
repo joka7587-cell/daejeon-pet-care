@@ -1,0 +1,153 @@
+erDiagram
+    users {
+        int id PK "AUTO_INCREMENT"
+        varchar openId UK "Manus OAuth ID"
+        text name "사용자 이름"
+        varchar email "이메일 주소"
+        varchar passwordHash "bcrypt 해시"
+        varchar kakaoId UK "카카오 소셜 ID"
+        varchar loginMethod "로그인 방식"
+        enum appRole "owner | walker"
+        enum role "user | admin"
+        boolean emailVerified "이메일 인증 여부"
+        timestamp createdAt
+        timestamp updatedAt
+        timestamp lastSignedIn
+    }
+
+    userProfiles {
+        int id PK "AUTO_INCREMENT"
+        int userId FK "users.id (UNIQUE)"
+        enum role "owner | caretaker"
+        varchar nickname "닉네임"
+        text bio "자기소개"
+        varchar profileEmoji "프로필 이모지"
+        int rating "평점 (0-500)"
+        int reviewCount "리뷰 수"
+        boolean isActive "활동 상태"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    userLocations {
+        int id PK "AUTO_INCREMENT"
+        int userId FK "users.id (UNIQUE)"
+        varchar neighborhood "동네 (유성구 등)"
+        varchar latitude "GPS 위도"
+        varchar longitude "GPS 경도"
+        text addressDetail "상세 주소"
+        timestamp updatedAt
+    }
+
+    pets {
+        int id PK "AUTO_INCREMENT"
+        int userId FK "users.id"
+        varchar name "반려동물 이름"
+        varchar breed "품종"
+        int age "나이"
+        enum size "소형 | 중형 | 대형"
+        varchar emoji "이모지"
+        text specialNotes "특이사항"
+        timestamp createdAt
+    }
+
+    matchingRequests {
+        int id PK "AUTO_INCREMENT"
+        int requesterId FK "users.id"
+        enum type "walk_partner | find_caretaker | walk_request | emergency | short_care"
+        varchar title "제목"
+        text description "설명"
+        varchar neighborhood "동네"
+        varchar requestDate "요청 날짜"
+        varchar requestTime "요청 시간"
+        varchar duration "소요 시간"
+        boolean isUrgent "긴급 여부"
+        enum status "pending | accepted | completed | cancelled"
+        int acceptedCaretakerId FK "users.id"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    matchingHistory {
+        int id PK "AUTO_INCREMENT"
+        int requestId FK "matchingRequests.id"
+        int ownerId FK "users.id"
+        int caretakerId FK "users.id"
+        enum status "matched | completed | cancelled"
+        int ownerRating "보호자가 준 평점"
+        text ownerReview "보호자 리뷰"
+        int caretakerRating "워커가 준 평점"
+        text caretakerReview "워커 리뷰"
+        timestamp completedAt
+        timestamp createdAt
+    }
+
+    chatRooms {
+        int id PK "AUTO_INCREMENT"
+        int matchingRequestId FK "matchingRequests.id"
+        int ownerId FK "users.id"
+        int caretakerId FK "users.id"
+        timestamp lastMessageAt
+        timestamp createdAt
+    }
+
+    messages {
+        int id PK "AUTO_INCREMENT"
+        int chatRoomId FK "chatRooms.id"
+        int senderId FK "users.id"
+        text content "메시지 내용"
+        boolean isRead "읽음 여부"
+        timestamp createdAt
+    }
+
+    friendCodes {
+        int id PK "AUTO_INCREMENT"
+        int userId FK "users.id (UNIQUE)"
+        varchar code UK "고유 친구 코드"
+        varchar nickname "닉네임"
+        varchar profileEmoji "이모지"
+        varchar neighborhood "동네"
+        enum role "owner | caretaker"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    friendships {
+        int id PK "AUTO_INCREMENT"
+        int userId FK "users.id"
+        int friendUserId FK "users.id"
+        varchar friendNickname "친구 닉네임"
+        varchar friendEmoji "친구 이모지"
+        varchar friendNeighborhood "친구 동네"
+        enum friendRole "owner | caretaker"
+        timestamp createdAt
+    }
+
+    friendRequests {
+        int id PK "AUTO_INCREMENT"
+        int fromUserId FK "users.id"
+        int toUserId FK "users.id"
+        varchar fromNickname "보낸 사람 닉네임"
+        varchar fromEmoji "보낸 사람 이모지"
+        varchar fromNeighborhood "보낸 사람 동네"
+        enum fromRole "owner | caretaker"
+        varchar fromCode "보낸 사람 코드"
+        varchar toNickname "받는 사람 닉네임"
+        varchar toEmoji "받는 사람 이모지"
+        enum status "pending | accepted | rejected"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    users ||--o| userProfiles : "has profile"
+    users ||--o| userLocations : "has location"
+    users ||--o{ pets : "owns"
+    users ||--o{ matchingRequests : "creates"
+    users ||--o| friendCodes : "has code"
+    users ||--o{ friendships : "has friends"
+    users ||--o{ friendRequests : "sends/receives"
+    matchingRequests ||--o| matchingHistory : "becomes"
+    matchingRequests ||--o| chatRooms : "opens"
+    chatRooms ||--o{ messages : "contains"
+    matchingHistory }o--|| users : "owner"
+    matchingHistory }o--|| users : "caretaker"

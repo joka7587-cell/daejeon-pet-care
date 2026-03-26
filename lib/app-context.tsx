@@ -4,16 +4,7 @@ import { sendLocalNotification, updateBadge } from "@/lib/push-notifications";
 
 export type UserRole = "owner" | "caretaker" | null;
 
-export type Neighborhood =
-  | "유성구"
-  | "둔산"
-  | "관평"
-  | "노은"
-  | "봉명"
-  | "대덕구"
-  | "중구"
-  | "동구"
-  | "서구";
+export type Neighborhood = string;
 
 export interface Pet {
   id: string;

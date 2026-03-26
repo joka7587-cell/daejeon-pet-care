@@ -18,7 +18,6 @@ import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useThemeContext } from "@/lib/theme-provider";
-import { useColors } from "@/hooks/use-colors";
 
 const AVATAR_EMOJIS = [
   "🐶", "🐱", "🐰", "🐻", "🦊", "🐼", "🐨", "🦁",
@@ -30,39 +29,39 @@ function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
 
-function SectionCard({ title, children, colors }: { title: string; children: React.ReactNode; colors: any }) {
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{title}</Text>
+    <View style={[styles.sectionCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+      <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>{title}</Text>
       {children}
     </View>
   );
 }
 
-function InfoRow({ label, value, colors }: { label: string; value: string; colors: any }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.infoRow}>
-      <Text style={[styles.infoLabel, { color: colors.muted }]}>{label}</Text>
-      <Text style={[styles.infoValue, { color: colors.foreground }]}>{value}</Text>
+      <Text style={[styles.infoLabel, { color: "#8E8E93" }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: "#1A1A1A" }]}>{value}</Text>
     </View>
   );
 }
 
-function MenuRow({ emoji, label, badge, onPress, colors }: { emoji: string; label: string; badge?: string; onPress: () => void; colors: any }) {
+function MenuRow({ emoji, label, badge, onPress }: { emoji: string; label: string; badge?: string; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.menuRow, { borderBottomColor: colors.border }, pressed && { opacity: 0.7 }]}
+      style={({ pressed }) => [styles.menuRow, { borderBottomColor: "#E8E8E8" }, pressed && { opacity: 0.7 }]}
     >
       <Text style={{ fontSize: 20 }}>{emoji}</Text>
-      <Text style={[styles.menuLabel, { color: colors.foreground }]}>{label}</Text>
+      <Text style={[styles.menuLabel, { color: "#1A1A1A" }]}>{label}</Text>
       <View style={{ flex: 1 }} />
       {badge && (
         <View style={styles.menuBadge}>
           <Text style={styles.menuBadgeText}>{badge}</Text>
         </View>
       )}
-      <Text style={[styles.menuArrow, { color: colors.muted }]}>›</Text>
+      <Text style={[styles.menuArrow, { color: "#8E8E93" }]}>›</Text>
     </Pressable>
   );
 }
@@ -72,7 +71,6 @@ export default function ProfileScreen() {
   const { profile } = state;
   const router = useRouter();
   const { colorScheme, setColorScheme } = useThemeContext();
-  const colors = useColors();
   const isCaretaker = profile.role === "caretaker";
   const [showNeighborhoodPicker, setShowNeighborhoodPicker] = useState(false);
   const isDark = colorScheme === "dark";
@@ -203,46 +201,46 @@ export default function ProfileScreen() {
 
         <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16 }}>
           {/* 바로가기 메뉴 */}
-          <SectionCard title="나의 활동" colors={colors}>
+          <SectionCard title="나의 활동">
             <MenuRow
               emoji="👫"
               label="친구 관리"
               badge={`${profile.friends.length}명`}
               onPress={() => { haptic(); router.push("/friends" as never); }}
-              colors={colors}
+             
             />
             <MenuRow
               emoji="⭐"
               label="받은 후기"
               badge={`${profile.reviewCount}건`}
               onPress={() => { haptic(); router.push("/review/list" as never); }}
-              colors={colors}
+             
             />
             <MenuRow
               emoji="💳"
               label="결제 내역"
               badge={`${state.payments.length}건`}
               onPress={() => { haptic(); router.push("/payment/history" as never); }}
-              colors={colors}
+             
             />
             <MenuRow
               emoji="📋"
               label="요청 현황"
               onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}
-              colors={colors}
+             
             />
             <MenuRow
               emoji="🐾"
               label="산책 기록"
               badge={`${(state.walkSessions || []).filter((s: any) => s.status === "completed").length}회`}
               onPress={() => { haptic(); router.push("/walk/history" as never); }}
-              colors={colors}
+             
             />
             <MenuRow
               emoji="📊"
               label="대시보드"
               onPress={() => { haptic(); router.push("/dashboard" as never); }}
-              colors={colors}
+             
             />
             {state.profile.role === "caretaker" && (
               <MenuRow
@@ -250,22 +248,22 @@ export default function ProfileScreen() {
                 label="도그워커 인증"
                 badge={state.walkerVerification?.isVerified ? "인증완료" : "미인증"}
                 onPress={() => { haptic(); router.push("/verify" as never); }}
-                colors={colors}
+               
               />
             )}
           </SectionCard>
 
           {/* 기본 정보 */}
-          <SectionCard title="기본 정보" colors={colors}>
+          <SectionCard title="기본 정보">
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>닉네임</Text>
+              <Text style={[styles.infoLabel, { color: "#8E8E93" }]}>닉네임</Text>
               <Pressable
                 onPress={() => {
                   haptic();
                   setEditNickname(profile.nickname || "");
                   setShowNicknameModal(true);
                 }}
-                style={({ pressed }) => [styles.editBtn, { backgroundColor: colors.background }, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [styles.editBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.7 }]}
               >
                 <Text style={styles.editBtnText}>
                   {profile.nickname || "미설정"} ✏️
@@ -273,10 +271,10 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>동네</Text>
+              <Text style={[styles.infoLabel, { color: "#8E8E93" }]}>동네</Text>
               <Pressable
                 onPress={() => { haptic(); setShowNeighborhoodPicker(!showNeighborhoodPicker); }}
-                style={({ pressed }) => [styles.editBtn, { backgroundColor: colors.background }, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [styles.editBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.7 }]}
               >
                 <Text style={styles.editBtnText}>
                   📍 {profile.neighborhood || "미설정"} ✏️
@@ -285,7 +283,7 @@ export default function ProfileScreen() {
             </View>
 
             {showNeighborhoodPicker && (
-              <View style={[styles.neighborhoodPicker, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <View style={[styles.neighborhoodPicker, { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" }]}>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                   {NEIGHBORHOODS.map((n) => (
                     <Pressable
@@ -293,14 +291,14 @@ export default function ProfileScreen() {
                       onPress={() => handleNeighborhoodChange(n as Neighborhood)}
                       style={({ pressed }) => [
                         styles.neighborhoodChip,
-                        { borderColor: colors.border, backgroundColor: colors.surface },
+                        { borderColor: "#E8E8E8", backgroundColor: "#F8F8F8" },
                         profile.neighborhood === n && styles.neighborhoodChipActive,
                         pressed && { opacity: 0.7 },
                       ]}
                     >
                       <Text style={[
                         styles.neighborhoodChipText,
-                        { color: colors.muted },
+                        { color: "#8E8E93" },
                         profile.neighborhood === n && styles.neighborhoodChipTextActive,
                       ]}>
                         {n}
@@ -314,15 +312,15 @@ export default function ProfileScreen() {
 
           {/* 반려동물 (반려인 전용) */}
           {!isCaretaker && (
-            <SectionCard title="내 반려동물" colors={colors}>
+            <SectionCard title="내 반려동물">
               {profile.pets.length === 0 ? (
-                <Text style={[styles.emptyText, { color: colors.muted }]}>등록된 반려동물이 없어요</Text>
+                <Text style={[styles.emptyText, { color: "#8E8E93" }]}>등록된 반려동물이 없어요</Text>
               ) : (
                 profile.pets.map((pet) => (
                   <Pressable
                     key={pet.id}
                     onPress={() => { haptic(); router.push(`/pet/${pet.id}` as never); }}
-                    style={({ pressed }) => [styles.petCard, { backgroundColor: colors.background }, pressed && { opacity: 0.8 }]}
+                    style={({ pressed }) => [styles.petCard, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.8 }]}
                   >
                     {pet.photoUri ? (
                       <Image
@@ -337,10 +335,10 @@ export default function ProfileScreen() {
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.petName, { color: colors.foreground }]}>{pet.name}</Text>
-                      <Text style={[styles.petInfo, { color: colors.muted }]}>{pet.breed} · {pet.age}살 · {pet.size}</Text>
+                      <Text style={[styles.petName, { color: "#1A1A1A" }]}>{pet.name}</Text>
+                      <Text style={[styles.petInfo, { color: "#8E8E93" }]}>{pet.breed} · {pet.age}살 · {pet.size}</Text>
                     </View>
-                    <Text style={{ fontSize: 16, color: colors.muted }}>›</Text>
+                    <Text style={{ fontSize: 16, color: "#8E8E93" }}>›</Text>
                   </Pressable>
                 ))
               )}
@@ -355,18 +353,18 @@ export default function ProfileScreen() {
 
           {/* 돌보미 서비스 (돌보미 전용) */}
           {isCaretaker && (
-            <SectionCard title="제공 서비스" colors={colors}>
+            <SectionCard title="제공 서비스">
               <View style={styles.serviceList}>
-                <View style={[styles.serviceItem, { backgroundColor: colors.background }]}>
+                <View style={[styles.serviceItem, { backgroundColor: "#FFFFFF" }]}>
                   <Text style={styles.serviceEmoji}>🚨</Text>
-                  <Text style={[styles.serviceText, { color: colors.foreground }]}>긴급 방문 돌봄</Text>
+                  <Text style={[styles.serviceText, { color: "#1A1A1A" }]}>긴급 방문 돌봄</Text>
                   <View style={styles.serviceAvailBadge}>
                     <Text style={styles.serviceAvailText}>제공 가능</Text>
                   </View>
                 </View>
-                <View style={[styles.serviceItem, { backgroundColor: colors.background }]}>
+                <View style={[styles.serviceItem, { backgroundColor: "#FFFFFF" }]}>
                   <Text style={styles.serviceEmoji}>🦮</Text>
-                  <Text style={[styles.serviceText, { color: colors.foreground }]}>대신 산책</Text>
+                  <Text style={[styles.serviceText, { color: "#1A1A1A" }]}>대신 산책</Text>
                   <View style={styles.serviceAvailBadge}>
                     <Text style={styles.serviceAvailText}>제공 가능</Text>
                   </View>
@@ -381,13 +379,13 @@ export default function ProfileScreen() {
           )}
 
           {/* 역할 전환 */}
-          <SectionCard title="역할 설정" colors={colors}>
-            <Text style={[styles.roleDesc, { color: colors.muted }]}>
+          <SectionCard title="역할 설정">
+            <Text style={[styles.roleDesc, { color: "#8E8E93" }]}>
               현재 역할: <Text style={{ fontWeight: "700", color: isCaretaker ? "#4CAF82" : "#FF7043" }}>
                 {isCaretaker ? "돌보미" : "반려인"}
               </Text>
             </Text>
-            <Text style={[styles.roleSubDesc, { color: colors.muted }]}>
+            <Text style={[styles.roleSubDesc, { color: "#8E8E93" }]}>
               {isCaretaker
                 ? "반려인으로 전환하면 모든 서비스를 이용할 수 있어요"
                 : "돌보미로 전환하면 요청을 받고 서비스를 제공할 수 있어요"}
@@ -407,7 +405,7 @@ export default function ProfileScreen() {
           </SectionCard>
 
           {/* 활동 상태 */}
-          <SectionCard title="활동 상태" colors={colors}>
+          <SectionCard title="활동 상태">
             <Pressable
               onPress={() => {
                 haptic();
@@ -423,10 +421,10 @@ export default function ProfileScreen() {
               style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
             >
               <View>
-                <Text style={[styles.settingText, { color: colors.muted }]}>
+                <Text style={[styles.settingText, { color: "#8E8E93" }]}>
                   {state.profile.isOnline ? "🟢 온라인" : "🔴 오프라인"}
                 </Text>
-                <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>
+                <Text style={{ fontSize: 11, color: "#8E8E93", marginTop: 2 }}>
                   {state.profile.isOnline ? "새 요청과 메시지를 받습니다" : "새 요청을 받지 않습니다"}
                 </Text>
               </View>
@@ -443,12 +441,12 @@ export default function ProfileScreen() {
           </SectionCard>
 
           {/* 앱 설정 */}
-          <SectionCard title="앱 설정" colors={colors}>
+          <SectionCard title="앱 설정">
             <Pressable
               onPress={handleToggleDarkMode}
               style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
             >
-              <Text style={[styles.settingText, { color: colors.muted }]}>{isDark ? "🌙 다크 모드" : "☀️ 라이트 모드"}</Text>
+              <Text style={[styles.settingText, { color: "#8E8E93" }]}>{isDark ? "🌙 다크 모드" : "☀️ 라이트 모드"}</Text>
               <View style={[
                 styles.toggleTrack,
                 isDark && styles.toggleTrackActive,
@@ -459,15 +457,15 @@ export default function ProfileScreen() {
                 ]} />
               </View>
             </Pressable>
-            <View style={[styles.settingDivider, { backgroundColor: colors.border }]} />
+            <View style={[styles.settingDivider, { backgroundColor: "#E8E8E8" }]} />
             <Pressable
               onPress={() => { haptic(); dispatch({ type: "SET_ONBOARDED", payload: false }); }}
               style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
             >
-              <Text style={[styles.settingText, { color: colors.muted }]}>온보딩 다시 보기</Text>
-              <Text style={[styles.settingArrow, { color: colors.muted }]}>›</Text>
+              <Text style={[styles.settingText, { color: "#8E8E93" }]}>온보딩 다시 보기</Text>
+              <Text style={[styles.settingArrow, { color: "#8E8E93" }]}>›</Text>
             </Pressable>
-            <View style={[styles.settingDivider, { backgroundColor: colors.border }]} />
+            <View style={[styles.settingDivider, { backgroundColor: "#E8E8E8" }]} />
             <Pressable
               onPress={() => {
                 haptic();
@@ -495,7 +493,7 @@ export default function ProfileScreen() {
               style={({ pressed }) => [styles.resetRow, pressed && { opacity: 0.7 }]}
             >
               <Text style={styles.resetText}>앱 초기화 (데이터 전체 삭제)</Text>
-              <Text style={[styles.settingArrow, { color: colors.muted }]}>›</Text>
+              <Text style={[styles.settingArrow, { color: "#8E8E93" }]}>›</Text>
             </Pressable>
           </SectionCard>
         </View>
@@ -513,31 +511,31 @@ export default function ProfileScreen() {
           style={styles.modalOverlay}
         >
           <Pressable style={styles.modalOverlay} onPress={() => setShowNicknameModal(false)}>
-            <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>닉네임 변경</Text>
-              <Text style={[styles.modalSubtitle, { color: colors.muted }]}>
+            <Pressable style={[styles.modalContent, { backgroundColor: "#F8F8F8" }]} onPress={(e) => e.stopPropagation()}>
+              <Text style={[styles.modalTitle, { color: "#1A1A1A" }]}>닉네임 변경</Text>
+              <Text style={[styles.modalSubtitle, { color: "#8E8E93" }]}>
                 다른 사용자에게 표시되는 이름이에요
               </Text>
               <TextInput
-                style={[styles.nicknameInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+                style={[styles.nicknameInput, { color: "#1A1A1A", borderColor: "#E8E8E8", backgroundColor: "#FFFFFF" }]}
                 value={editNickname}
                 onChangeText={setEditNickname}
                 placeholder="닉네임을 입력하세요"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={"#8E8E93"}
                 maxLength={12}
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={handleSaveNickname}
               />
-              <Text style={[styles.charCount, { color: colors.muted }]}>
+              <Text style={[styles.charCount, { color: "#8E8E93" }]}>
                 {editNickname.length}/12자
               </Text>
               <View style={styles.modalActions}>
                 <Pressable
                   onPress={() => setShowNicknameModal(false)}
-                  style={({ pressed }) => [styles.modalCancelBtn, { backgroundColor: colors.background }, pressed && { opacity: 0.7 }]}
+                  style={({ pressed }) => [styles.modalCancelBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.7 }]}
                 >
-                  <Text style={[styles.modalCancelText, { color: colors.muted }]}>취소</Text>
+                  <Text style={[styles.modalCancelText, { color: "#8E8E93" }]}>취소</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleSaveNickname}
@@ -559,9 +557,9 @@ export default function ProfileScreen() {
         onRequestClose={() => setShowAvatarModal(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowAvatarModal(false)}>
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
-            <Text style={[styles.modalTitle, { color: colors.foreground }]}>아바타 변경</Text>
-            <Text style={[styles.modalSubtitle, { color: colors.muted }]}>
+          <Pressable style={[styles.modalContent, { backgroundColor: "#F8F8F8" }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={[styles.modalTitle, { color: "#1A1A1A" }]}>아바타 변경</Text>
+            <Text style={[styles.modalSubtitle, { color: "#8E8E93" }]}>
               프로필에 표시될 이모지를 선택하세요
             </Text>
             <View style={styles.emojiGrid}>
@@ -571,7 +569,7 @@ export default function ProfileScreen() {
                   onPress={() => handleSelectAvatar(emoji)}
                   style={({ pressed }) => [
                     styles.emojiOption,
-                    { backgroundColor: colors.background, borderColor: colors.border },
+                    { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
                     currentAvatar === emoji && styles.emojiOptionActive,
                     pressed && { opacity: 0.7, transform: [{ scale: 0.9 }] },
                   ]}
@@ -579,7 +577,7 @@ export default function ProfileScreen() {
                   <Text style={styles.emojiOptionText}>{emoji}</Text>
                   {currentAvatar === emoji && (
                     <View style={styles.emojiCheckmark}>
-                      <Text style={{ fontSize: 10, color: "#fff" }}>✓</Text>
+                      <Text style={{ fontSize: 10, color: "#FFFFFF" }}>✓</Text>
                     </View>
                   )}
                 </Pressable>
@@ -587,9 +585,9 @@ export default function ProfileScreen() {
             </View>
             <Pressable
               onPress={() => setShowAvatarModal(false)}
-              style={({ pressed }) => [styles.modalFullBtn, { backgroundColor: colors.background }, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.modalFullBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.7 }]}
             >
-              <Text style={[styles.modalCancelText, { color: colors.muted }]}>닫기</Text>
+              <Text style={[styles.modalCancelText, { color: "#8E8E93" }]}>닫기</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -611,7 +609,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -629,7 +627,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -653,15 +651,15 @@ const styles = StyleSheet.create({
   roleBadge: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5 },
   roleBadgeOrange: { backgroundColor: "#FF7043" },
   roleBadgeGreen: { backgroundColor: "#4CAF82" },
-  roleBadgeText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  roleBadgeText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   friendCode: { fontSize: 13, color: "#9E9E9E", fontWeight: "600", letterSpacing: 1 },
   statsRow: { flexDirection: "row", alignItems: "center", marginTop: 8, gap: 20 },
   statItem: { alignItems: "center", gap: 2 },
   statValue: { fontSize: 20, fontWeight: "800", color: "#1A1A1A" },
-  statLabel: { fontSize: 11, color: "#757575" },
+  statLabel: { fontSize: 11, color: "#8E8E93" },
   statDivider: { width: 1, height: 28, backgroundColor: "#E0E0E0" },
   sectionCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -670,9 +668,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
   infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  infoLabel: { fontSize: 14, color: "#757575" },
+  infoLabel: { fontSize: 14, color: "#8E8E93" },
   infoValue: { fontSize: 14, fontWeight: "600", color: "#1A1A1A" },
-  editBtn: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: "#F5F5F5", borderRadius: 8 },
+  editBtn: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: "#F8F8F8", borderRadius: 8 },
   editBtnText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
   menuRow: {
     flexDirection: "row",
@@ -680,7 +678,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
+    borderBottomColor: "#F8F8F8",
   },
   menuLabel: { fontSize: 15, fontWeight: "600", color: "#1A1A1A" },
   menuBadge: { backgroundColor: "#FF704320", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
@@ -699,10 +697,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   neighborhoodChipActive: { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
-  neighborhoodChipText: { fontSize: 13, color: "#555" },
+  neighborhoodChipText: { fontSize: 13, color: "#8E8E93" },
   neighborhoodChipTextActive: { color: "#FF7043", fontWeight: "700" },
   emptyText: { fontSize: 13, color: "#9E9E9E", textAlign: "center", paddingVertical: 8 },
   petCard: {
@@ -727,7 +725,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   petName: { fontSize: 15, fontWeight: "700", color: "#1A1A1A" },
-  petInfo: { fontSize: 12, color: "#757575", marginTop: 2 },
+  petInfo: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
   addPetBtn: {
     borderWidth: 1.5,
     borderColor: "#FF7043",
@@ -758,7 +756,7 @@ const styles = StyleSheet.create({
     borderColor: "#C8E6C9",
   },
   caretakerNoteText: { fontSize: 12, color: "#4CAF82", lineHeight: 18 },
-  roleDesc: { fontSize: 14, color: "#555" },
+  roleDesc: { fontSize: 14, color: "#8E8E93" },
   roleSubDesc: { fontSize: 13, color: "#9E9E9E", lineHeight: 18 },
   roleSwitchBtn: {
     borderRadius: 12,
@@ -767,14 +765,14 @@ const styles = StyleSheet.create({
   },
   roleSwitchBtnOrange: { backgroundColor: "#FF7043" },
   roleSwitchBtnGreen: { backgroundColor: "#4CAF82" },
-  roleSwitchBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  roleSwitchBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   settingRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 4,
   },
-  settingText: { fontSize: 14, color: "#555" },
+  settingText: { fontSize: 14, color: "#8E8E93" },
   settingArrow: { fontSize: 20, color: "#9E9E9E" },
   settingDivider: { height: 1, backgroundColor: "#F0F0F0", marginVertical: 4 },
   resetRow: {
@@ -799,7 +797,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
@@ -819,7 +817,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: "85%",
     maxWidth: 360,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 24,
     gap: 12,
@@ -874,7 +872,7 @@ const styles = StyleSheet.create({
   modalSaveText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#fff",
+    color: "#FFFFFF",
   },
   modalFullBtn: {
     paddingVertical: 12,

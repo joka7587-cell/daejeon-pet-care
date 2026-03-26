@@ -43,6 +43,13 @@
       "when": 1773888239522,
       "tag": "0005_bumpy_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1774495512336,
+      "tag": "0006_lyrical_marauders",
+      "breakpoints": true
     }
   ]
 }

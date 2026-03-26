@@ -318,190 +318,147 @@ export default function WalkTrackerScreen() {
       id,
       requestId: requestId || undefined,
       petName: petName || "반려동물",
-      petEmoji: petEmoji || "🐕",
-      ownerName: ownerName || undefined,
-      caretakerName: state.profile.nickname || "돌보미",
-      neighborhood: state.profile.neighborhood || "대전",
-      status: "active",
+      petEmoji: petEmoji || "🐾",
       startedAt: new Date().toISOString(),
+      status: "active",
       totalDistanceKm: 0,
       totalDurationSec: 0,
       routePoints: [],
       avgSpeedKmh: 0,
       maxSpeedKmh: 0,
       pausedDurationSec: 0,
+      neighborhood: "",
     };
     dispatch({ type: "START_WALK_SESSION", payload: session });
+
     startLocationTracking();
   };
 
+  // 산책 일시정지
   const handlePause = () => {
     haptic();
     setStatus("paused");
     pauseStartRef.current = Date.now();
-    if (locationSubRef.current) { locationSubRef.current.remove(); locationSubRef.current = null; }
-    if (sessionId) dispatch({ type: "PAUSE_WALK_SESSION", payload: sessionId });
+    if (locationSubRef.current) locationSubRef.current.remove();
   };
 
+  // 산책 재개
   const handleResume = () => {
     haptic();
     setStatus("active");
-    lastMovementRef.current = Date.now();
-    setSosTriggered(false);
     if (pauseStartRef.current) {
-      const pd = Math.floor((Date.now() - pauseStartRef.current) / 1000);
-      setPausedSec((prev) => prev + pd);
+      setPausedSec((prev) => prev + Math.floor((Date.now() - (pauseStartRef.current || 0)) / 1000));
       pauseStartRef.current = null;
     }
     startLocationTracking();
-    if (sessionId) dispatch({ type: "RESUME_WALK_SESSION", payload: sessionId });
   };
 
+  // 산책 완료
   const handleComplete = () => {
-    Alert.alert("산책 완료", `${petName || "반려동물"}의 산책을 종료할까요?`, [
-      { text: "취소", style: "cancel" },
-      {
-        text: "완료",
-        onPress: () => {
-          haptic("success");
-          setStatus("completed");
-          if (locationSubRef.current) { locationSubRef.current.remove(); locationSubRef.current = null; }
-          if (pauseStartRef.current) {
-            const pd = Math.floor((Date.now() - pauseStartRef.current) / 1000);
-            setPausedSec((prev) => prev + pd);
-            pauseStartRef.current = null;
-          }
-          const activeDuration = elapsedSec - pausedSec;
-          const avgSpeed = activeDuration > 0 ? (distance / (activeDuration / 3600)) : 0;
-          if (sessionId) {
+    Alert.alert(
+      "산책을 완료할까요?",
+      "산책 기록이 저장됩니다.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "완료",
+          style: "destructive",
+          onPress: () => {
+            haptic("success");
+            setStatus("completed");
+            if (locationSubRef.current) locationSubRef.current.remove();
+
             dispatch({
               type: "UPDATE_WALK_SESSION",
               payload: {
-                sessionId,
+                sessionId: sessionId!,
                 updates: {
                   totalDistanceKm: distance,
                   totalDurationSec: elapsedSec,
-                  routePoints,
-                  avgSpeedKmh: Math.round(avgSpeed * 10) / 10,
-                  maxSpeedKmh: Math.round(maxSpeed * 10) / 10,
+                  maxSpeedKmh: maxSpeed,
+                  avgSpeedKmh: (distance / (elapsedSec / 3600)) || 0,
                   pausedDurationSec: pausedSec,
                 },
               },
             });
-            dispatch({ type: "COMPLETE_WALK_SESSION", payload: sessionId });
-            dispatch({
-              type: "ADD_NOTIFICATION",
-              payload: {
-                id: `notif_walk_${Date.now()}`,
-                type: "match",
-                title: "산책 완료 🐾",
-                body: `${petName || "반려동물"}의 산책이 완료되었습니다! ${formatDist(distance)}, ${formatTime(elapsedSec)}`,
-                fromNickname: state.profile.nickname,
-                fromEmoji: petEmoji || "🐕",
-                isRead: false,
-                createdAt: new Date().toISOString(),
-                relatedId: sessionId,
-              },
-            });
-          }
+            dispatch({ type: "COMPLETE_WALK_SESSION", payload: sessionId! });
+          },
         },
-      },
-    ]);
+      ],
+      { cancelable: false }
+    );
   };
 
-  const handleBack = () => {
-    if (status === "active" || status === "paused") {
-      Alert.alert("산책 중단", "산책을 중단하고 나가시겠습니까?\n기록이 저장되지 않습니다.", [
-        { text: "계속 산책", style: "cancel" },
-        {
-          text: "나가기",
-          style: "destructive",
-          onPress: () => { if (locationSubRef.current) locationSubRef.current.remove(); router.back(); },
-        },
-      ]);
-    } else {
-      router.back();
-    }
-  };
-
-  const activeDuration = elapsedSec - pausedSec;
-  const avgSpeed = activeDuration > 0 ? (distance / (activeDuration / 3600)) : 0;
+  const isReady = status === "ready";
   const isActive = status === "active";
   const isPaused = status === "paused";
   const isCompleted = status === "completed";
-  const isReady = status === "ready";
+
+  const avgSpeed = (distance / (elapsedSec / 3600)) || 0;
   const checkedCount = checklist.filter((c) => c.checked).length;
 
+  const getStatusInfo = () => {
+    if (isActive) return { text: "산책 중", color: "#34C759", dot: true };
+    if (isPaused) return { text: "일시정지", color: "#FF9500", dot: true };
+    if (isCompleted) return { text: "산책 완료", color: "#8E8E93", dot: false };
+    return { text: "대기 중", color: "#8E8E93", dot: false };
+  };
+  const statusInfo = getStatusInfo();
+
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-      {/* 헤더 */}
-      <View style={st.header}>
-        <Pressable onPress={handleBack} style={({ pressed }) => pressed && { opacity: 0.5 }}>
-          <Text style={st.headerBack}>‹ 뒤로</Text>
+    <ScreenContainer>
+      <View style={[st.header, { borderBottomColor: "#E8E8E8" }]}>
+        <Pressable onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={st.headerBack}>취소</Text>
         </Pressable>
-        <Text style={st.headerTitle}>{petEmoji || "🐕"} 산책 추적</Text>
-        {(isActive || isPaused) && (
-          <Pressable
-            onPress={() => { haptic(); setShowChecklist(!showChecklist); }}
-            style={st.checklistToggle}
-          >
-            <Text style={st.checklistToggleText}>📋 {checkedCount}/{checklist.length}</Text>
+        <Text style={[st.headerTitle, { color: "#1A1A1A" }]}>{petName}</Text>
+        {(isActive || isPaused) ? (
+          <Pressable onPress={() => setShowChecklist(!showChecklist)} style={[st.checklistToggle, { backgroundColor: "#F8F8F8" }]}>
+            <Text style={st.checklistToggleText}>{showChecklist ? "숨기기" : "체크"}</Text>
           </Pressable>
-        )}
-        {isReady && <View style={{ width: 60 }} />}
-        {isCompleted && <View style={{ width: 60 }} />}
+        ) : <View style={{ width: 50 }} />}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView>
         <View style={st.content}>
           {/* 반려동물 정보 */}
-          <View style={st.petCard}>
-            <View style={st.petAvatar}>
-              <Text style={{ fontSize: 32 }}>{petEmoji || "🐕"}</Text>
+          <View style={[st.petCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+            <View style={[st.petAvatar, { backgroundColor: "#F8F8F8" }]}>
+              <Text style={{ fontSize: 32 }}>{petEmoji}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={st.petName}>{petName || "반려동물"}</Text>
-              {ownerName && <Text style={st.ownerLabel}>보호자: {ownerName}</Text>}
+              <Text style={[st.petName, { color: "#1A1A1A" }]}>{petName}</Text>
+              {ownerName && <Text style={[st.ownerLabel, { color: "#8E8E93" }]}>보호자: {ownerName}</Text>}
             </View>
-            <View style={[st.statusBadge, {
-              backgroundColor: isActive ? "#E8F5E9" : isPaused ? "#FFF8E1" : isCompleted ? "#F5F5F5" : "#FFF5F0",
-            }]}>
-              <View style={[st.statusDot, {
-                backgroundColor: isActive ? "#34C759" : isPaused ? "#FF9500" : isCompleted ? "#AEAEB2" : "#FF6B35",
-              }]} />
-              <Text style={[st.statusText, {
-                color: isActive ? "#34C759" : isPaused ? "#FF9500" : isCompleted ? "#AEAEB2" : "#FF6B35",
-              }]}>
-                {isReady ? "준비 중" : isActive ? "산책 중" : isPaused ? "일시정지" : "완료"}
-              </Text>
+            <View style={[st.statusBadge, { backgroundColor: statusInfo.color + "20" }]}>
+              {statusInfo.dot && <View style={[st.statusDot, { backgroundColor: statusInfo.color }]} />}
+              <Text style={[st.statusText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
             </View>
           </View>
 
-          {/* SOS 버튼 (산책 중에만) */}
+          {/* SOS 버튼 */}
           {(isActive || isPaused) && (
-            <Pressable
-              onPress={() => triggerSOS("manual")}
-              style={({ pressed }) => [st.sosBtn, pressed && { opacity: 0.8 }]}
-            >
-              <Text style={st.sosBtnText}>🆘 긴급 SOS</Text>
-              <Text style={st.sosBtnSub}>보호자에게 긴급 알림 전송</Text>
+            <Pressable onPress={() => triggerSOS("manual")} style={({ pressed }) => [st.sosBtn, pressed && { opacity: 0.8 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={st.sosBtnText}>🆘 긴급 상황 (SOS)</Text>
+                <Text style={st.sosBtnSub}>클릭 시 보호자에게 긴급 알림 전송</Text>
+              </View>
+              <Text style={{ fontSize: 28 }}>🚨</Text>
             </Pressable>
           )}
-
-          {/* 정지 경고 */}
-          {isActive && stationaryTimer >= 120 && !sosTriggered && (
+          {stationaryTimer >= 180 && !sosTriggered && (
             <View style={st.stationaryWarn}>
               <Text style={st.stationaryWarnText}>
-                ⚠️ {Math.floor(stationaryTimer / 60)}분간 이동이 감지되지 않았습니다
+                {`⚠️ ${Math.floor(stationaryTimer / 60)}분 이상 이동이 없습니다.`}
               </Text>
             </View>
           )}
 
-          {/* 메인 타이머 */}
+          {/* 타이머 */}
           <View style={st.timerSection}>
-            <Animated.View style={[st.timerCircle, isActive && st.timerCircleActive, pulseAnimStyle]}>
-              <Text style={st.timerLabel}>시간</Text>
-              <Text style={st.timerText}>{formatTime(elapsedSec)}</Text>
+            <Animated.View style={[st.timerCircle, isActive && st.timerCircleActive, pulseAnimStyle, { borderColor: isActive ? '#FF6B35' : "#E8E8E8" }]}>
+              <Text style={[st.timerLabel, { color: "#8E8E93" }]}>시간</Text>
+              <Text style={[st.timerText, { color: "#1A1A1A" }]}>{formatTime(elapsedSec)}</Text>
               {pausedSec > 0 && (
                 <Text style={st.pausedLabel}>정지 {formatTime(pausedSec)}</Text>
               )}
@@ -510,49 +467,49 @@ export default function WalkTrackerScreen() {
 
           {/* 통계 그리드 */}
           <View style={st.statsGrid}>
-            <View style={st.statCard}>
+            <View style={[st.statCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
               <Text style={{ fontSize: 18 }}>📏</Text>
-              <Text style={st.statValue}>{formatDist(distance)}</Text>
-              <Text style={st.statLabel}>총 거리</Text>
+              <Text style={[st.statValue, { color: "#1A1A1A" }]}>{formatDist(distance)}</Text>
+              <Text style={[st.statLabel, { color: "#8E8E93" }]}>총 거리</Text>
             </View>
-            <View style={st.statCard}>
+            <View style={[st.statCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
               <Text style={{ fontSize: 18 }}>⚡</Text>
-              <Text style={st.statValue}>{formatSpeed(currentSpeed)}</Text>
-              <Text style={st.statLabel}>현재 속도</Text>
+              <Text style={[st.statValue, { color: "#1A1A1A" }]}>{formatSpeed(currentSpeed)}</Text>
+              <Text style={[st.statLabel, { color: "#8E8E93" }]}>현재 속도</Text>
             </View>
-            <View style={st.statCard}>
+            <View style={[st.statCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
               <Text style={{ fontSize: 18 }}>📊</Text>
-              <Text style={st.statValue}>{formatSpeed(avgSpeed)}</Text>
-              <Text style={st.statLabel}>평균 속도</Text>
+              <Text style={[st.statValue, { color: "#1A1A1A" }]}>{formatSpeed(avgSpeed)}</Text>
+              <Text style={[st.statLabel, { color: "#8E8E93" }]}>평균 속도</Text>
             </View>
-            <View style={st.statCard}>
+            <View style={[st.statCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
               <Text style={{ fontSize: 18 }}>📍</Text>
-              <Text style={st.statValue}>{pointCount}</Text>
-              <Text style={st.statLabel}>GPS 포인트</Text>
+              <Text style={[st.statValue, { color: "#1A1A1A" }]}>{pointCount}</Text>
+              <Text style={[st.statLabel, { color: "#8E8E93" }]}>GPS 포인트</Text>
             </View>
           </View>
 
           {/* 라이브 체크리스트 (토글) */}
           {showChecklist && (isActive || isPaused) && (
-            <View style={st.checklistSection}>
-              <Text style={st.checklistTitle}>📋 산책 체크리스트</Text>
-              <Text style={st.checklistSub}>체크 시 보호자에게 실시간 알림이 전송됩니다</Text>
+            <View style={[st.checklistSection, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+              <Text style={[st.checklistTitle, { color: "#1A1A1A" }]}>📋 산책 체크리스트</Text>
+              <Text style={[st.checklistSub, { color: "#8E8E93" }]}>체크 시 보호자에게 실시간 알림이 전송됩니다</Text>
               {checklist.map((item) => (
                 <Pressable
                   key={item.id}
                   onPress={() => toggleCheckItem(item.id)}
-                  style={[st.checkItem, item.checked && st.checkItemChecked]}
+                  style={[st.checkItem, item.checked && st.checkItemChecked, { borderBottomColor: "#E8E8E8" }]}
                 >
-                  <View style={[st.checkBox, item.checked && st.checkBoxChecked]}>
+                  <View style={[st.checkBox, item.checked && st.checkBoxChecked, { borderColor: item.checked ? '#FF6B35' : "#E8E8E8" }]}>
                     {item.checked && <Text style={st.checkMark}>✓</Text>}
                   </View>
                   <Text style={{ fontSize: 18 }}>{item.emoji}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[st.checkLabel, item.checked && st.checkLabelChecked]}>
+                    <Text style={[st.checkLabel, item.checked && st.checkLabelChecked, { color: item.checked ? "#8E8E93" : "#1A1A1A" }]}>
                       {item.label}
                     </Text>
                     {item.checked && item.checkedAt && (
-                      <Text style={st.checkTime}>
+                      <Text style={[st.checkTime, { color: "#8E8E93" }]}>
                         {new Date(item.checkedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
                       </Text>
                     )}
@@ -562,11 +519,11 @@ export default function WalkTrackerScreen() {
 
               {/* 특이사항 메모 */}
               <View style={st.issueSection}>
-                <Text style={st.issueLabel}>📝 특이사항 메모</Text>
+                <Text style={[st.issueLabel, { color: "#1A1A1A" }]}>📝 특이사항 메모</Text>
                 <TextInput
-                  style={st.issueInput}
+                  style={[st.issueInput, { backgroundColor: "#FFFFFF", color: "#1A1A1A", borderColor: "#E8E8E8" }]}
                   placeholder="산책 중 특이사항을 기록하세요"
-                  placeholderTextColor="#AEAEB2"
+                  placeholderTextColor={"#8E8E93"}
                   value={issueNote}
                   onChangeText={setIssueNote}
                   multiline
@@ -587,17 +544,17 @@ export default function WalkTrackerScreen() {
 
           {/* 완료 요약 */}
           {isCompleted && (
-            <View style={st.completeSummary}>
+            <View style={[st.completeSummary, { backgroundColor: "#F8F8F8" }]}>
               <Text style={{ fontSize: 40 }}>🎉</Text>
-              <Text style={st.completeTitle}>산책 완료!</Text>
-              <Text style={st.completeStat}>
+              <Text style={[st.completeTitle, { color: "#1A1A1A" }]}>산책 완료!</Text>
+              <Text style={[st.completeStat, { color: "#8E8E93" }]}>
                 {formatDist(distance)} · {formatTime(elapsedSec)} · 평균 {formatSpeed(avgSpeed)}
               </Text>
               {checkedCount > 0 && (
                 <View style={st.completeChecklist}>
-                  <Text style={st.completeCheckTitle}>체크리스트 ({checkedCount}/{checklist.length})</Text>
+                  <Text style={[st.completeCheckTitle, { color: "#1A1A1A" }]}>체크리스트 ({checkedCount}/{checklist.length})</Text>
                   {checklist.filter((c) => c.checked).map((item) => (
-                    <Text key={item.id} style={st.completeCheckItem}>
+                    <Text key={item.id} style={[st.completeCheckItem, { color: "#8E8E93" }]}>
                       {item.emoji} {item.label}
                     </Text>
                   ))}
@@ -614,7 +571,7 @@ export default function WalkTrackerScreen() {
                 disabled={!isGpsReady}
                 style={({ pressed }) => [
                   st.startBtn,
-                  !isGpsReady && { backgroundColor: "#D1D1D6" },
+                  !isGpsReady && { backgroundColor: "#E8E8E8" },
                   pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
                 ]}
               >
@@ -666,9 +623,9 @@ export default function WalkTrackerScreen() {
                 </Pressable>
                 <Pressable
                   onPress={() => router.back()}
-                  style={({ pressed }) => [st.ctrlBtn, { backgroundColor: "#E5E5EA" }, pressed && { opacity: 0.8 }]}
+                  style={({ pressed }) => [st.ctrlBtn, { backgroundColor: "#F8F8F8" }, pressed && { opacity: 0.8 }]}
                 >
-                  <Text style={[st.ctrlBtnText, { color: "#636366" }]}>홈으로</Text>
+                  <Text style={[st.ctrlBtnText, { color: "#8E8E93" }]}>홈으로</Text>
                 </Pressable>
               </View>
             )}
@@ -687,12 +644,12 @@ const st = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    // borderBottomColor: "#F0F0F0",
   },
   headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#FF6B35" },
-  headerTitle: { fontFamily: Fonts.bold, fontSize: 17, color: "#1A1A1A" },
+  headerTitle: { fontFamily: Fonts.bold, fontSize: 17, /* color: "#1A1A1A" */ },
   checklistToggle: {
-    backgroundColor: "#FFF5F0",
+    // backgroundColor: "#FFF5F0",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
@@ -707,23 +664,23 @@ const st = StyleSheet.create({
   petCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    // backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 14,
     gap: 12,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    // borderColor: "#F0F0F0",
   },
   petAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#FFF5F0",
+    // backgroundColor: "#FFF5F0",
     alignItems: "center",
     justifyContent: "center",
   },
-  petName: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A" },
-  ownerLabel: { fontFamily: Fonts.regular, fontSize: 12, color: "#8E8E93", marginTop: 2 },
+  petName: { fontFamily: Fonts.bold, fontSize: 16, /* color: "#1A1A1A" */ },
+  ownerLabel: { fontFamily: Fonts.regular, fontSize: 12, /* color: "#8E8E93" */ marginTop: 2 },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -762,13 +719,13 @@ const st = StyleSheet.create({
     height: 170,
     borderRadius: 85,
     borderWidth: 4,
-    borderColor: "#E5E5EA",
+    // borderColor: "#E5E5EA",
     alignItems: "center",
     justifyContent: "center",
   },
   timerCircleActive: { borderColor: "#FF6B35" },
-  timerLabel: { fontFamily: Fonts.medium, fontSize: 12, color: "#AEAEB2", marginBottom: 4 },
-  timerText: { fontFamily: Fonts.extraBold, fontSize: 34, color: "#1A1A1A", fontVariant: ["tabular-nums"] },
+  timerLabel: { fontFamily: Fonts.medium, fontSize: 12, /* color: "#8E8E93" */ marginBottom: 4 },
+  timerText: { fontFamily: Fonts.extraBold, fontSize: 34, /* color: "#1A1A1A" */ fontVariant: ["tabular-nums"] },
   pausedLabel: { fontFamily: Fonts.medium, fontSize: 11, color: "#FF9500", marginTop: 4 },
 
   // Stats
@@ -777,33 +734,33 @@ const st = StyleSheet.create({
     flex: 1,
     minWidth: "46%" as any,
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    // backgroundColor: "#FFFFFF",
     padding: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    // borderColor: "#F0F0F0",
     gap: 3,
   },
-  statValue: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A", fontVariant: ["tabular-nums"] },
-  statLabel: { fontFamily: Fonts.regular, fontSize: 10, color: "#AEAEB2" },
+  statValue: { fontFamily: Fonts.bold, fontSize: 16, /* color: "#1A1A1A" */ fontVariant: ["tabular-nums"] },
+  statLabel: { fontFamily: Fonts.regular, fontSize: 10, /* color: "#8E8E93" */ },
 
   // Checklist
   checklistSection: {
-    backgroundColor: "#FFFFFF",
+    // backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    // borderColor: "#F0F0F0",
   },
-  checklistTitle: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A", marginBottom: 4 },
-  checklistSub: { fontFamily: Fonts.regular, fontSize: 11, color: "#AEAEB2", marginBottom: 12 },
+  checklistTitle: { fontFamily: Fonts.bold, fontSize: 16, /* color: "#1A1A1A" */ marginBottom: 4 },
+  checklistSub: { fontFamily: Fonts.regular, fontSize: 11, /* color: "#8E8E93" */ marginBottom: 12 },
   checkItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
+    // borderBottomColor: "#F8F8F8",
   },
   checkItemChecked: { opacity: 0.7 },
   checkBox: {
@@ -811,80 +768,72 @@ const st = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: "#D1D1D6",
+    // borderColor: "#E8E8E8",
     alignItems: "center",
     justifyContent: "center",
   },
-  checkBoxChecked: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
-  checkMark: { fontFamily: Fonts.bold, fontSize: 12, color: "#FFFFFF" },
-  checkLabel: { fontFamily: Fonts.medium, fontSize: 14, color: "#1A1A1A" },
-  checkLabelChecked: { textDecorationLine: "line-through", color: "#AEAEB2" },
-  checkTime: { fontFamily: Fonts.regular, fontSize: 10, color: "#AEAEB2", marginTop: 1 },
+  checkBoxChecked: { backgroundColor: "#FF6B35", /* borderColor: "#FF6B35" */ },
+  checkMark: { color: "white", fontSize: 14, fontWeight: "bold" },
+  checkLabel: { fontFamily: Fonts.medium, fontSize: 14, /* color: "#1A1A1A" */ flexShrink: 1 },
+  checkLabelChecked: { /* color: "#8E8E93" */ textDecorationLine: "line-through" },
+  checkTime: { fontFamily: Fonts.regular, fontSize: 11, /* color: "#8E8E93" */ marginTop: 2 },
 
-  issueSection: { marginTop: 12 },
-  issueLabel: { fontFamily: Fonts.semiBold, fontSize: 13, color: "#1A1A1A", marginBottom: 6 },
+  // Issue Memo
+  issueSection: { marginTop: 16 },
+  issueLabel: { fontFamily: Fonts.semiBold, fontSize: 14, /* color: "#1A1A1A" */ marginBottom: 8 },
   issueInput: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    color: "#1A1A1A",
-    backgroundColor: "#F8F8F8",
+    // backgroundColor: "#F8F8F8",
+    // color: "#1A1A1A",
+    borderWidth: 1,
+    // borderColor: "#E8E8E8",
     borderRadius: 10,
     padding: 12,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
     minHeight: 60,
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
   },
 
   // GPS
   gpsWarn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF8E1",
-    padding: 12,
-    borderRadius: 10,
+    justifyContent: "center",
     gap: 8,
+    paddingVertical: 12,
   },
-  gpsWarnText: { fontFamily: Fonts.medium, fontSize: 13, color: "#F57F17" },
+  gpsWarnText: { fontFamily: Fonts.medium, color: "#FF9500" },
 
-  // Complete
+  // Complete Summary
   completeSummary: {
-    alignItems: "center",
-    backgroundColor: "#FFF5F0",
+    // backgroundColor: "#F8F8F8",
     borderRadius: 16,
     padding: 20,
-    borderWidth: 1,
-    borderColor: "#FFD9C7",
+    alignItems: "center",
     gap: 8,
   },
-  completeTitle: { fontFamily: Fonts.extraBold, fontSize: 22, color: "#FF6B35" },
-  completeStat: { fontFamily: Fonts.medium, fontSize: 14, color: "#636366" },
-  completeChecklist: {
-    marginTop: 12,
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 12,
-  },
-  completeCheckTitle: { fontFamily: Fonts.bold, fontSize: 13, color: "#1A1A1A", marginBottom: 8 },
-  completeCheckItem: { fontFamily: Fonts.regular, fontSize: 12, color: "#636366", paddingVertical: 2 },
+  completeTitle: { fontFamily: Fonts.bold, fontSize: 22, /* color: "#1A1A1A" */ },
+  completeStat: { fontFamily: Fonts.regular, fontSize: 14, /* color: "#8E8E93" */ },
+  completeChecklist: { marginTop: 12, alignSelf: "stretch", paddingTop: 12, borderTopWidth: 1, /* borderTopColor: "#E5E5EA" */ },
+  completeCheckTitle: { fontFamily: Fonts.semiBold, fontSize: 13, /* color: "#1A1A1A" */ marginBottom: 6, textAlign: "center" },
+  completeCheckItem: { fontFamily: Fonts.regular, fontSize: 13, /* color: "#8E8E93" */ textAlign: "center", paddingVertical: 2 },
 
   // Controls
-  controls: { marginTop: 4 },
+  controls: { paddingVertical: 12, gap: 12 },
   startBtn: {
     backgroundColor: "#FF6B35",
-    borderRadius: 16,
     paddingVertical: 16,
+    borderRadius: 16,
     alignItems: "center",
   },
-  startBtnText: { fontFamily: Fonts.extraBold, color: "#fff", fontSize: 18 },
-  btnRow: { flexDirection: "row", gap: 10 },
+  startBtnText: { fontFamily: Fonts.bold, fontSize: 16, color: "white" },
+  btnRow: { flexDirection: "row", gap: 12 },
   ctrlBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
   },
-  ctrlBtnText: { fontFamily: Fonts.bold, color: "#fff", fontSize: 15 },
+  ctrlBtnText: { fontFamily: Fonts.bold, fontSize: 15, color: "white" },
   pauseBtn: { backgroundColor: "#FF9500" },
   resumeBtn: { backgroundColor: "#34C759" },
   completeBtn: { backgroundColor: "#FF6B35" },

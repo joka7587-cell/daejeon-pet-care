@@ -55,14 +55,14 @@ export default function CommunityWriteScreen() {
 
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: "#E8E8E8" }]}>
         <Pressable
           onPress={() => { haptic(); router.back(); }}
           style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={styles.cancelBtnText}>취소</Text>
+          <Text style={[styles.cancelBtnText, { color: "#8E8E93" }]}>취소</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>글쓰기</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>글쓰기</Text>
         <Pressable
           onPress={handleSubmit}
           disabled={!title.trim() || !content.trim()}
@@ -85,12 +85,15 @@ export default function CommunityWriteScreen() {
               onPress={() => { haptic(); setCategory(cat); }}
               style={({ pressed }) => [
                 styles.categoryChip,
+                { borderColor: "#E8E8E8", backgroundColor: "#FFFFFF" },
                 category === cat && styles.categoryChipActive,
+                category === cat && { backgroundColor: "#F8F8F8" },
                 pressed && { opacity: 0.7 },
               ]}
             >
               <Text style={[
                 styles.categoryChipText,
+                { color: "#8E8E93" },
                 category === cat && styles.categoryChipTextActive,
               ]}>
                 {cat}
@@ -101,9 +104,9 @@ export default function CommunityWriteScreen() {
 
         {/* 제목 */}
         <TextInput
-          style={styles.titleInput}
+          style={[styles.titleInput, { color: "#1A1A1A", borderBottomColor: "#E8E8E8" }]}
           placeholder="제목을 입력하세요"
-          placeholderTextColor="#C0C0C0"
+          placeholderTextColor={"#8E8E93"}
           value={title}
           onChangeText={setTitle}
           maxLength={50}
@@ -112,9 +115,9 @@ export default function CommunityWriteScreen() {
 
         {/* 본문 */}
         <TextInput
-          style={styles.contentInput}
+          style={[styles.contentInput, { color: "#1A1A1A" }]}
           placeholder="내용을 입력하세요..."
-          placeholderTextColor="#C0C0C0"
+          placeholderTextColor={"#8E8E93"}
           value={content}
           onChangeText={setContent}
           multiline
@@ -122,7 +125,7 @@ export default function CommunityWriteScreen() {
           maxLength={1000}
         />
 
-        <Text style={styles.charCount}>{content.length}/1000</Text>
+        <Text style={[styles.charCount, { color: "#8E8E93" }]}>{content.length}/1000</Text>
       </ScrollView>
     </ScreenContainer>
   );
@@ -136,18 +139,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
   cancelBtn: { paddingHorizontal: 8, paddingVertical: 4 },
-  cancelBtnText: { fontSize: 15, color: "#757575" },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
+  cancelBtnText: { fontSize: 15 },
+  headerTitle: { fontSize: 17, fontWeight: "700" },
   submitBtn: {
     backgroundColor: "#FF7043",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 6,
   },
-  submitBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  submitBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   content: { padding: 16, gap: 16 },
   categoryRow: { flexDirection: "row", gap: 8 },
   categoryChip: {
@@ -155,25 +157,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
   },
-  categoryChipActive: { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
-  categoryChipText: { fontSize: 13, color: "#757575" },
+  categoryChipActive: { borderColor: "#FF7043" },
+  categoryChipText: { fontSize: 13 },
   categoryChipTextActive: { color: "#FF7043", fontWeight: "700" },
   titleInput: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1A1A1A",
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
     paddingBottom: 12,
   },
   contentInput: {
     fontSize: 15,
-    color: "#1A1A1A",
     lineHeight: 22,
     minHeight: 200,
   },
-  charCount: { fontSize: 12, color: "#C0C0C0", textAlign: "right" },
+  charCount: { fontSize: 12, textAlign: "right" },
 });

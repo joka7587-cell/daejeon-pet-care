@@ -9,7 +9,6 @@ import {
 import { ScreenContainer } from "@/components/screen-container";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useApp, WalkRoutePoint } from "@/lib/app-context";
-import { useColors } from "@/hooks/use-colors";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import Svg, { Polyline, Circle } from "react-native-svg";
@@ -117,7 +116,6 @@ export default function WalkDetailScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
   const { state } = useApp();
-  const colors = useColors();
   const accentColor = state.profile.role === "caretaker" ? "#4CAF82" : "#FF7043";
 
   const session = (state.walkSessions || []).find((s) => s.id === sessionId);
@@ -127,7 +125,7 @@ export default function WalkDetailScreen() {
       <ScreenContainer className="p-6">
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 48 }}>😕</Text>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#555", marginTop: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#8E8E93", marginTop: 12 }}>
             산책 기록을 찾을 수 없어요
           </Text>
           <Pressable onPress={() => router.back()} style={styles.errorBackBtn}>
@@ -145,24 +143,24 @@ export default function WalkDetailScreen() {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       {/* 헤더 */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: "#E8E8E8" }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}>
-          <Text style={{ fontSize: 24, color: colors.foreground }}>←</Text>
+          <Text style={{ fontSize: 24, color: "#1A1A1A" }}>←</Text>
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>산책 상세</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>산책 상세</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
         {/* 반려동물 정보 */}
-        <View style={[styles.petCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.petCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
           <Text style={{ fontSize: 44 }}>{session.petEmoji || "🐕"}</Text>
           <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={[styles.petName, { color: colors.foreground }]}>{session.petName}</Text>
+            <Text style={[styles.petName, { color: "#1A1A1A" }]}>{session.petName}</Text>
             {session.ownerName && (
-              <Text style={[styles.ownerText, { color: colors.muted }]}>보호자: {session.ownerName}</Text>
+              <Text style={[styles.ownerText, { color: "#8E8E93" }]}>보호자: {session.ownerName}</Text>
             )}
-            <Text style={[styles.dateText, { color: colors.muted }]}>
+            <Text style={[styles.dateText, { color: "#8E8E93" }]}>
               {formatDateTime(session.startedAt)}
               {session.endedAt ? ` ~ ${formatDateTime(session.endedAt)}` : ""}
             </Text>
@@ -179,10 +177,10 @@ export default function WalkDetailScreen() {
         </View>
 
         {/* 경로 시각화 */}
-        <View style={[styles.mapCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>🗺️ 산책 경로</Text>
+        <View style={[styles.mapCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>🗺️ 산책 경로</Text>
           {session.routePoints.length >= 2 ? (
-            <View style={[styles.mapContainer, { backgroundColor: colors.background }]}>
+            <View style={[styles.mapContainer, { backgroundColor: "#FFFFFF" }]}>
               <Svg width={MAP_WIDTH} height={MAP_HEIGHT}>
                 <Polyline
                   points={svgPoints}
@@ -202,18 +200,18 @@ export default function WalkDetailScreen() {
               <View style={styles.mapLegend}>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: "#4CAF82" }]} />
-                  <Text style={[styles.legendText, { color: colors.muted }]}>출발</Text>
+                  <Text style={[styles.legendText, { color: "#8E8E93" }]}>출발</Text>
                 </View>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
-                  <Text style={[styles.legendText, { color: colors.muted }]}>도착</Text>
+                  <Text style={[styles.legendText, { color: "#8E8E93" }]}>도착</Text>
                 </View>
               </View>
             </View>
           ) : (
-            <View style={[styles.noRouteContainer, { backgroundColor: colors.background }]}>
+            <View style={[styles.noRouteContainer, { backgroundColor: "#FFFFFF" }]}>
               <Text style={{ fontSize: 32 }}>📍</Text>
-              <Text style={[styles.noRouteText, { color: colors.muted }]}>
+              <Text style={[styles.noRouteText, { color: "#8E8E93" }]}>
                 GPS 경로 데이터가 부족합니다{"\n"}(최소 2개 포인트 필요)
               </Text>
             </View>
@@ -221,75 +219,75 @@ export default function WalkDetailScreen() {
         </View>
 
         {/* 상세 통계 */}
-        <View style={[styles.statsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>📊 산책 통계</Text>
+        <View style={[styles.statsCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>📊 산책 통계</Text>
 
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={{ fontSize: 24 }}>📏</Text>
-              <Text style={[styles.statValue, { color: colors.foreground }]}>
+              <Text style={[styles.statValue, { color: "#1A1A1A" }]}>
                 {formatDist(session.totalDistanceKm)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.muted }]}>총 거리</Text>
+              <Text style={[styles.statLabel, { color: "#8E8E93" }]}>총 거리</Text>
             </View>
 
             <View style={styles.statItem}>
               <Text style={{ fontSize: 24 }}>⏱️</Text>
-              <Text style={[styles.statValue, { color: colors.foreground }]}>
+              <Text style={[styles.statValue, { color: "#1A1A1A" }]}>
                 {formatTime(session.totalDurationSec)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.muted }]}>총 시간</Text>
+              <Text style={[styles.statLabel, { color: "#8E8E93" }]}>총 시간</Text>
             </View>
 
             <View style={styles.statItem}>
               <Text style={{ fontSize: 24 }}>🚶</Text>
-              <Text style={[styles.statValue, { color: colors.foreground }]}>
+              <Text style={[styles.statValue, { color: "#1A1A1A" }]}>
                 {formatTime(activeDuration)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.muted }]}>실제 이동</Text>
+              <Text style={[styles.statLabel, { color: "#8E8E93" }]}>실제 이동</Text>
             </View>
 
             <View style={styles.statItem}>
               <Text style={{ fontSize: 24 }}>⏸️</Text>
-              <Text style={[styles.statValue, { color: colors.foreground }]}>
+              <Text style={[styles.statValue, { color: "#1A1A1A" }]}>
                 {formatTime(session.pausedDurationSec)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.muted }]}>정지 시간</Text>
+              <Text style={[styles.statLabel, { color: "#8E8E93" }]}>정지 시간</Text>
             </View>
 
             <View style={styles.statItem}>
               <Text style={{ fontSize: 24 }}>📊</Text>
-              <Text style={[styles.statValue, { color: colors.foreground }]}>
+              <Text style={[styles.statValue, { color: "#1A1A1A" }]}>
                 {session.avgSpeedKmh.toFixed(1)} km/h
               </Text>
-              <Text style={[styles.statLabel, { color: colors.muted }]}>평균 속도</Text>
+              <Text style={[styles.statLabel, { color: "#8E8E93" }]}>평균 속도</Text>
             </View>
 
             <View style={styles.statItem}>
               <Text style={{ fontSize: 24 }}>⚡</Text>
-              <Text style={[styles.statValue, { color: colors.foreground }]}>
+              <Text style={[styles.statValue, { color: "#1A1A1A" }]}>
                 {session.maxSpeedKmh.toFixed(1)} km/h
               </Text>
-              <Text style={[styles.statLabel, { color: colors.muted }]}>최고 속도</Text>
+              <Text style={[styles.statLabel, { color: "#8E8E93" }]}>최고 속도</Text>
             </View>
           </View>
         </View>
 
         {/* GPS 포인트 정보 */}
-        <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>📍 GPS 정보</Text>
+        <View style={[styles.infoCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+          <Text style={[styles.sectionTitle, { color: "#1A1A1A" }]}>📍 GPS 정보</Text>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.muted }]}>기록된 포인트</Text>
-            <Text style={[styles.infoValue, { color: colors.foreground }]}>{session.routePoints.length}개</Text>
+            <Text style={[styles.infoLabel, { color: "#8E8E93" }]}>기록된 포인트</Text>
+            <Text style={[styles.infoValue, { color: "#1A1A1A" }]}>{session.routePoints.length}개</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.muted }]}>동네</Text>
-            <Text style={[styles.infoValue, { color: colors.foreground }]}>{session.neighborhood}</Text>
+            <Text style={[styles.infoLabel, { color: "#8E8E93" }]}>동네</Text>
+            <Text style={[styles.infoValue, { color: "#1A1A1A" }]}>{session.neighborhood}</Text>
           </View>
           {session.caretakerName && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>돌보미</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground }]}>{session.caretakerName}</Text>
+              <Text style={[styles.infoLabel, { color: "#8E8E93" }]}>돌보미</Text>
+              <Text style={[styles.infoValue, { color: "#1A1A1A" }]}>{session.caretakerName}</Text>
             </View>
           )}
         </View>
@@ -390,5 +388,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF7043",
     borderRadius: 12,
   },
-  errorBackBtnText: { color: "#fff", fontWeight: "700" },
+  errorBackBtnText: { color: "#FFFFFF", fontWeight: "700" },
 });

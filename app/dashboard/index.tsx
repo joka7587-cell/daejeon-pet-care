@@ -333,7 +333,7 @@ const st = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
     alignItems: "center",
   },
   tabActive: { backgroundColor: "#FF6B35" },
@@ -368,7 +368,7 @@ const st = StyleSheet.create({
     gap: 4,
   },
   metricValue: { fontFamily: Fonts.bold, fontSize: 18, color: "#1A1A1A" },
-  metricLabel: { fontFamily: Fonts.regular, fontSize: 11, color: "#AEAEB2" },
+  metricLabel: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93" },
 
   // Month Summary
   monthSummary: {
@@ -382,7 +382,7 @@ const st = StyleSheet.create({
   monthGrid: { flexDirection: "row", justifyContent: "space-around" },
   monthItem: { alignItems: "center", gap: 4 },
   monthValue: { fontFamily: Fonts.bold, fontSize: 18, color: "#FF6B35" },
-  monthLabel: { fontFamily: Fonts.regular, fontSize: 11, color: "#AEAEB2" },
+  monthLabel: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93" },
 
   // Recent Activity
   recentSection: {
@@ -401,7 +401,7 @@ const st = StyleSheet.create({
     borderBottomColor: "#F8F8F8",
   },
   activityName: { fontFamily: Fonts.semiBold, fontSize: 14, color: "#1A1A1A" },
-  activityMeta: { fontFamily: Fonts.regular, fontSize: 11, color: "#AEAEB2", marginTop: 2 },
+  activityMeta: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93", marginTop: 2 },
   activityStatus: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   activityStatusText: { fontFamily: Fonts.semiBold, fontSize: 10 },
 
@@ -477,7 +477,7 @@ const st = StyleSheet.create({
   },
   bigRating: { fontFamily: Fonts.extraBold, fontSize: 40, color: "#FFB800" },
   ratingStars: { fontSize: 16, color: "#FFB800" },
-  ratingCount: { fontFamily: Fonts.regular, fontSize: 12, color: "#AEAEB2", marginTop: 2 },
+  ratingCount: { fontFamily: Fonts.regular, fontSize: 12, color: "#8E8E93", marginTop: 2 },
   reviewItem: {
     paddingVertical: 10,
     borderTopWidth: 1,
@@ -486,7 +486,7 @@ const st = StyleSheet.create({
   },
   reviewerName: { fontFamily: Fonts.semiBold, fontSize: 13, color: "#1A1A1A" },
   reviewRating: { fontSize: 12, color: "#FFB800" },
-  reviewContent: { fontFamily: Fonts.regular, fontSize: 12, color: "#636366", lineHeight: 18 },
+  reviewContent: { fontFamily: Fonts.regular, fontSize: 12, color: "#8E8E93", lineHeight: 18 },
 
-  emptyText: { fontFamily: Fonts.regular, fontSize: 13, color: "#AEAEB2", textAlign: "center", paddingVertical: 20 },
+  emptyText: { fontFamily: Fonts.regular, fontSize: 13, color: "#8E8E93", textAlign: "center", paddingVertical: 20 },
 });

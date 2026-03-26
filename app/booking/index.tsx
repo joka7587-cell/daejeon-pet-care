@@ -36,7 +36,6 @@ function generateTimeSlots(): TimeSlot[] {
   const slots: TimeSlot[] = [];
   for (let h = 7; h <= 21; h++) {
     const label = h < 12 ? `오전 ${h}시` : h === 12 ? `오후 12시` : `오후 ${h - 12}시`;
-    // 랜덤하게 일부 시간대를 예약 불가로 표시
     const available = ![9, 14, 18].includes(h);
     slots.push({ hour: h, label, available });
   }
@@ -129,29 +128,26 @@ export default function BookingScreen() {
 
   const renderDateStep = () => (
     <View style={st.stepContent}>
-      {/* 캘린더 헤더 */}
       <View style={st.calHeader}>
         <Pressable onPress={handlePrevMonth} style={({ pressed }) => pressed && { opacity: 0.5 }}>
-          <Text style={st.calNav}>‹</Text>
+          <Text style={[st.calNav, { color: "#1A1A1A" }]}>‹</Text>
         </Pressable>
-        <Text style={st.calTitle}>{viewYear}년 {viewMonth + 1}월</Text>
+        <Text style={[st.calTitle, { color: "#1A1A1A" }]}>{viewYear}년 {viewMonth + 1}월</Text>
         <Pressable onPress={handleNextMonth} style={({ pressed }) => pressed && { opacity: 0.5 }}>
-          <Text style={st.calNav}>›</Text>
+          <Text style={[st.calNav, { color: "#1A1A1A" }]}>›</Text>
         </Pressable>
       </View>
 
-      {/* 요일 헤더 */}
       <View style={st.calWeekRow}>
         {DAYS_OF_WEEK.map((d, i) => (
           <View key={d} style={st.calWeekCell}>
-            <Text style={[st.calWeekText, i === 0 && { color: "#FF3B30" }, i === 6 && { color: "#007AFF" }]}>
+            <Text style={[st.calWeekText, { color: "#8E8E93" }, i === 0 && { color: "#FF3B30" }, i === 6 && { color: "#007AFF" }]}>
               {d}
             </Text>
           </View>
         ))}
       </View>
 
-      {/* 날짜 그리드 */}
       <View style={st.calGrid}>
         {calendarDays.map((day, idx) => {
           const isPast = isCurrentMonth && day !== null && day < today;
@@ -164,6 +160,7 @@ export default function BookingScreen() {
               onPress={() => { haptic(); setSelectedDate(day); }}
               style={[
                 st.calCell,
+                { borderColor: "#E8E8E8" },
                 isSelected && st.calCellSelected,
                 isToday && !isSelected && st.calCellToday,
               ]}
@@ -171,7 +168,8 @@ export default function BookingScreen() {
               {day !== null && (
                 <Text style={[
                   st.calCellText,
-                  isPast && { color: "#D1D1D6" },
+                  { color: "#1A1A1A" },
+                  isPast && { color: "#E8E8E8" },
                   isSelected && { color: "#FFFFFF" },
                   isToday && !isSelected && { color: "#FF6B35" },
                 ]}>
@@ -197,7 +195,7 @@ export default function BookingScreen() {
 
   const renderTimeStep = () => (
     <View style={st.stepContent}>
-      <Text style={st.stepSubtitle}>{viewMonth + 1}월 {selectedDate}일 가능한 시간</Text>
+      <Text style={[st.stepSubtitle, { color: "#1A1A1A" }]}>{viewMonth + 1}월 {selectedDate}일 가능한 시간</Text>
       <View style={st.timeGrid}>
         {timeSlots.map((slot) => (
           <Pressable
@@ -206,45 +204,46 @@ export default function BookingScreen() {
             onPress={() => { haptic(); setSelectedTime(slot.hour); }}
             style={[
               st.timeSlot,
+              { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" },
               !slot.available && st.timeSlotUnavailable,
               selectedTime === slot.hour && st.timeSlotSelected,
             ]}
           >
             <Text style={[
               st.timeSlotText,
-              !slot.available && { color: "#D1D1D6" },
+              { color: "#1A1A1A" },
+              !slot.available && { color: "#E8E8E8" },
               selectedTime === slot.hour && { color: "#FFFFFF" },
             ]}>
               {slot.label}
             </Text>
-            {!slot.available && <Text style={st.timeSlotBusy}>예약됨</Text>}
+            {!slot.available && <Text style={[st.timeSlotBusy, { color: "#8E8E93" }]}>예약됨</Text>}
           </Pressable>
         ))}
       </View>
 
-      {/* 시간 선택 */}
-      <View style={st.durationRow}>
-        <Text style={st.durationLabel}>산책 시간</Text>
+      <View style={[st.durationRow, { borderTopColor: "#E8E8E8", borderBottomColor: "#E8E8E8" }]}>
+        <Text style={[st.durationLabel, { color: "#1A1A1A" }]}>산책 시간</Text>
         <View style={st.durationControl}>
           <Pressable
             onPress={() => { haptic(); setDuration(Math.max(1, duration - 1)); }}
             style={st.durationBtn}
           >
-            <Text style={st.durationBtnText}>-</Text>
+            <Text style={[st.durationBtnText, { color: "#1A1A1A" }]}>-</Text>
           </Pressable>
-          <Text style={st.durationValue}>{duration}시간</Text>
+          <Text style={[st.durationValue, { color: "#1A1A1A" }]}>{duration}시간</Text>
           <Pressable
             onPress={() => { haptic(); setDuration(Math.min(4, duration + 1)); }}
             style={st.durationBtn}
           >
-            <Text style={st.durationBtnText}>+</Text>
+            <Text style={[st.durationBtnText, { color: "#1A1A1A" }]}>+</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={st.btnRow}>
-        <Pressable onPress={() => { haptic(); setStep("date"); }} style={st.backBtn}>
-          <Text style={st.backBtnText}>이전</Text>
+        <Pressable onPress={() => { haptic(); setStep("date"); }} style={[st.backBtn, { backgroundColor: "#F8F8F8" }]}>
+          <Text style={[st.backBtnText, { color: "#1A1A1A" }]}>이전</Text>
         </Pressable>
         <Pressable
           disabled={selectedTime === null}
@@ -259,20 +258,24 @@ export default function BookingScreen() {
 
   const renderDetailsStep = () => (
     <View style={st.stepContent}>
-      <Text style={st.stepSubtitle}>예약 상세</Text>
+      <Text style={[st.stepSubtitle, { color: "#1A1A1A" }]}>예약 상세</Text>
 
-      {/* 반려견 선택 */}
       {state.profile.pets.length > 0 && (
         <View style={st.detailSection}>
-          <Text style={st.detailLabel}>반려견 선택</Text>
+          <Text style={[st.detailLabel, { color: "#1A1A1A" }]}>반려견 선택</Text>
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
             {state.profile.pets.map((pet) => (
               <Pressable
                 key={pet.name}
                 onPress={() => { haptic(); setSelectedPet(pet.name); }}
-                style={[st.petChip, selectedPet === pet.name && st.petChipActive]}
+                style={({ pressed }) => [
+                  st.petChip,
+                  { backgroundColor: "#F8F8F8" },
+                  selectedPet === pet.name && st.petChipActive,
+                  pressed && { opacity: 0.7 },
+                ]}
               >
-                <Text style={[st.petChipText, selectedPet === pet.name && st.petChipTextActive]}>
+                <Text style={[st.petChipText, { color: "#1A1A1A" }, selectedPet === pet.name && st.petChipTextActive]}>
                   {pet.name} ({pet.breed})
                 </Text>
               </Pressable>
@@ -281,13 +284,12 @@ export default function BookingScreen() {
         </View>
       )}
 
-      {/* 메모 */}
       <View style={st.detailSection}>
-        <Text style={st.detailLabel}>요청 사항</Text>
+        <Text style={[st.detailLabel, { color: "#1A1A1A" }]}>요청 사항</Text>
         <TextInput
-          style={st.noteInput}
+          style={[st.noteInput, { backgroundColor: "#F8F8F8", color: "#1A1A1A", borderColor: "#E8E8E8" }]}
           placeholder="특이사항이나 요청 사항을 적어주세요"
-          placeholderTextColor="#AEAEB2"
+          placeholderTextColor={"#8E8E93"}
           value={note}
           onChangeText={setNote}
           multiline
@@ -296,38 +298,40 @@ export default function BookingScreen() {
         />
       </View>
 
-      {/* 요약 */}
-      <View style={st.summaryCard}>
-        <Text style={st.summaryTitle}>예약 요약</Text>
+      <View style={[st.summaryCard, { backgroundColor: "#F8F8F8" }]}>
+        <Text style={[st.summaryTitle, { color: "#1A1A1A" }]}>예약 요약</Text>
         <View style={st.summaryRow}>
-          <Text style={st.summaryLabel}>돌보미</Text>
-          <Text style={st.summaryValue}>{walkerName}</Text>
+          <Text style={[st.summaryLabel, { color: "#8E8E93" }]}>돌보미</Text>
+          <Text style={[st.summaryValue, { color: "#1A1A1A" }]}>{walkerName}</Text>
         </View>
         <View style={st.summaryRow}>
-          <Text style={st.summaryLabel}>날짜</Text>
-          <Text style={st.summaryValue}>{viewYear}년 {viewMonth + 1}월 {selectedDate}일</Text>
+          <Text style={[st.summaryLabel, { color: "#8E8E93" }]}>날짜</Text>
+          <Text style={[st.summaryValue, { color: "#1A1A1A" }]}>{viewMonth + 1}월 {selectedDate}일</Text>
         </View>
         <View style={st.summaryRow}>
-          <Text style={st.summaryLabel}>시간</Text>
-          <Text style={st.summaryValue}>{selectedTime}:00 ~ {(selectedTime || 0) + duration}:00 ({duration}시간)</Text>
+          <Text style={[st.summaryLabel, { color: "#8E8E93" }]}>시간</Text>
+          <Text style={[st.summaryValue, { color: "#1A1A1A" }]}>{selectedTime}시부터 {duration}시간</Text>
         </View>
-        {selectedPet && (
-          <View style={st.summaryRow}>
-            <Text style={st.summaryLabel}>반려견</Text>
-            <Text style={st.summaryValue}>{selectedPet}</Text>
-          </View>
-        )}
+        <View style={[st.summaryDivider, { backgroundColor: "#E8E8E8" }]} />
+        <View style={st.summaryRow}>
+          <Text style={[st.summaryLabel, { color: "#8E8E93" }]}>서비스 금액</Text>
+          <Text style={[st.summaryValue, { color: "#1A1A1A" }]}>{totalPrice.toLocaleString()}원</Text>
+        </View>
+        <View style={st.summaryRow}>
+          <Text style={[st.summaryLabel, { color: "#8E8E93" }]}>플랫폼 수수료 (5%)</Text>
+          <Text style={[st.summaryValue, { color: "#1A1A1A" }]}>{serviceFee.toLocaleString()}원</Text>
+        </View>
       </View>
 
       <View style={st.btnRow}>
-        <Pressable onPress={() => { haptic(); setStep("time"); }} style={st.backBtn}>
-          <Text style={st.backBtnText}>이전</Text>
+        <Pressable onPress={() => { haptic(); setStep("time"); }} style={[st.backBtn, { backgroundColor: "#F8F8F8" }]}>
+          <Text style={[st.backBtnText, { color: "#1A1A1A" }]}>이전</Text>
         </Pressable>
         <Pressable
           onPress={() => { haptic(); setStep("payment"); }}
           style={[st.nextBtn, { flex: 1 }]}
         >
-          <Text style={st.nextBtnText}>결제하기</Text>
+          <Text style={st.nextBtnText}>{grandTotal.toLocaleString()}원 결제하기</Text>
         </Pressable>
       </View>
     </View>
@@ -335,393 +339,335 @@ export default function BookingScreen() {
 
   const renderPaymentStep = () => (
     <View style={st.stepContent}>
-      <Text style={st.stepSubtitle}>안전 결제 (에스크로)</Text>
-
-      <View style={st.escrowInfo}>
-        <Text style={{ fontSize: 24 }}>🔒</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={st.escrowTitle}>에스크로 안전 결제</Text>
-          <Text style={st.escrowDesc}>
-            결제 금액은 산책이 완료될 때까지 안전하게 보관됩니다.{"\n"}
-            산책 완료 후 보호자가 확인하면 돌보미에게 지급됩니다.
-          </Text>
-        </View>
+      <Text style={[st.stepSubtitle, { color: "#1A1A1A" }]}>결제 수단 선택</Text>
+      <View style={[st.paymentNotice, { backgroundColor: "#F8F8F8" }]}>
+        <Text style={[st.paymentNoticeText, { color: "#8E8E93" }]}>
+          안전한 거래를 위해 모든 결제는 에스크로로 처리됩니다. 서비스가 완료된 후 돌보미에게 정산됩니다.
+        </Text>
       </View>
 
-      {/* 금액 상세 */}
-      <View style={st.priceCard}>
-        <View style={st.priceRow}>
-          <Text style={st.priceLabel}>산책 요금 ({duration}시간)</Text>
-          <Text style={st.priceValue}>₩{totalPrice.toLocaleString()}</Text>
-        </View>
-        <View style={st.priceRow}>
-          <Text style={st.priceLabel}>서비스 수수료 (5%)</Text>
-          <Text style={st.priceValue}>₩{serviceFee.toLocaleString()}</Text>
-        </View>
-        <View style={[st.priceRow, st.priceTotalRow]}>
-          <Text style={st.priceTotalLabel}>총 결제 금액</Text>
-          <Text style={st.priceTotalValue}>₩{grandTotal.toLocaleString()}</Text>
-        </View>
-      </View>
-
-      {/* 결제 수단 */}
-      <View style={st.detailSection}>
-        <Text style={st.detailLabel}>결제 수단</Text>
-        <View style={{ gap: 8 }}>
-          {["카카오페이", "네이버페이", "신용/체크카드"].map((method, i) => (
-            <Pressable
-              key={method}
-              onPress={() => haptic()}
-              style={[st.paymentMethod, i === 0 && st.paymentMethodActive]}
-            >
-              <View style={[st.radioOuter, i === 0 && st.radioOuterActive]}>
-                {i === 0 && <View style={st.radioInner} />}
-              </View>
-              <Text style={[st.paymentMethodText, i === 0 && { color: "#1A1A1A" }]}>{method}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+      <Pressable style={({ pressed }) => [st.paymentMethod, { borderBottomColor: "#E8E8E8" }, pressed && { backgroundColor: "#F8F8F8" }]}>
+        <Text style={[st.paymentMethodText, { color: "#1A1A1A" }]}>카드 결제</Text>
+        <Text style={[st.paymentMethodArrow, { color: "#8E8E93" }]}>›</Text>
+      </Pressable>
+      <Pressable style={({ pressed }) => [st.paymentMethod, { borderBottomColor: "#E8E8E8" }, pressed && { backgroundColor: "#F8F8F8" }]}>
+        <Text style={[st.paymentMethodText, { color: "#1A1A1A" }]}>계좌 이체</Text>
+        <Text style={[st.paymentMethodArrow, { color: "#8E8E93" }]}>›</Text>
+      </Pressable>
 
       <View style={st.btnRow}>
-        <Pressable onPress={() => { haptic(); setStep("details"); }} style={st.backBtn}>
-          <Text style={st.backBtnText}>이전</Text>
+        <Pressable onPress={() => { haptic(); setStep("details"); }} style={[st.backBtn, { backgroundColor: "#F8F8F8" }]}>
+          <Text style={[st.backBtnText, { color: "#1A1A1A" }]}>이전</Text>
         </Pressable>
         <Pressable
           onPress={handleConfirmBooking}
-          style={[st.payBtn, { flex: 1 }]}
+          style={[st.nextBtn, { flex: 1 }]}
         >
-          <Text style={st.payBtnText}>₩{grandTotal.toLocaleString()} 결제하기</Text>
+          <Text style={st.nextBtnText}>결제 및 예약 확정</Text>
         </Pressable>
       </View>
     </View>
   );
 
   const renderConfirmStep = () => (
-    <View style={[st.stepContent, { alignItems: "center", paddingTop: 40 }]}>
-      <View style={st.confirmIcon}>
-        <Text style={{ fontSize: 48 }}>✅</Text>
-      </View>
-      <Text style={st.confirmTitle}>예약이 완료되었습니다!</Text>
-      <Text style={st.confirmSub}>
-        {walkerName}님에게 예약 알림이 전송되었습니다.{"\n"}
-        채팅으로 세부 사항을 조율해보세요.
-      </Text>
-
+    <View style={st.stepContent}>
       <View style={st.confirmCard}>
-        <View style={st.summaryRow}>
-          <Text style={st.summaryLabel}>날짜</Text>
-          <Text style={st.summaryValue}>{viewMonth + 1}월 {selectedDate}일</Text>
-        </View>
-        <View style={st.summaryRow}>
-          <Text style={st.summaryLabel}>시간</Text>
-          <Text style={st.summaryValue}>{selectedTime}:00 ~ {(selectedTime || 0) + duration}:00</Text>
-        </View>
-        <View style={st.summaryRow}>
-          <Text style={st.summaryLabel}>결제</Text>
-          <Text style={[st.summaryValue, { color: "#FF6B35" }]}>₩{grandTotal.toLocaleString()} (에스크로)</Text>
-        </View>
-      </View>
-
-      <View style={{ gap: 10, width: "100%", marginTop: 20 }}>
-        <Pressable
-          onPress={() => { haptic(); router.push("/(tabs)/chat" as never); }}
-          style={[st.nextBtn]}
-        >
-          <Text style={st.nextBtnText}>채팅으로 이동</Text>
+        <Text style={st.confirmEmoji}>🎉</Text>
+        <Text style={[st.confirmTitle, { color: "#1A1A1A" }]}>예약이 완료되었습니다!</Text>
+        <Text style={[st.confirmSubtitle, { color: "#8E8E93" }]}>
+          {walkerName}님과의 산책이 {viewMonth + 1}월 {selectedDate}일 {selectedTime}시에 예정되어 있습니다.
+        </Text>
+        <Pressable onPress={() => router.replace("/(tabs)" as never)} style={st.nextBtn}>
+          <Text style={st.nextBtnText}>매칭 내역 보기</Text>
         </Pressable>
-        <Pressable
-          onPress={() => { haptic(); router.back(); }}
-          style={st.backBtn}
-        >
-          <Text style={[st.backBtnText, { textAlign: "center" }]}>홈으로</Text>
+        <Pressable onPress={() => router.replace("/(tabs)")} style={[st.backBtn, { marginTop: 12, backgroundColor: "#F8F8F8" }]}>
+          <Text style={[st.backBtnText, { color: "#1A1A1A" }]}>홈으로 돌아가기</Text>
         </Pressable>
       </View>
     </View>
   );
 
-  const steps: { id: BookingStep; label: string }[] = [
-    { id: "date", label: "날짜" },
-    { id: "time", label: "시간" },
-    { id: "details", label: "상세" },
-    { id: "payment", label: "결제" },
-    { id: "confirm", label: "완료" },
-  ];
-
-  const currentStepIndex = steps.findIndex((s) => s.id === step);
+  const renderStep = () => {
+    switch (step) {
+      case "date": return renderDateStep();
+      case "time": return renderTimeStep();
+      case "details": return renderDetailsStep();
+      case "payment": return renderPaymentStep();
+      case "confirm": return renderConfirmStep();
+      default: return null;
+    }
+  };
 
   return (
-    <ScreenContainer edges={["top", "bottom", "left", "right"]}>
-      {/* 헤더 */}
-      <View style={st.header}>
-        <Pressable onPress={() => { haptic(); router.back(); }} style={({ pressed }) => pressed && { opacity: 0.5 }}>
-          <Text style={st.headerBack}>‹ 뒤로</Text>
-        </Pressable>
-        <Text style={st.headerTitle}>예약하기</Text>
-        <View style={{ width: 50 }} />
+    <ScreenContainer>
+      <View style={[st.container, { backgroundColor: "#FFFFFF" }]}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {renderStep()}
+        </ScrollView>
       </View>
-
-      {/* 진행 표시 */}
-      <View style={st.progressBar}>
-        {steps.map((s, i) => (
-          <View key={s.id} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-            <View style={[st.progressDot, i <= currentStepIndex && st.progressDotActive]}>
-              <Text style={[st.progressDotText, i <= currentStepIndex && { color: "#fff" }]}>
-                {i < currentStepIndex ? "✓" : i + 1}
-              </Text>
-            </View>
-            {i < steps.length - 1 && (
-              <View style={[st.progressLine, i < currentStepIndex && st.progressLineActive]} />
-            )}
-          </View>
-        ))}
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        {step === "date" && renderDateStep()}
-        {step === "time" && renderTimeStep()}
-        {step === "details" && renderDetailsStep()}
-        {step === "payment" && renderPaymentStep()}
-        {step === "confirm" && renderConfirmStep()}
-      </ScrollView>
     </ScreenContainer>
   );
 }
 
 const st = StyleSheet.create({
-  header: {
+  container: {
+    flex: 1,
+  },
+  stepContent: {
+    padding: 20,
+  },
+  stepSubtitle: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    marginBottom: 20,
+  },
+  calHeader: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#FF6B35" },
-  headerTitle: { fontFamily: Fonts.bold, fontSize: 17, color: "#1A1A1A" },
-
-  progressBar: {
+  calNav: {
+    fontSize: 28,
+    fontFamily: Fonts.bold,
+    paddingHorizontal: 12,
+  },
+  calTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+  },
+  calWeekRow: {
     flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    marginBottom: 10,
+  },
+  calWeekCell: {
+    flex: 1,
     alignItems: "center",
   },
-  progressDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#F0F0F0",
-    alignItems: "center",
-    justifyContent: "center",
+  calWeekText: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
   },
-  progressDotActive: { backgroundColor: "#FF6B35" },
-  progressDotText: { fontFamily: Fonts.bold, fontSize: 12, color: "#AEAEB2" },
-  progressLine: { flex: 1, height: 2, backgroundColor: "#F0F0F0", marginHorizontal: 4 },
-  progressLineActive: { backgroundColor: "#FF6B35" },
-
-  stepContent: { paddingHorizontal: 20, paddingTop: 8 },
-  stepSubtitle: { fontFamily: Fonts.bold, fontSize: 18, color: "#1A1A1A", marginBottom: 16 },
-
-  // Calendar
-  calHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  calTitle: { fontFamily: Fonts.bold, fontSize: 17, color: "#1A1A1A" },
-  calNav: { fontFamily: Fonts.bold, fontSize: 24, color: "#FF6B35", paddingHorizontal: 12 },
-  calWeekRow: { flexDirection: "row", marginBottom: 8 },
-  calWeekCell: { flex: 1, alignItems: "center" },
-  calWeekText: { fontFamily: Fonts.medium, fontSize: 12, color: "#8E8E93" },
-  calGrid: { flexDirection: "row", flexWrap: "wrap" },
+  calGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
   calCell: {
-    width: `${100 / 7}%` as any,
+    width: `${100 / 7}%`,
     aspectRatio: 1,
-    alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
-  },
-  calCellSelected: { backgroundColor: "#FF6B35" },
-  calCellToday: { borderWidth: 1.5, borderColor: "#FF6B35" },
-  calCellText: { fontFamily: Fonts.medium, fontSize: 14, color: "#1A1A1A" },
-
-  // Time
-  timeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
-  timeSlot: {
-    width: "31%" as any,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
     alignItems: "center",
-    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderRadius: 99,
+    margin: 1,
   },
-  timeSlotUnavailable: { backgroundColor: "#F5F5F5", borderColor: "#F0F0F0" },
-  timeSlotSelected: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
-  timeSlotText: { fontFamily: Fonts.medium, fontSize: 13, color: "#1A1A1A" },
-  timeSlotBusy: { fontFamily: Fonts.regular, fontSize: 9, color: "#AEAEB2", marginTop: 2 },
-
-  // Duration
+  calCellSelected: {
+    backgroundColor: "#FF6B35",
+    borderColor: "#FF6B35",
+  },
+  calCellToday: {
+    borderWidth: 2,
+    borderColor: "#FF6B35",
+  },
+  calCellText: {
+    fontSize: 16,
+    fontFamily: Fonts.medium,
+  },
+  nextBtn: {
+    backgroundColor: "#FF6B35",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  nextBtnDisabled: {
+    backgroundColor: "#E5E5EA",
+  },
+  nextBtnText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontFamily: Fonts.bold,
+  },
+  timeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 20,
+  },
+  timeSlot: {
+    width: "31%",
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  timeSlotUnavailable: {
+    opacity: 0.5,
+  },
+  timeSlotSelected: {
+    backgroundColor: "#FF6B35",
+    borderColor: "#FF6B35",
+  },
+  timeSlotText: {
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+  },
+  timeSlotBusy: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    marginTop: 2,
+  },
   durationRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#F8F8F8",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    marginTop: 10,
   },
-  durationLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: "#1A1A1A" },
-  durationControl: { flexDirection: "row", alignItems: "center", gap: 16 },
+  durationLabel: {
+    fontSize: 17,
+    fontFamily: Fonts.medium,
+  },
+  durationControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
   durationBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FF6B35",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
   },
-  durationBtnText: { fontFamily: Fonts.bold, fontSize: 18, color: "#fff" },
-  durationValue: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A", minWidth: 50, textAlign: "center" },
-
-  // Details
-  detailSection: { marginBottom: 20 },
-  detailLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: "#1A1A1A", marginBottom: 8 },
+  durationBtnText: {
+    fontSize: 24,
+    fontFamily: Fonts.regular,
+  },
+  durationValue: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    minWidth: 60,
+    textAlign: "center",
+  },
+  btnRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  backBtn: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    flex: 0.5,
+  },
+  backBtnText: {
+    fontSize: 17,
+    fontFamily: Fonts.bold,
+  },
+  detailSection: {
+    marginBottom: 24,
+  },
+  detailLabel: {
+    fontSize: 17,
+    fontFamily: Fonts.bold,
+    marginBottom: 12,
+  },
   petChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "#fff",
+    borderRadius: 20,
   },
-  petChipActive: { borderColor: "#FF6B35", backgroundColor: "#FFF5F0" },
-  petChipText: { fontFamily: Fonts.medium, fontSize: 13, color: "#8E8E93" },
-  petChipTextActive: { fontFamily: Fonts.semiBold, color: "#FF6B35" },
+  petChipActive: {
+    backgroundColor: "#FF8255",
+  },
+  petChipText: {
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+  },
+  petChipTextActive: {
+    color: "#FFFFFF",
+    fontFamily: Fonts.bold,
+  },
   noteInput: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: "#1A1A1A",
-    backgroundColor: "#F8F8F8",
-    borderRadius: 12,
-    padding: 14,
-    minHeight: 80,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 80,
   },
-
-  // Summary
   summaryCard: {
-    backgroundColor: "#F8F8F8",
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 20,
   },
-  summaryTitle: { fontFamily: Fonts.bold, fontSize: 15, color: "#1A1A1A", marginBottom: 12 },
+  summaryTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    marginBottom: 16,
+  },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
+    marginBottom: 8,
   },
-  summaryLabel: { fontFamily: Fonts.regular, fontSize: 13, color: "#8E8E93" },
-  summaryValue: { fontFamily: Fonts.semiBold, fontSize: 13, color: "#1A1A1A" },
-
-  // Escrow
-  escrowInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    backgroundColor: "#FFF5F0",
-    borderRadius: 14,
-    padding: 14,
+  summaryLabel: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+  },
+  summaryValue: {
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+  },
+  summaryDivider: {
+    height: 1,
+    marginVertical: 8,
+  },
+  paymentNotice: {
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#FFD9C7",
   },
-  escrowTitle: { fontFamily: Fonts.bold, fontSize: 14, color: "#FF6B35", marginBottom: 4 },
-  escrowDesc: { fontFamily: Fonts.regular, fontSize: 12, color: "#C4724A", lineHeight: 18 },
-
-  // Price
-  priceCard: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
+  paymentNoticeText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    lineHeight: 20,
   },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 6,
-  },
-  priceLabel: { fontFamily: Fonts.regular, fontSize: 13, color: "#8E8E93" },
-  priceValue: { fontFamily: Fonts.medium, fontSize: 13, color: "#1A1A1A" },
-  priceTotalRow: {
-    borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
-    marginTop: 8,
-    paddingTop: 12,
-  },
-  priceTotalLabel: { fontFamily: Fonts.bold, fontSize: 15, color: "#1A1A1A" },
-  priceTotalValue: { fontFamily: Fonts.extraBold, fontSize: 18, color: "#FF6B35" },
-
-  // Payment Method
   paymentMethod: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: 12,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-    backgroundColor: "#fff",
+    paddingVertical: 18,
+    borderBottomWidth: 1,
   },
-  paymentMethodActive: { borderColor: "#FF6B35", backgroundColor: "#FFF5F0" },
-  paymentMethodText: { fontFamily: Fonts.medium, fontSize: 14, color: "#8E8E93" },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#D1D1D6",
-    alignItems: "center",
-    justifyContent: "center",
+  paymentMethodText: {
+    fontSize: 17,
+    fontFamily: Fonts.regular,
   },
-  radioOuterActive: { borderColor: "#FF6B35" },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FF6B35" },
-
-  // Buttons
-  btnRow: { flexDirection: "row", gap: 10, marginTop: 8 },
-  nextBtn: {
-    backgroundColor: "#FF6B35",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
+  paymentMethodArrow: {
+    fontSize: 20,
   },
-  nextBtnDisabled: { backgroundColor: "#D1D1D6" },
-  nextBtnText: { fontFamily: Fonts.bold, color: "#fff", fontSize: 15 },
-  backBtn: {
-    backgroundColor: "#F5F5F5",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: "center",
-  },
-  backBtnText: { fontFamily: Fonts.semiBold, color: "#8E8E93", fontSize: 15 },
-  payBtn: {
-    backgroundColor: "#FF6B35",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  payBtnText: { fontFamily: Fonts.bold, color: "#fff", fontSize: 15 },
-
-  // Confirm
-  confirmIcon: { marginBottom: 16 },
-  confirmTitle: { fontFamily: Fonts.extraBold, fontSize: 22, color: "#1A1A1A", marginBottom: 8 },
-  confirmSub: { fontFamily: Fonts.regular, fontSize: 14, color: "#8E8E93", textAlign: "center", lineHeight: 20, marginBottom: 20 },
   confirmCard: {
-    backgroundColor: "#F8F8F8",
-    borderRadius: 14,
-    padding: 16,
-    width: "100%",
+    alignItems: "center",
+    paddingTop: 40,
+    paddingBottom: 20,
+  },
+  confirmEmoji: {
+    fontSize: 60,
+    marginBottom: 20,
+  },
+  confirmTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    marginBottom: 8,
+  },
+  confirmSubtitle: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
 });

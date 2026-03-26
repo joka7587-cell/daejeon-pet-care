@@ -4,12 +4,10 @@ import { Platform } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/hooks/use-fonts";
 import { useApp } from "@/lib/app-context";
 
 export default function TabLayout() {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const { state } = useApp();
   const isCaretaker = state.profile.role === "caretaker";
@@ -22,15 +20,15 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: accentColor,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarInactiveTintColor: "#8E8E93",
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
           paddingTop: 6,
           paddingBottom: bottomPadding,
           height: tabBarHeight,
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
+          backgroundColor: "#FFFFFF",
+          borderTopColor: "#E8E8E8",
           borderTopWidth: 0.5,
         },
         tabBarLabelStyle: {

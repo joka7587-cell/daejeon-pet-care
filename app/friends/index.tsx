@@ -17,7 +17,6 @@ import * as Clipboard from "expo-clipboard";
 import { Share } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Friend } from "@/lib/app-context";
-import { useColors } from "@/hooks/use-colors";
 import { getApiBaseUrl } from "@/constants/oauth";
 
 const haptic = () => {
@@ -103,7 +102,6 @@ type TabType = "friends" | "received" | "sent";
 
 export default function FriendsScreen() {
   const { state, dispatch } = useApp();
-  const colors = useColors();
   const router = useRouter();
   const { profile } = state;
   const friends = profile.friends;
@@ -437,7 +435,7 @@ export default function FriendsScreen() {
 
   // 탭 렌더링
   const renderTabs = () => (
-    <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
+    <View style={[styles.tabBar, { borderBottomColor: "#E8E8E8" }]}>
       {([
         { key: "friends" as TabType, label: `친구 ${friends.length}`, badgeCount: 0 },
         { key: "received" as TabType, label: `받은 요청`, badgeCount: receivedRequests.length },
@@ -448,7 +446,7 @@ export default function FriendsScreen() {
           onPress={() => { haptic(); setActiveTab(tab.key); }}
           style={({ pressed }) => [
             styles.tab,
-            activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
+            activeTab === tab.key && { borderBottomColor: "#FF6B35", borderBottomWidth: 2 },
             pressed && { opacity: 0.7 },
           ]}
         >
@@ -456,7 +454,7 @@ export default function FriendsScreen() {
             <Text
               style={[
                 styles.tabText,
-                { color: activeTab === tab.key ? colors.primary : colors.muted },
+                { color: activeTab === tab.key ? "#FF6B35" : "#8E8E93" },
                 activeTab === tab.key && { fontWeight: "700" },
               ]}
             >
@@ -475,18 +473,18 @@ export default function FriendsScreen() {
 
   // 친구 카드
   const renderFriend = ({ item }: { item: Friend }) => (
-    <View style={[styles.friendCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View style={[styles.friendCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
       <Text style={styles.friendEmoji}>{item.profileEmoji}</Text>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Text style={[styles.friendName, { color: colors.foreground }]}>{item.nickname}</Text>
+          <Text style={[styles.friendName, { color: "#1A1A1A" }]}>{item.nickname}</Text>
           {item.serverUserId ? (
             <View style={[styles.badge, { backgroundColor: "#E8F5E9" }]}>
               <Text style={[styles.badgeText, { color: "#2E7D32" }]}>🌐</Text>
             </View>
           ) : null}
         </View>
-        <Text style={[styles.friendInfo, { color: colors.muted }]}>
+        <Text style={[styles.friendInfo, { color: "#8E8E93" }]}>
           📍 {item.neighborhood} · {item.role === "owner" ? "🐶 반려인" : "🏠 돌보미"}
         </Text>
       </View>
@@ -507,11 +505,11 @@ export default function FriendsScreen() {
 
   // 받은 요청 카드
   const renderReceivedRequest = ({ item }: { item: FriendRequestItem }) => (
-    <View style={[styles.friendCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View style={[styles.friendCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
       <Text style={styles.friendEmoji}>{item.fromEmoji || "🐶"}</Text>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.friendName, { color: colors.foreground }]}>{item.fromNickname}</Text>
-        <Text style={[styles.friendInfo, { color: colors.muted }]}>
+        <Text style={[styles.friendName, { color: "#1A1A1A" }]}>{item.fromNickname}</Text>
+        <Text style={[styles.friendInfo, { color: "#8E8E93" }]}>
           📍 {item.fromNeighborhood || "대전"} · {item.fromRole === "owner" ? "🐶 반려인" : "🏠 돌보미"}
         </Text>
       </View>
@@ -533,15 +531,15 @@ export default function FriendsScreen() {
   // 보낸 요청 카드
   const renderSentRequest = ({ item }: { item: FriendRequestItem }) => {
     const statusLabel = item.status === "pending" ? "대기 중" : item.status === "accepted" ? "수락됨" : "거절됨";
-    const statusColor = item.status === "pending" ? colors.warning : item.status === "accepted" ? colors.success : colors.error;
+    const statusColor = item.status === "pending" ? "#FF9500" : item.status === "accepted" ? "#34C759" : "#FF3B30";
     const displayName = item.toNickname || `코드: ${item.fromCode}`;
     const displayEmoji = item.toEmoji || "📤";
     return (
-      <View style={[styles.friendCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.friendCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
         <Text style={styles.friendEmoji}>{displayEmoji}</Text>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.friendName, { color: colors.foreground }]}>{displayName}</Text>
-          <Text style={[styles.friendInfo, { color: colors.muted }]}>
+          <Text style={[styles.friendName, { color: "#1A1A1A" }]}>{displayName}</Text>
+          <Text style={[styles.friendInfo, { color: "#8E8E93" }]}>
             {new Date(item.createdAt).toLocaleDateString("ko-KR")}
           </Text>
         </View>
@@ -555,26 +553,26 @@ export default function FriendsScreen() {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       {/* 헤더 */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: "#E8E8E8" }]}>
         <Pressable
           onPress={() => { haptic(); router.back(); }}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={[styles.backBtnText, { color: colors.primary }]}>‹</Text>
+          <Text style={[styles.backBtnText, { color: "#FF6B35" }]}>‹</Text>
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>친구</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>친구</Text>
         <Pressable
           onPress={() => { haptic(); setShowCodeInput(!showCodeInput); }}
           style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={[styles.addBtnText, { color: colors.primary }]}>+ 추가</Text>
+          <Text style={[styles.addBtnText, { color: "#FF6B35" }]}>+ 추가</Text>
         </Pressable>
       </View>
 
       {/* 내 친구 코드 */}
-      <View style={[styles.myCodeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.myCodeCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
         <View style={styles.myCodeHeader}>
-          <Text style={[styles.myCodeLabel, { color: colors.foreground }]}>내 친구 코드</Text>
+          <Text style={[styles.myCodeLabel, { color: "#1A1A1A" }]}>내 친구 코드</Text>
           {serverRegistered && (
             <View style={styles.serverBadge}>
               <Text style={styles.serverBadgeText}>🌐 서버 등록됨</Text>
@@ -582,7 +580,7 @@ export default function FriendsScreen() {
           )}
         </View>
         <View style={styles.myCodeRow}>
-          <Text style={[styles.myCodeText, { color: colors.primary }]}>{myCode}</Text>
+          <Text style={[styles.myCodeText, { color: "#FF6B35" }]}>{myCode}</Text>
           <Pressable
             onPress={handleCopyCode}
             style={({ pressed }) => [
@@ -602,20 +600,20 @@ export default function FriendsScreen() {
             <Text style={styles.shareBtnText}>📤 링크로 공유하기</Text>
           </Pressable>
         </View>
-        <Text style={[styles.myCodeHint, { color: colors.muted }]}>
+        <Text style={[styles.myCodeHint, { color: "#8E8E93" }]}>
           이 코드를 친구에게 공유하면 서로 친구 추가할 수 있어요!
         </Text>
       </View>
 
       {/* 친구 코드 입력 */}
       {showCodeInput && (
-        <View style={[styles.codeInputCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.codeInputTitle, { color: colors.foreground }]}>친구 코드 입력</Text>
+        <View style={[styles.codeInputCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+          <Text style={[styles.codeInputTitle, { color: "#1A1A1A" }]}>친구 코드 입력</Text>
           <View style={styles.codeInputRow}>
             <TextInput
-              style={[styles.codeInput, { backgroundColor: colors.background, color: colors.foreground, borderColor: colors.border }]}
+              style={[styles.codeInput, { backgroundColor: "#FFFFFF", color: "#1A1A1A", borderColor: "#E8E8E8" }]}
               placeholder="예: ABCD-1234"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={"#8E8E93"}
               value={friendCode}
               onChangeText={(t) => { setFriendCode(t); setSearchResult(null); setSearchError(""); }}
               autoCapitalize="characters"
@@ -625,9 +623,9 @@ export default function FriendsScreen() {
             />
             <Pressable
               onPress={handlePasteCode}
-              style={({ pressed }) => [styles.pasteBtn, { borderColor: colors.border }, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.pasteBtn, { borderColor: "#E8E8E8" }, pressed && { opacity: 0.7 }]}
             >
-              <Text style={[styles.pasteBtnText, { color: colors.primary }]}>붙여넣기</Text>
+              <Text style={[styles.pasteBtnText, { color: "#FF6B35" }]}>붙여넣기</Text>
             </Pressable>
             <Pressable
               onPress={handleSearch}
@@ -635,7 +633,7 @@ export default function FriendsScreen() {
               style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.85 }]}
             >
               {isSearching ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.searchBtnText}>검색</Text>
               )}
@@ -645,18 +643,18 @@ export default function FriendsScreen() {
           {searchError ? <Text style={styles.errorText}>{searchError}</Text> : null}
 
           {searchResult && (
-            <View style={[styles.searchResultCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <View style={[styles.searchResultCard, { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" }]}>
               <Text style={styles.resultEmoji}>{searchResult.emoji}</Text>
               <View style={{ flex: 1 }}>
                 <View style={styles.resultNameRow}>
-                  <Text style={[styles.resultName, { color: colors.foreground }]}>{searchResult.nickname}</Text>
+                  <Text style={[styles.resultName, { color: "#1A1A1A" }]}>{searchResult.nickname}</Text>
                   {searchResult.isServerUser && (
                     <View style={styles.realUserBadge}>
                       <Text style={styles.realUserBadgeText}>실제 사용자</Text>
                     </View>
                   )}
                 </View>
-                <Text style={[styles.resultInfo, { color: colors.muted }]}>
+                <Text style={[styles.resultInfo, { color: "#8E8E93" }]}>
                   📍 {searchResult.neighborhood} · {searchResult.role === "owner" ? "🐶 반려인" : "🏠 돌보미"}
                 </Text>
               </View>
@@ -666,7 +664,7 @@ export default function FriendsScreen() {
                 style={({ pressed }) => [styles.addFriendBtn, pressed && { opacity: 0.85 }]}
               >
                 {isSendingRequest ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Text style={styles.addFriendBtnText}>
                     {searchResult.isServerUser ? "요청" : "추가"}
@@ -676,7 +674,7 @@ export default function FriendsScreen() {
             </View>
           )}
 
-          <Text style={[styles.demoHint, { color: colors.muted }]}>
+          <Text style={[styles.demoHint, { color: "#8E8E93" }]}>
             {serverRegistered
               ? "상대방의 친구 코드를 입력하면 서버에서 검색합니다.\n서버 사용자에게는 친구 요청을 보내고, 수락 후 친구가 됩니다."
               : "체험용 코드: ABCD-1234, EFGH-5678, JKLM-9012"}
@@ -698,7 +696,7 @@ export default function FriendsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyEmoji}>👋</Text>
-              <Text style={[styles.emptyText, { color: colors.muted }]}>
+              <Text style={[styles.emptyText, { color: "#8E8E93" }]}>
                 아직 친구가 없어요{"\n"}위의 + 추가 버튼으로 친구를 추가해보세요!
               </Text>
             </View>
@@ -716,8 +714,8 @@ export default function FriendsScreen() {
           ListHeaderComponent={
             isLoadingRequests ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.loadingText, { color: colors.muted }]}>요청 불러오는 중...</Text>
+                <ActivityIndicator size="small" color="#FF6B35" />
+                <Text style={[styles.loadingText, { color: "#8E8E93" }]}>요청 불러오는 중...</Text>
               </View>
             ) : null
           }
@@ -725,7 +723,7 @@ export default function FriendsScreen() {
             !isLoadingRequests ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyEmoji}>📭</Text>
-                <Text style={[styles.emptyText, { color: colors.muted }]}>
+                <Text style={[styles.emptyText, { color: "#8E8E93" }]}>
                   받은 친구 요청이 없어요{"\n"}친구 코드를 공유해서 요청을 받아보세요!
                 </Text>
               </View>
@@ -744,7 +742,7 @@ export default function FriendsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyEmoji}>📬</Text>
-              <Text style={[styles.emptyText, { color: colors.muted }]}>
+              <Text style={[styles.emptyText, { color: "#8E8E93" }]}>
                 보낸 친구 요청이 없어요
               </Text>
             </View>
@@ -803,7 +801,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
   },
-  copyBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  copyBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
   shareRow: { marginBottom: 4 },
   shareBtn: {
     backgroundColor: "#F0F4FF",
@@ -852,7 +850,7 @@ const styles = StyleSheet.create({
     minWidth: 56,
     alignItems: "center",
   },
-  searchBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  searchBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   errorText: { color: "#EF4444", fontSize: 13, marginTop: 8, textAlign: "center" },
   searchResultCard: {
     flexDirection: "row",
@@ -882,7 +880,7 @@ const styles = StyleSheet.create({
     minWidth: 56,
     alignItems: "center",
   },
-  addFriendBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  addFriendBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   demoHint: { fontSize: 11, marginTop: 10, textAlign: "center", lineHeight: 16 },
   tabBar: {
     flexDirection: "row",
@@ -933,7 +931,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
   },
-  acceptBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  acceptBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   rejectBtn: {
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -960,5 +958,5 @@ const styles = StyleSheet.create({
     justifyContent: "center" as const,
     paddingHorizontal: 4,
   },
-  tabBadgeText: { color: "#fff", fontSize: 10, fontWeight: "700" as const },
+  tabBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" as const },
 });

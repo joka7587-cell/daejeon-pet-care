@@ -11,7 +11,6 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useRouter } from "expo-router";
 import { useApp } from "@/lib/app-context";
 import * as Haptics from "expo-haptics";
-import { useColors } from "@/hooks/use-colors";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -47,7 +46,6 @@ interface ChatRoom {
 export default function ChatTabScreen() {
   const router = useRouter();
   const { state } = useApp();
-  const colors = useColors();
   const [activeTab, setActiveTab] = useState<"all" | "friends" | "requests">("all");
 
   // 친구 채팅방 (친구 ID 기반 고유 키)
@@ -138,14 +136,14 @@ export default function ChatTabScreen() {
       onPress={() => handleOpenChat(item)}
       style={({ pressed }) => [
         styles.chatRoomCard,
-        { backgroundColor: colors.surface, borderColor: colors.border },
+        { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" },
         pressed && { opacity: 0.8 },
       ]}
     >
       <View style={styles.profileSection}>
         <View style={[
           styles.avatarContainer,
-          { backgroundColor: colors.background },
+          { backgroundColor: "#FFFFFF" },
           item.isFriend && styles.friendAvatarContainer,
           item.isRequest && styles.requestAvatarContainer,
         ]}>
@@ -166,7 +164,7 @@ export default function ChatTabScreen() {
         <View style={styles.messageInfo}>
           <View style={styles.nameRow}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flex: 1 }}>
-              <Text style={[styles.userName, { color: colors.foreground }]} numberOfLines={1}>
+              <Text style={[styles.userName, { color: "#1A1A1A" }]} numberOfLines={1}>
                 {item.otherUserName}
               </Text>
               {item.isFriend && (
@@ -181,10 +179,10 @@ export default function ChatTabScreen() {
               )}
             </View>
             {item.lastMessageTime ? (
-              <Text style={[styles.time, { color: colors.muted }]}>{item.lastMessageTime}</Text>
+              <Text style={[styles.time, { color: "#8E8E93" }]}>{item.lastMessageTime}</Text>
             ) : null}
           </View>
-          <Text style={[styles.lastMessage, { color: colors.muted }]} numberOfLines={1}>
+          <Text style={[styles.lastMessage, { color: "#8E8E93" }]} numberOfLines={1}>
             {item.lastMessage}
           </Text>
         </View>
@@ -203,7 +201,7 @@ export default function ChatTabScreen() {
   return (
     <ScreenContainer className="pt-2">
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.foreground }]}>메시지</Text>
+        <Text style={[styles.title, { color: "#1A1A1A" }]}>메시지</Text>
         {totalUnread > 0 && (
           <View style={styles.headerBadge}>
             <Text style={styles.headerBadgeText}>{totalUnread}</Text>
@@ -226,12 +224,12 @@ export default function ChatTabScreen() {
               onPress={() => { haptic(); setActiveTab(tab); }}
               style={({ pressed }) => [
                 styles.tab,
-                { backgroundColor: colors.surface, borderColor: colors.border },
+                { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" },
                 isActive && styles.tabActive,
                 pressed && { opacity: 0.8 },
               ]}
             >
-              <Text style={[styles.tabText, { color: colors.muted }, isActive && styles.tabTextActive]}>
+              <Text style={[styles.tabText, { color: "#8E8E93" }, isActive && styles.tabTextActive]}>
                 {label}
               </Text>
             </Pressable>
@@ -250,14 +248,14 @@ export default function ChatTabScreen() {
             <Text style={styles.emptyEmoji}>
               {activeTab === "friends" ? "👫" : activeTab === "requests" ? "📋" : "💭"}
             </Text>
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+            <Text style={[styles.emptyTitle, { color: "#1A1A1A" }]}>
               {activeTab === "friends"
                 ? "아직 친구와의 대화가 없어요"
                 : activeTab === "requests"
                 ? "아직 요청 관련 대화가 없어요"
                 : "아직 대화가 없어요"}
             </Text>
-            <Text style={[styles.emptyDesc, { color: colors.muted }]}>
+            <Text style={[styles.emptyDesc, { color: "#8E8E93" }]}>
               {activeTab === "friends"
                 ? "프로필에서 친구를 추가하고 대화를 시작해보세요"
                 : activeTab === "requests"
@@ -301,7 +299,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   headerBadgeText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "700",
   },
@@ -374,7 +372,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "#4CAF82",
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: "#FFFFFF",
   },
   friendBadge: {
     position: "absolute",
@@ -439,7 +437,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 6,
   },
-  unreadBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  unreadBadgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700" },
   emptyContainer: {
     alignItems: "center",
     paddingVertical: 60,
@@ -455,5 +453,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
-  addFriendBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  addFriendBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
 });

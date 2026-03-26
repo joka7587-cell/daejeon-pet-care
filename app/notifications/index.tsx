@@ -176,7 +176,8 @@ export default function NotificationsScreen() {
         onPress={() => handleNotificationPress(item)}
         style={({ pressed }) => [
           styles.notificationCard,
-          !item.isRead && styles.notificationUnread,
+          { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
+          !item.isRead && { backgroundColor: "#F8F8F8", borderColor: "#FFCCBC" },
           pressed && { opacity: 0.8 },
         ]}
       >
@@ -186,15 +187,15 @@ export default function NotificationsScreen() {
         <View style={{ flex: 1 }}>
           <View style={styles.notificationHeader}>
             <Text style={[styles.notificationType, { color }]}>{item.title}</Text>
-            <Text style={styles.notificationTime}>{timeAgo(item.createdAt)}</Text>
+            <Text style={[styles.notificationTime, { color: "#8E8E93" }]}>{timeAgo(item.createdAt)}</Text>
           </View>
-          <Text style={styles.notificationBody} numberOfLines={2}>
+          <Text style={[styles.notificationBody, { color: "#8E8E93" }]} numberOfLines={2}>
             {item.body}
           </Text>
           {item.fromNickname && (
             <View style={styles.fromRow}>
               <Text style={{ fontSize: 14 }}>{item.fromEmoji || "👤"}</Text>
-              <Text style={styles.fromName}>{item.fromNickname}</Text>
+              <Text style={[styles.fromName, { color: "#8E8E93" }]}>{item.fromNickname}</Text>
             </View>
           )}
         </View>
@@ -206,14 +207,14 @@ export default function NotificationsScreen() {
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: "#E8E8E8" }]}>
         <Pressable
           onPress={() => { haptic(); router.back(); }}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: "#1A1A1A" }]}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>알림</Text>
+        <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>알림</Text>
         {unreadCount > 0 ? (
           <Pressable
             onPress={handleMarkAllRead}
@@ -228,7 +229,7 @@ export default function NotificationsScreen() {
 
       {/* 안읽은 알림 카운트 */}
       {unreadCount > 0 && (
-        <View style={styles.unreadBanner}>
+        <View style={[styles.unreadBanner, { backgroundColor: "#F8F8F8", borderBottomColor: "#FFCCBC" }]}>
           <Text style={styles.unreadBannerText}>
             📬 읽지 않은 알림 {unreadCount}개
           </Text>
@@ -245,8 +246,8 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>🔔</Text>
-            <Text style={styles.emptyTitle}>알림이 없어요</Text>
-            <Text style={styles.emptyDesc}>
+            <Text style={[styles.emptyTitle, { color: "#8E8E93" }]}>알림이 없어요</Text>
+            <Text style={[styles.emptyDesc, { color: "#8E8E93" }]}>
               새로운 댓글, 좋아요, 매칭 요청이 오면{"\n"}여기에서 확인할 수 있어요
             </Text>
           </View>
@@ -263,11 +264,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    // borderBottomColor: "#F0F0F0",
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  backBtnText: { fontSize: 28, color: "#1A1A1A" },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
+  backBtnText: { fontSize: 28 /* color: "#1A1A1A" */ },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700" /* color: "#1A1A1A" */ },
   markReadBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -276,11 +277,11 @@ const styles = StyleSheet.create({
   },
   markReadBtnText: { fontSize: 12, color: "#FF7043", fontWeight: "700" },
   unreadBanner: {
-    backgroundColor: "#FFF3EE",
+    // backgroundColor: "#FFF3EE",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#FFCCBC",
+    // borderBottomColor: "#FFCCBC",
   },
   unreadBannerText: {
     fontSize: 13,
@@ -297,15 +298,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    backgroundColor: "#fff",
+    // backgroundColor: "#FFFFFF",
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    // borderColor: "#F0F0F0",
   },
   notificationUnread: {
-    backgroundColor: "#FFFBF8",
-    borderColor: "#FFCCBC",
+    // backgroundColor: "#FFFBF8",
+    // borderColor: "#FFCCBC",
   },
   iconContainer: {
     width: 44,
@@ -327,11 +328,11 @@ const styles = StyleSheet.create({
   },
   notificationTime: {
     fontSize: 11,
-    color: "#9E9E9E",
+    // color: "#9E9E9E",
   },
   notificationBody: {
     fontSize: 13,
-    color: "#555",
+    // color: "#8E8E93",
     lineHeight: 19,
   },
   fromRow: {
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
   },
   fromName: {
     fontSize: 12,
-    color: "#757575",
+    // color: "#8E8E93",
     fontWeight: "600",
   },
   unreadDot: {
@@ -358,6 +359,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#555" },
-  emptyDesc: { fontSize: 13, color: "#9E9E9E", textAlign: "center", lineHeight: 20 },
+  emptyTitle: { fontSize: 16, fontWeight: "700" /* color: "#8E8E93" */ },
+  emptyDesc: { fontSize: 13, /* color: "#9E9E9E", */ textAlign: "center", lineHeight: 20 },
 });

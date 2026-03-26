@@ -334,7 +334,7 @@ export default function CommunityScreen() {
           <View style={styles.menuDropdown}>
             <Pressable
               onPress={() => handleEditPost(item)}
-              style={({ pressed }) => [styles.menuItem, pressed && { backgroundColor: "#F5F5F5" }]}
+              style={({ pressed }) => [styles.menuItem, pressed && { backgroundColor: "#F8F8F8" }]}
             >
               <Text style={styles.menuItemText}>✏️ 수정하기</Text>
             </Pressable>
@@ -556,7 +556,7 @@ export default function CommunityScreen() {
                 >
                   <Text style={[
                     styles.modalCategoryText,
-                    newCategory === cat && { color: "#fff" },
+                    newCategory === cat && { color: "#FFFFFF" },
                   ]}>
                     {CATEGORY_EMOJIS[cat]} {cat}
                   </Text>
@@ -667,7 +667,7 @@ export default function CommunityScreen() {
                 >
                   <Text style={[
                     styles.modalCategoryText,
-                    editCategory === cat && { color: "#fff" },
+                    editCategory === cat && { color: "#FFFFFF" },
                   ]}>
                     {CATEGORY_EMOJIS[cat]} {cat}
                   </Text>
@@ -706,7 +706,7 @@ function getCategoryColor(cat: string): string {
     case "산책": return "#FF7043";
     case "돌봄": return "#4CAF82";
     case "정보": return "#2196F3";
-    default: return "#757575";
+    default: return "#8E8E93";
   }
 }
 
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 24, fontWeight: "800", color: "#1A1A1A" },
   writeBtn: { backgroundColor: "#FF7043", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  writeBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  writeBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   categoryRow: { paddingVertical: 8 },
   categoryChip: {
     paddingHorizontal: 14,
@@ -728,14 +728,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   categoryChipActive: { borderColor: "#FF7043", backgroundColor: "#FF7043" },
-  categoryChipText: { fontSize: 13, color: "#555", fontWeight: "500" },
-  categoryChipTextActive: { color: "#fff", fontWeight: "700" },
+  categoryChipText: { fontSize: 13, color: "#8E8E93", fontWeight: "500" },
+  categoryChipTextActive: { color: "#FFFFFF", fontWeight: "700" },
   postList: { padding: 16, gap: 14, paddingBottom: 40 },
   postCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
   moreBtn: { paddingHorizontal: 8, paddingVertical: 4 },
   moreBtnText: { fontSize: 20, color: "#9E9E9E", fontWeight: "700" },
   menuDropdown: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E0E0E0",
@@ -766,10 +766,10 @@ const styles = StyleSheet.create({
   menuItemText: { fontSize: 14, fontWeight: "600", color: "#1A1A1A" },
   menuDivider: { height: 1, backgroundColor: "#F0F0F0" },
   postTitle: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
-  postContent: { fontSize: 14, color: "#555", lineHeight: 20 },
+  postContent: { fontSize: 14, color: "#8E8E93", lineHeight: 20 },
   postActions: { flexDirection: "row", gap: 16, paddingTop: 4 },
   actionBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-  actionText: { fontSize: 13, color: "#757575" },
+  actionText: { fontSize: 13, color: "#8E8E93" },
   commentsSection: {
     borderTopWidth: 1,
     borderTopColor: "#F0F0F0",
@@ -793,7 +793,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   commentAuthor: { fontSize: 12, fontWeight: "700", color: "#1A1A1A" },
-  commentContent: { fontSize: 13, color: "#555", lineHeight: 18 },
+  commentContent: { fontSize: 13, color: "#8E8E93", lineHeight: 18 },
   commentTime: { fontSize: 10, color: "#9E9E9E" },
   mentionText: { color: "#FF7043", fontWeight: "700" },
   noCommentsText: { fontSize: 13, color: "#BDBDBD", textAlign: "center", paddingVertical: 8 },
@@ -824,14 +824,14 @@ const styles = StyleSheet.create({
     color: "#1A1A1A",
   },
   commentSendBtn: { backgroundColor: "#FF7043", borderRadius: 10, paddingHorizontal: 14, justifyContent: "center" },
-  commentSendBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  commentSendBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   emptyContainer: { alignItems: "center", paddingVertical: 60, gap: 8 },
   emptyEmoji: { fontSize: 48 },
-  emptyText: { fontSize: 16, fontWeight: "600", color: "#555" },
+  emptyText: { fontSize: 16, fontWeight: "600", color: "#8E8E93" },
   emptySubText: { fontSize: 13, color: "#9E9E9E" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalContent: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -839,10 +839,10 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  modalCancel: { fontSize: 15, color: "#757575" },
+  modalCancel: { fontSize: 15, color: "#8E8E93" },
   modalTitle: { fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
   modalSubmitBtn: { backgroundColor: "#FF7043", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
-  modalSubmitText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  modalSubmitText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   modalCategoryRow: { flexDirection: "row", gap: 8 },
   modalCategoryChip: {
     paddingHorizontal: 12,
@@ -851,7 +851,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E0E0",
   },
-  modalCategoryText: { fontSize: 12, color: "#555", fontWeight: "500" },
+  modalCategoryText: { fontSize: 12, color: "#8E8E93", fontWeight: "500" },
   modalTitleInput: {
     borderWidth: 1,
     borderColor: "#E0E0E0",
@@ -900,7 +900,7 @@ const styles = StyleSheet.create({
     justifyContent: "center" as const,
   },
   imageRemoveBtnText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "700" as const,
   },
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   fullScreenCloseText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600" as const,
   },

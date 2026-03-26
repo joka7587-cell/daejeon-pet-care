@@ -6,7 +6,6 @@ import { MOCK_CARETAKERS, MOCK_REQUESTS, SERVICE_TYPES } from "@/lib/mock-data";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
-import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/hooks/use-fonts";
 
 function haptic() {
@@ -17,7 +16,6 @@ function haptic() {
 function OwnerHome() {
   const { state } = useApp();
   const router = useRouter();
-  const colors = useColors();
   const nearbyCaretakers = MOCK_CARETAKERS.filter((c) => c.isActive).slice(0, 4);
   const services = SERVICE_TYPES.owner;
 
@@ -208,7 +206,6 @@ function OwnerHome() {
 function CaretakerHome() {
   const { state, dispatch } = useApp();
   const router = useRouter();
-  const colors = useColors();
   const [handledRequests, setHandledRequests] = useState<Record<string, "accepted" | "rejected">>({});
 
   const handleAcceptRequest = (reqId: string, reqTitle: string, requesterName: string) => {
@@ -498,7 +495,7 @@ const s = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
     alignItems: "center",
     justifyContent: "center",
     position: "relative" as const,
@@ -522,7 +519,7 @@ const s = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#FF3B30",
     borderWidth: 1.5,
-    borderColor: "#F5F5F5",
+    borderColor: "#F8F8F8",
   },
 
   // Location
@@ -702,7 +699,7 @@ const s = StyleSheet.create({
   walkerMeta: {
     fontFamily: Fonts.medium,
     fontSize: 11,
-    color: "#636366",
+    color: "#8E8E93",
   },
   verifiedBadge: {
     backgroundColor: "#E3F2FD",
@@ -772,7 +769,7 @@ const s = StyleSheet.create({
     gap: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#F5F5F5",
+    borderTopColor: "#F8F8F8",
   },
   acceptBtn: {
     backgroundColor: "#FF6B35",
@@ -786,7 +783,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   rejectBtn: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F8F8",
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,
