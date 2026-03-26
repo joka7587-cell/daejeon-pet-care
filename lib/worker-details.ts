@@ -308,6 +308,255 @@ export const WORKER_DETAILS: Record<string, WorkerDetail> = {
     specialNotes:
       "- 행동교정 전문 (짖음, 물기, 공격성 등)\n- 산책 중 기초 훈련 (앉기, 기다리기, 손 주기)\n- 어은동 카이스트 캠퍼스 일일 2회 운영\n- 모든 견종 가능 (소형견~대형견)",
   },
+  c3: {
+    id: "c3",
+    nickname: "펫케어 수빈",
+    profileEmoji: "👩‍⚕️",
+    bio: "수의대 재학 중입니다. 건강 체크도 해드려요!",
+    rating: 4.7,
+    reviewCount: 23,
+    pricePerHour: 13000,
+    isVerified: true,
+    specialBadge: "수의대 재학생",
+    experiences: [
+      { district: "유성구", years: 2, completedWalks: 56, specialization: "건강 체크 산책" }
+    ],
+    certifications: [
+      { id: "cert_c3_1", name: "반려동물 응급처치", issuer: "대한수의사회", issueDate: "2024-06-15", imageUri: "https://placehold.co/300x200/E8F5E9/2E7D32?text=응급처치", verified: true }
+    ],
+    equipment: [
+      { id: "eq_c3_1", name: "체온계", icon: "🌡️", description: "반려동물 체온 측정", available: true },
+      { id: "eq_c3_2", name: "리드줄", icon: "🪶", description: "안전 리드줄", available: true },
+      { id: "eq_c3_3", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true }
+    ],
+    services: ["대신 산책", "건강 체크"],
+    canHandleLargeDogs: false,
+    hasTrainerCert: false,
+    responseTime: "20분 이내",
+    introduction: "수의대 재학 중인 수빈입니다. 산책 중 반려견의 건강 상태를 체크해드립니다.",
+    specialNotes: "- 기본 건강 체크 (체온, 심박, 피부)\n- 관평동 일대 산책\n- 소형견 전문"
+  },
+  c4: {
+    id: "c4",
+    nickname: "노은동 지현",
+    profileEmoji: "👩",
+    bio: "두 마리 강아지를 키우고 있어요. 경험 많습니다!",
+    rating: 4.8,
+    reviewCount: 35,
+    pricePerHour: 14000,
+    isVerified: true,
+    specialBadge: "대전 산책 전문가",
+    experiences: [
+      { district: "유성구", years: 4, completedWalks: 89, specialization: "다견 산책 전문" }
+    ],
+    certifications: [
+      { id: "cert_c4_1", name: "반려동물 돌봄 2급", issuer: "한국반려동물협회", issueDate: "2023-09-10", imageUri: "https://placehold.co/300x200/E3F2FD/1565C0?text=돌봄+2급", verified: true }
+    ],
+    equipment: [
+      { id: "eq_c4_1", name: "리드줄", icon: "🪶", description: "대형견용 리드줄", available: true },
+      { id: "eq_c4_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true },
+      { id: "eq_c4_3", name: "물통", icon: "💧", description: "휴대용 물통", available: true }
+    ],
+    services: ["대신 산책", "단기 돌봄"],
+    canHandleLargeDogs: true,
+    hasTrainerCert: false,
+    responseTime: "15분 이내",
+    introduction: "노은동에서 두 마리 강아지를 키우며 4년간 돌봄 경험을 쌓았습니다.",
+    specialNotes: "- 다견 산책 가능 (최대 3마리)\n- 노은동/지족동 일대 산책\n- 대형견 가능"
+  },
+  c5: {
+    id: "c5",
+    nickname: "봉명동 태양",
+    profileEmoji: "👨",
+    bio: "퇴직 후 반려동물 돌봄을 시작했어요. 정성껏 돌봐드립니다.",
+    rating: 4.6,
+    reviewCount: 18,
+    pricePerHour: 12000,
+    isVerified: false,
+    specialBadge: "대전 산책 전문가",
+    experiences: [
+      { district: "유성구", years: 1, completedWalks: 32, specialization: "소형견 전문" }
+    ],
+    certifications: [],
+    equipment: [
+      { id: "eq_c5_1", name: "리드줄", icon: "🪶", description: "안전 리드줄", available: true },
+      { id: "eq_c5_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true }
+    ],
+    services: ["대신 산책"],
+    canHandleLargeDogs: false,
+    hasTrainerCert: false,
+    responseTime: "30분 이내",
+    introduction: "퇴직 후 봉명동에서 반려동물 돌봄을 시작했습니다. 소형견 전문입니다.",
+    specialNotes: "- 봉명동 일대 산책\n- 소형견 전문\n- 여유로운 산책 스타일"
+  },
+  c7: {
+    id: "c7",
+    nickname: "대흥동 서연",
+    profileEmoji: "👩",
+    bio: "중구 토박이! 보문산 산책 전문이에요.",
+    rating: 4.8,
+    reviewCount: 41,
+    pricePerHour: 14000,
+    isVerified: true,
+    specialBadge: "대전 산책 전문가",
+    experiences: [
+      { district: "중구", years: 5, completedWalks: 156, specialization: "보문산 등산 산책" }
+    ],
+    certifications: [
+      { id: "cert_c7_1", name: "반려동물 돌봄 1급", issuer: "한국반려동물협회", issueDate: "2022-03-20", imageUri: "https://placehold.co/300x200/FFF3E0/E65100?text=돌봄+1급", verified: true }
+    ],
+    equipment: [
+      { id: "eq_c7_1", name: "리드줄", icon: "🪶", description: "등산용 리드줄", available: true },
+      { id: "eq_c7_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true },
+      { id: "eq_c7_3", name: "물통", icon: "💧", description: "대용량 물통", available: true },
+      { id: "eq_c7_4", name: "응급처치키트", icon: "🩹", description: "등산용 응급키트", available: true }
+    ],
+    services: ["대신 산책", "등산 산책"],
+    canHandleLargeDogs: true,
+    hasTrainerCert: false,
+    responseTime: "15분 이내",
+    introduction: "중구 토박이로 보문산 등산 산책을 5년간 해왔습니다.",
+    specialNotes: "- 보문산 등산 전문\n- 대흥동/오류동 일대\n- 대형견 가능"
+  },
+  c8: {
+    id: "c8",
+    nickname: "판암동 동현",
+    profileEmoji: "👨",
+    bio: "대청호 산책 전문! 자연 속 산책을 좋아합니다.",
+    rating: 4.7,
+    reviewCount: 28,
+    pricePerHour: 13000,
+    isVerified: true,
+    specialBadge: "대전 산책 전문가",
+    experiences: [
+      { district: "동구", years: 3, completedWalks: 72, specialization: "자연 산책 전문" }
+    ],
+    certifications: [
+      { id: "cert_c8_1", name: "산악 안전 교육", issuer: "대전산악회", issueDate: "2024-01-10", imageUri: "https://placehold.co/300x200/E8F5E9/2E7D32?text=산악안전", verified: true }
+    ],
+    equipment: [
+      { id: "eq_c8_1", name: "리드줄", icon: "🪶", description: "등산용 리드줄", available: true },
+      { id: "eq_c8_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true },
+      { id: "eq_c8_3", name: "물통", icon: "💧", description: "대용량 물통", available: true }
+    ],
+    services: ["대신 산책", "자연 산책"],
+    canHandleLargeDogs: true,
+    hasTrainerCert: false,
+    responseTime: "20분 이내",
+    introduction: "대청호 오백리길 산책을 3년간 해왔습니다. 자연 속 산책을 좋아합니다.",
+    specialNotes: "- 대청호 오백리길 전문\n- 판암동 일대\n- 대형견 가능"
+  },
+  c9: {
+    id: "c9",
+    nickname: "신탄진 유진",
+    profileEmoji: "👩",
+    bio: "계족산 황톳길 산책 전문가! 자연 치유 산책 해드려요.",
+    rating: 4.9,
+    reviewCount: 52,
+    pricePerHour: 15000,
+    isVerified: true,
+    specialBadge: "대전 산책 전문가",
+    experiences: [
+      { district: "대덕구", years: 4, completedWalks: 134, specialization: "자연 치유 산책" }
+    ],
+    certifications: [
+      { id: "cert_c9_1", name: "반려동물 돌봄 1급", issuer: "한국반려동물협회", issueDate: "2023-05-20", imageUri: "https://placehold.co/300x200/E8F5E9/2E7D32?text=돌봄+1급", verified: true }
+    ],
+    equipment: [
+      { id: "eq_c9_1", name: "리드줄", icon: "🪶", description: "등산용 리드줄", available: true },
+      { id: "eq_c9_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true },
+      { id: "eq_c9_3", name: "물통", icon: "💧", description: "대용량 물통", available: true },
+      { id: "eq_c9_4", name: "응급처치키트", icon: "🩹", description: "등산용 응급키트", available: true }
+    ],
+    services: ["대신 산책", "자연 치유 산책"],
+    canHandleLargeDogs: true,
+    hasTrainerCert: false,
+    responseTime: "15분 이내",
+    introduction: "계족산 황톳길 산책을 4년간 해왔습니다. 자연 치유 산책을 전문으로 합니다.",
+    specialNotes: "- 계족산 황톳길 전문\n- 신탄진동 일대\n- 대형견 가능"
+  },
+  c10: {
+    id: "c10",
+    nickname: "송촌동 재민",
+    profileEmoji: "👨",
+    bio: "동춘당공원 근처에 살아요. 소형견 전문입니다.",
+    rating: 4.5,
+    reviewCount: 15,
+    pricePerHour: 11000,
+    isVerified: false,
+    specialBadge: "대전 산책 전문가",
+    experiences: [
+      { district: "대덕구", years: 1, completedWalks: 28, specialization: "소형견 전문" }
+    ],
+    certifications: [],
+    equipment: [
+      { id: "eq_c10_1", name: "리드줄", icon: "🪶", description: "안전 리드줄", available: true },
+      { id: "eq_c10_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true }
+    ],
+    services: ["대신 산책"],
+    canHandleLargeDogs: false,
+    hasTrainerCert: false,
+    responseTime: "30분 이내",
+    introduction: "동춘당공원 근처에서 소형견 산책을 전문으로 합니다.",
+    specialNotes: "- 동춘당공원 일대\n- 송촌동 산책\n- 소형견 전문"
+  },
+  c11: {
+    id: "c11",
+    nickname: "유천동 소희",
+    profileEmoji: "👩",
+    bio: "중구 유천동에서 활동 중! 친절한 돌봄을 약속합니다.",
+    rating: 4.6,
+    reviewCount: 20,
+    pricePerHour: 13000,
+    isVerified: true,
+    specialBadge: "대전 산책 전문가",
+    experiences: [
+      { district: "중구", years: 2, completedWalks: 45, specialization: "소형견 전문" }
+    ],
+    certifications: [
+      { id: "cert_c11_1", name: "반려동물 돌봄 2급", issuer: "한국반려동물협회", issueDate: "2024-02-15", imageUri: "https://placehold.co/300x200/E3F2FD/1565C0?text=돌봄+2급", verified: true }
+    ],
+    equipment: [
+      { id: "eq_c11_1", name: "리드줄", icon: "🪶", description: "안전 리드줄", available: true },
+      { id: "eq_c11_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true },
+      { id: "eq_c11_3", name: "물통", icon: "💧", description: "휴대용 물통", available: true }
+    ],
+    services: ["대신 산책", "단기 돌봄"],
+    canHandleLargeDogs: false,
+    hasTrainerCert: false,
+    responseTime: "20분 이내",
+    introduction: "유천동에서 친절한 돌봄을 약속합니다. 소형견 전문입니다.",
+    specialNotes: "- 유천동 일대 산책\n- 오월드 인근 산책\n- 소형견 전문"
+  },
+  c12: {
+    id: "c12",
+    nickname: "도안동 현우",
+    profileEmoji: "👨",
+    bio: "서구 도안동에서 활동 중! 대형견도 OK!",
+    rating: 4.7,
+    reviewCount: 30,
+    pricePerHour: 14000,
+    isVerified: true,
+    specialBadge: "대전 산책 전문가",
+    experiences: [
+      { district: "서구", years: 3, completedWalks: 95, specialization: "대형견 전문" }
+    ],
+    certifications: [
+      { id: "cert_c12_1", name: "반려동물 돌봄 1급", issuer: "한국반려동물협회", issueDate: "2023-08-10", imageUri: "https://placehold.co/300x200/E8F5E9/2E7D32?text=돌봄+1급", verified: true }
+    ],
+    equipment: [
+      { id: "eq_c12_1", name: "리드줄", icon: "🪶", description: "대형견용 리드줄", available: true },
+      { id: "eq_c12_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true },
+      { id: "eq_c12_3", name: "물통", icon: "💧", description: "대용량 물통", available: true },
+      { id: "eq_c12_4", name: "응급처치키트", icon: "🩹", description: "응급처치용품", available: true }
+    ],
+    services: ["대신 산책", "단기 돌봄"],
+    canHandleLargeDogs: true,
+    hasTrainerCert: false,
+    responseTime: "15분 이내",
+    introduction: "서구 도안동에서 3년간 대형견 산책을 전문으로 해왔습니다.",
+    specialNotes: "- 도안동/둔산동 일대\n- 대형견 전문\n- 갑천 둔치 산책로 활용"
+  },
 };
 
 /**

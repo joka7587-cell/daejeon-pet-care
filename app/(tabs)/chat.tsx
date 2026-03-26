@@ -40,13 +40,14 @@ interface ChatRoom {
   isOnline: boolean;
   isFriend: boolean;
   isRequest: boolean;
+  isWorker: boolean;
   friendId?: string;
 }
 
 export default function ChatTabScreen() {
   const router = useRouter();
   const { state } = useApp();
-  const [activeTab, setActiveTab] = useState<"all" | "friends" | "requests">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "friends" | "workers" | "requests">("all");
 
   // 친구 채팅방 (친구 ID 기반 고유 키)
   const friendRooms: ChatRoom[] = useMemo(() => {
@@ -69,6 +70,7 @@ export default function ChatTabScreen() {
         isOnline: true,
         isFriend: true,
         isRequest: false,
+        isWorker: false,
         friendId: f.id,
       };
     });
@@ -95,6 +97,7 @@ export default function ChatTabScreen() {
             roomKey: key,
             otherUserName: request?.requester || "요청자",
             otherUserEmoji: "🐾",
+            isWorker: false,
             lastMessage: lastMsg.content,
             lastMessageTime: timeAgo(lastMsg.createdAt),
             unreadCount: 0,
@@ -108,9 +111,36 @@ export default function ChatTabScreen() {
     return rooms;
   }, [state.chatMessages, state.requests]);
 
-  const allRooms = [...friendRooms, ...requestRooms];
+  // 워커 채팅방 (워커 상세에서 생성된 방)
+  const workerRooms: ChatRoom[] = useMemo(() => {
+    return (state.chatRooms || []).filter((r) => r.type === "worker").map((r) => {
+      const roomKey = `room_${r.id}`;
+      const savedMessages = state.chatMessages[roomKey];
+      const lastMsg = savedMessages && savedMessages.length > 0
+        ? savedMessages[savedMessages.length - 1]
+        : null;
+
+      return {
+        id: r.id,
+        roomKey,
+        otherUserName: r.participantName,
+        otherUserEmoji: r.participantEmoji,
+        lastMessage: lastMsg ? lastMsg.content : r.lastMessage || "대화를 시작해보세요! 👋",
+        lastMessageTime: lastMsg ? timeAgo(lastMsg.createdAt) : timeAgo(r.lastMessageTime),
+        unreadCount: r.unreadCount,
+        isOnline: true,
+        isFriend: false,
+        isRequest: false,
+        isWorker: true,
+      };
+    });
+  }, [state.chatRooms, state.chatMessages]);
+
+  const allRooms = [...friendRooms, ...workerRooms, ...requestRooms];
   const filteredRooms = activeTab === "friends"
     ? allRooms.filter((r) => r.isFriend)
+    : activeTab === "workers"
+    ? workerRooms
     : activeTab === "requests"
     ? allRooms.filter((r) => r.isRequest)
     : allRooms;
@@ -159,6 +189,11 @@ export default function ChatTabScreen() {
               <Text style={{ fontSize: 8 }}>📋</Text>
             </View>
           )}
+          {item.isWorker && (
+            <View style={[styles.friendBadge, { backgroundColor: "#E8F5E9" }]}>
+              <Text style={{ fontSize: 8 }}>🚶</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.messageInfo}>
@@ -175,6 +210,11 @@ export default function ChatTabScreen() {
               {item.isRequest && (
                 <View style={styles.requestTag}>
                   <Text style={styles.requestTagText}>요청</Text>
+                </View>
+              )}
+              {item.isWorker && (
+                <View style={[styles.friendTag, { backgroundColor: "#E8F5E9" }]}>
+                  <Text style={[styles.friendTagText, { color: "#2E7D32" }]}>워커</Text>
                 </View>
               )}
             </View>
@@ -211,11 +251,13 @@ export default function ChatTabScreen() {
 
       {/* 탭 전환 */}
       <View style={styles.tabRow}>
-        {(["all", "friends", "requests"] as const).map((tab) => {
+        {(["all", "friends", "workers", "requests"] as const).map((tab) => {
           const label = tab === "all"
             ? `전체 (${allRooms.length})`
             : tab === "friends"
             ? `👫 친구 (${friendRooms.length})`
+            : tab === "workers"
+            ? `🚶 워커 (${workerRooms.length})`
             : `📋 요청 (${requestRooms.length})`;
           const isActive = activeTab === tab;
           return (
@@ -246,11 +288,13 @@ export default function ChatTabScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>
-              {activeTab === "friends" ? "👫" : activeTab === "requests" ? "📋" : "💭"}
+              {activeTab === "friends" ? "👫" : activeTab === "workers" ? "🚶" : activeTab === "requests" ? "📋" : "💬"}
             </Text>
             <Text style={[styles.emptyTitle, { color: "#1A1A1A" }]}>
               {activeTab === "friends"
                 ? "아직 친구와의 대화가 없어요"
+                : activeTab === "workers"
+                ? "아직 워커와의 대화가 없어요"
                 : activeTab === "requests"
                 ? "아직 요청 관련 대화가 없어요"
                 : "아직 대화가 없어요"}
@@ -258,6 +302,8 @@ export default function ChatTabScreen() {
             <Text style={[styles.emptyDesc, { color: "#8E8E93" }]}>
               {activeTab === "friends"
                 ? "프로필에서 친구를 추가하고 대화를 시작해보세요"
+                : activeTab === "workers"
+                ? "홈 화면에서 워커를 선택하고 상담을 시작해보세요"
                 : activeTab === "requests"
                 ? "돌봄 요청을 수락하면 채팅방이 생성됩니다"
                 : "친구를 추가하거나 요청을 수락해보세요"}

@@ -72,7 +72,11 @@ export default function WorkerDetailScreen() {
       });
     }
 
-    router.push(`/chat/${roomId}` as never);
+    const params = new URLSearchParams({
+      chatName: encodeURIComponent(workerDetail.nickname),
+      chatEmoji: encodeURIComponent(workerDetail.profileEmoji),
+    });
+    router.push(`/chat/${roomId}?${params.toString()}` as never);
   };
 
   return (

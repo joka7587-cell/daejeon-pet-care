@@ -335,10 +335,14 @@ export default function ChatScreen() {
   const decodedChatName = chatName ? decodeURIComponent(chatName) : null;
   const decodedChatEmoji = chatEmoji ? decodeURIComponent(chatEmoji) : null;
 
-  const otherUserName = decodedFriendName || decodedChatName || "상대방";
-  const otherUserEmoji = decodedFriendEmoji || decodedChatEmoji || "👤";
+  // chatRooms에서 현재 방 정보 가져오기 (워커 상세에서 생성된 방)
+  const chatRoom = state.chatRooms?.find((r) => r.id === roomId);
+
+  const otherUserName = decodedFriendName || decodedChatName || chatRoom?.participantName || "상대방";
+  const otherUserEmoji = decodedFriendEmoji || decodedChatEmoji || chatRoom?.participantEmoji || "👤";
   const isFriendChat = !!decodedFriendName;
-  const isWorkerChat = roomId?.startsWith("worker_") || false;
+  // roomId가 "room_worker_xxx" 형태이므로 worker 포함 여부로 판별
+  const isWorkerChat = roomId?.includes("worker_") || false;
 
   const roomKey = `room_${roomId}`;
 
