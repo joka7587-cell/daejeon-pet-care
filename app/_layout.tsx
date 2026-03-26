@@ -8,6 +8,10 @@ import "react-native-reanimated";
 import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+
+SplashScreen.preventAutoHideAsync();
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -34,6 +38,22 @@ export default function RootLayout() {
 
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
+
+  // Load Pretendard fonts
+  const [fontsLoaded] = useFonts({
+    "Pretendard-Light": require("@/assets/fonts/Pretendard-Light.otf"),
+    "Pretendard-Regular": require("@/assets/fonts/Pretendard-Regular.otf"),
+    "Pretendard-Medium": require("@/assets/fonts/Pretendard-Medium.otf"),
+    "Pretendard-SemiBold": require("@/assets/fonts/Pretendard-SemiBold.otf"),
+    "Pretendard-Bold": require("@/assets/fonts/Pretendard-Bold.otf"),
+    "Pretendard-ExtraBold": require("@/assets/fonts/Pretendard-ExtraBold.otf"),
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
@@ -71,6 +91,10 @@ export default function RootLayout() {
       }),
   );
   const [trpcClient] = useState(() => createTRPCClient());
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {

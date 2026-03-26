@@ -13,9 +13,13 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Review } from "@/lib/app-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { Fonts } from "@/hooks/use-fonts";
 
-function haptic() {
-  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+function haptic(type: "light" | "success" = "light") {
+  if (Platform.OS !== "web") {
+    if (type === "success") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
 }
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -25,53 +29,82 @@ const SERVICE_LABELS: Record<string, string> = {
   short_care: "단기 돌봄 교환",
 };
 
+const REVIEW_TAGS_WALKER = [
+  "시간 약속을 잘 지켜요",
+  "산책을 꼼꼼하게 해줘요",
+  "사진을 잘 보내줘요",
+  "반려견을 잘 다뤄요",
+  "친절하고 매너가 좋아요",
+  "소통이 원활해요",
+  "재이용 의사 있어요",
+];
+
+const REVIEW_TAGS_OWNER = [
+  "반려견이 순해요",
+  "정보를 정확히 알려줘요",
+  "시간 약속을 잘 지켜요",
+  "친절하고 매너가 좋아요",
+  "소통이 원활해요",
+  "재이용 의사 있어요",
+];
+
 export default function WriteReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
   const [rating, setRating] = useState(0);
   const [content, setContent] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const targetName = (params.targetName as string) || "돌보미";
   const serviceType = (params.serviceType as string) || "emergency";
+  const reviewType = (params.reviewType as string) || "walker";
+  const tags = reviewType === "owner" ? REVIEW_TAGS_OWNER : REVIEW_TAGS_WALKER;
+
+  const toggleTag = (tag: string) => {
+    haptic();
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
 
   const handleSubmit = () => {
     if (rating === 0) {
-      if (Platform.OS === "web") {
-        alert("별점을 선택해주세요!");
-      } else {
-        Alert.alert("알림", "별점을 선택해주세요!");
-      }
-      return;
-    }
-    if (!content.trim()) {
-      if (Platform.OS === "web") {
-        alert("후기를 작성해주세요!");
-      } else {
-        Alert.alert("알림", "후기를 작성해주세요!");
-      }
+      Alert.alert("알림", "별점을 선택해주세요!");
       return;
     }
 
-    haptic();
+    haptic("success");
 
     const review: Review = {
       id: `rev_${Date.now()}`,
-      fromUserId: "me",
-      fromNickname: "나",
+      fromUserId: state.profile.friendCode || "me",
+      fromNickname: state.profile.nickname,
+      fromEmoji: state.profile.avatarEmoji,
+      toUserId: (params.walkerId as string) || "unknown",
       rating,
-      content: content.trim(),
+      content: content.trim() || selectedTags.join(", "),
+      tags: selectedTags,
       serviceType,
       createdAt: new Date().toISOString(),
     };
 
     dispatch({ type: "ADD_REVIEW", payload: review });
-    setSubmitted(true);
 
-    if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
+    dispatch({
+      type: "ADD_NOTIFICATION",
+      payload: {
+        id: `notif_review_${Date.now()}`,
+        type: "match",
+        title: "⭐ 새 리뷰가 등록되었습니다",
+        body: `${state.profile.nickname}님이 ${rating}점 리뷰를 남겼습니다.`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    setSubmitted(true);
   };
 
   if (submitted) {
@@ -111,11 +144,11 @@ export default function WriteReviewScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 대상 정보 */}
         <View style={styles.targetCard}>
-          <Text style={styles.targetEmoji}>👤</Text>
+          <Text style={styles.targetEmoji}>{reviewType === "owner" ? "🏠" : "🐕‍🦺"}</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.targetName}>{targetName}</Text>
             <Text style={styles.targetService}>
-              {SERVICE_LABELS[serviceType] || serviceType}
+              {SERVICE_LABELS[serviceType] || serviceType} · {reviewType === "owner" ? "보호자 리뷰" : "도그워커 리뷰"}
             </Text>
           </View>
         </View>
@@ -145,9 +178,27 @@ export default function WriteReviewScreen() {
           </Text>
         </View>
 
+        {/* 태그 선택 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>이런 점이 좋았어요</Text>
+          <View style={styles.tagsWrap}>
+            {tags.map((tag) => (
+              <Pressable
+                key={tag}
+                onPress={() => toggleTag(tag)}
+                style={[styles.tag, selectedTags.includes(tag) && styles.tagActive]}
+              >
+                <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextActive]}>
+                  {tag}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
         {/* 후기 내용 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>후기 내용</Text>
+          <Text style={styles.sectionTitle}>상세 후기 (선택)</Text>
           <TextInput
             style={styles.textArea}
             placeholder="돌봄 서비스는 어떠셨나요? 다른 반려인에게 도움이 될 후기를 남겨주세요."
@@ -217,6 +268,18 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   charCount: { textAlign: "right", fontSize: 12, color: "#9E9E9E" },
+  tagsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  tag: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+  },
+  tagActive: { backgroundColor: "#FFF5F0", borderColor: "#FF6B35" },
+  tagText: { fontFamily: Fonts.medium, fontSize: 13, color: "#636366" },
+  tagTextActive: { color: "#FF6B35" },
   submitBtn: {
     backgroundColor: "#FF7043",
     borderRadius: 14,

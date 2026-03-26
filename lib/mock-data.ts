@@ -10,7 +10,14 @@ export interface MockUser {
   services?: string[];
   isActive?: boolean;
   distance?: string;
+  distanceKm?: number;
   profileEmoji: string;
+  pricePerHour?: number;
+  canHandleLargeDogs?: boolean;
+  hasTrainerCert?: boolean;
+  isVerified?: boolean;
+  completedWalks?: number;
+  responseTime?: string;
 }
 
 export interface MockRequest {
@@ -47,13 +54,20 @@ export const MOCK_CARETAKERS: MockUser[] = [
     nickname: "강아지사랑 민지",
     neighborhood: "유성구",
     role: "caretaker",
-    bio: "3년 경력의 반려동물 돌봄 전문가입니다. 소형견 전문이에요 🐾",
+    bio: "3년 경력의 반려동물 돌봄 전문가입니다. 소형견 전문이에요",
     rating: 4.9,
     reviewCount: 47,
     services: ["긴급 방문 돌봄", "대신 산책"],
     isActive: true,
     distance: "0.3km",
+    distanceKm: 0.3,
     profileEmoji: "👩",
+    pricePerHour: 15000,
+    canHandleLargeDogs: false,
+    hasTrainerCert: false,
+    isVerified: true,
+    completedWalks: 128,
+    responseTime: "5분 이내",
   },
   {
     id: "c2",
@@ -66,7 +80,14 @@ export const MOCK_CARETAKERS: MockUser[] = [
     services: ["대신 산책", "긴급 방문 돌봄"],
     isActive: true,
     distance: "0.8km",
+    distanceKm: 0.8,
     profileEmoji: "👨",
+    pricePerHour: 18000,
+    canHandleLargeDogs: true,
+    hasTrainerCert: true,
+    isVerified: true,
+    completedWalks: 89,
+    responseTime: "10분 이내",
   },
   {
     id: "c3",
@@ -79,7 +100,14 @@ export const MOCK_CARETAKERS: MockUser[] = [
     services: ["긴급 방문 돌봄", "대신 산책"],
     isActive: false,
     distance: "1.2km",
+    distanceKm: 1.2,
     profileEmoji: "👩‍🎓",
+    pricePerHour: 20000,
+    canHandleLargeDogs: true,
+    hasTrainerCert: false,
+    isVerified: true,
+    completedWalks: 45,
+    responseTime: "30분 이내",
   },
   {
     id: "c4",
@@ -92,7 +120,14 @@ export const MOCK_CARETAKERS: MockUser[] = [
     services: ["긴급 방문 돌봄", "대신 산책"],
     isActive: true,
     distance: "1.5km",
+    distanceKm: 1.5,
     profileEmoji: "👩",
+    pricePerHour: 12000,
+    canHandleLargeDogs: true,
+    hasTrainerCert: false,
+    isVerified: false,
+    completedWalks: 67,
+    responseTime: "15분 이내",
   },
   {
     id: "c5",
@@ -105,7 +140,34 @@ export const MOCK_CARETAKERS: MockUser[] = [
     services: ["긴급 방문 돌봄", "대신 산책"],
     isActive: true,
     distance: "2.1km",
+    distanceKm: 2.1,
     profileEmoji: "👴",
+    pricePerHour: 10000,
+    canHandleLargeDogs: false,
+    hasTrainerCert: false,
+    isVerified: true,
+    completedWalks: 203,
+    responseTime: "5분 이내",
+  },
+  {
+    id: "c6",
+    nickname: "훈련사 하나",
+    neighborhood: "유성구",
+    role: "caretaker",
+    bio: "반려견 행동교정 전문 훈련사입니다. 산책 중 기본 훈련도 가능해요.",
+    rating: 4.9,
+    reviewCount: 38,
+    services: ["대신 산책", "긴급 방문 돌봄"],
+    isActive: true,
+    distance: "0.6km",
+    distanceKm: 0.6,
+    profileEmoji: "👩‍🏫",
+    pricePerHour: 25000,
+    canHandleLargeDogs: true,
+    hasTrainerCert: true,
+    isVerified: true,
+    completedWalks: 156,
+    responseTime: "10분 이내",
   },
 ];
 
@@ -120,6 +182,7 @@ export const MOCK_OWNERS: MockUser[] = [
     reviewCount: 12,
     pets: [{ name: "골든이", breed: "골든 리트리버", size: "대형", emoji: "🐕" }],
     distance: "0.4km",
+    distanceKm: 0.4,
     profileEmoji: "👩",
   },
   {
@@ -127,7 +190,7 @@ export const MOCK_OWNERS: MockUser[] = [
     nickname: "말티즈 아빠",
     neighborhood: "둔산",
     role: "owner",
-    bio: "말티즈 두 마리 키워요. 소형견 산책 친구 구해요 🐩",
+    bio: "말티즈 두 마리 키워요. 소형견 산책 친구 구해요",
     rating: 4.5,
     reviewCount: 8,
     pets: [
@@ -135,6 +198,7 @@ export const MOCK_OWNERS: MockUser[] = [
       { name: "코코", breed: "말티즈", size: "소형", emoji: "🐩" },
     ],
     distance: "0.7km",
+    distanceKm: 0.7,
     profileEmoji: "👨",
   },
   {
@@ -147,6 +211,7 @@ export const MOCK_OWNERS: MockUser[] = [
     reviewCount: 20,
     pets: [{ name: "솜이", breed: "포메라니안", size: "소형", emoji: "🦊" }],
     distance: "1.0km",
+    distanceKm: 1.0,
     profileEmoji: "👩",
   },
 ];
@@ -218,31 +283,31 @@ export const SERVICE_TYPES = {
   owner: [
     {
       id: "walk_partner",
-      title: "산책 친구 찾기",
+      title: "산책 메이트",
       description: "함께 산책할 반려인 매칭",
       emoji: "🚶",
-      color: "#FF7043",
+      color: "#FF6B35",
     },
     {
       id: "find_caretaker",
       title: "돌보미 찾기",
       description: "전문 돌보미에게 돌봄 요청",
       emoji: "🏠",
-      color: "#4CAF82",
+      color: "#34C759",
     },
     {
       id: "walk_request",
-      title: "산책 부탁하기",
+      title: "산책 부탁",
       description: "돌보미에게 산책 위탁",
       emoji: "🐾",
-      color: "#FF9800",
+      color: "#FF9500",
     },
     {
       id: "short_care",
-      title: "단기 돌봄 교환",
+      title: "돌봄 교환",
       description: "다른 반려인과 상호 돌봄",
       emoji: "🤝",
-      color: "#9C27B0",
+      color: "#AF52DE",
     },
   ],
   caretaker: [
@@ -251,14 +316,14 @@ export const SERVICE_TYPES = {
       title: "긴급 방문 돌봄",
       description: "집 방문 1~2시간 돌봄",
       emoji: "🚨",
-      color: "#EF5350",
+      color: "#FF3B30",
     },
     {
       id: "walk_service",
       title: "대신 산책",
       description: "반려동물 대신 산책",
       emoji: "🦮",
-      color: "#4CAF82",
+      color: "#34C759",
     },
   ],
 };

@@ -238,6 +238,21 @@ export default function ProfileScreen() {
               onPress={() => { haptic(); router.push("/walk/history" as never); }}
               colors={colors}
             />
+            <MenuRow
+              emoji="📊"
+              label="대시보드"
+              onPress={() => { haptic(); router.push("/dashboard" as never); }}
+              colors={colors}
+            />
+            {state.profile.role === "caretaker" && (
+              <MenuRow
+                emoji={state.walkerVerification?.isVerified ? "✅" : "🛡️"}
+                label="도그워커 인증"
+                badge={state.walkerVerification?.isVerified ? "인증완료" : "미인증"}
+                onPress={() => { haptic(); router.push("/verify" as never); }}
+                colors={colors}
+              />
+            )}
           </SectionCard>
 
           {/* 기본 정보 */}

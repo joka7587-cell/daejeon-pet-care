@@ -22,6 +22,14 @@ module.exports = {
   theme: {
     extend: {
       colors: tailwindColors,
+      fontFamily: {
+        sans: ["Pretendard-Regular"],
+        light: ["Pretendard-Light"],
+        medium: ["Pretendard-Medium"],
+        semibold: ["Pretendard-SemiBold"],
+        bold: ["Pretendard-Bold"],
+        extrabold: ["Pretendard-ExtraBold"],
+      },
     },
   },
   plugins: [

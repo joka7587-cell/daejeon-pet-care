@@ -87,6 +87,19 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
+      "expo-font",
+      {
+        fonts: [
+          "./assets/fonts/Pretendard-Light.otf",
+          "./assets/fonts/Pretendard-Regular.otf",
+          "./assets/fonts/Pretendard-Medium.otf",
+          "./assets/fonts/Pretendard-SemiBold.otf",
+          "./assets/fonts/Pretendard-Bold.otf",
+          "./assets/fonts/Pretendard-ExtraBold.otf",
+        ],
+      },
+    ],
+    [
       "expo-audio",
       {
         microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",

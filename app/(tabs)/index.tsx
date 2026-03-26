@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, View, Text, Pressable, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native";
+import { ScrollView, View, Text, Pressable, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { MOCK_CARETAKERS, MOCK_REQUESTS, SERVICE_TYPES } from "@/lib/mock-data";
@@ -7,88 +7,33 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { Fonts } from "@/hooks/use-fonts";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
 
-interface NearbyRequest {
-  id: number;
-  title: string;
-  service: string;
-  distance: number;
-  date: string;
-  time: string;
-  requesterName: string;
-  rating: number;
-  isUrgent: boolean;
-}
-
-const NEARBY_REQUESTS: NearbyRequest[] = [
-  {
-    id: 1,
-    title: "오후 산책 부탁드립니다",
-    service: "산책",
-    distance: 0.8,
-    date: "2025-03-13",
-    time: "14:00",
-    requesterName: "미영",
-    rating: 4.8,
-    isUrgent: false,
-  },
-  {
-    id: 2,
-    title: "긴급! 오늘 저녁 돌봐주실 분",
-    service: "긴급 돌봄",
-    distance: 1.2,
-    date: "2025-03-12",
-    time: "18:00",
-    requesterName: "준호",
-    rating: 4.9,
-    isUrgent: true,
-  },
-  {
-    id: 3,
-    title: "주말 산책 친구 찾습니다",
-    service: "산책",
-    distance: 0.5,
-    date: "2025-03-15",
-    time: "10:00",
-    requesterName: "지은",
-    rating: 4.7,
-    isUrgent: false,
-  },
-];
-
-// 반려인 홈
+// 반려인(보호자) 홈
 function OwnerHome() {
   const { state } = useApp();
   const router = useRouter();
   const colors = useColors();
-  const nearbyCaretakers = MOCK_CARETAKERS.filter(
-    (c) => c.isActive && (c.neighborhood === state.profile.neighborhood || true)
-  ).slice(0, 3);
-
+  const nearbyCaretakers = MOCK_CARETAKERS.filter((c) => c.isActive).slice(0, 4);
   const services = SERVICE_TYPES.owner;
 
   const handleServicePress = (serviceId: string) => {
     haptic();
-    // 각 서비스별로 적절한 화면으로 이동
     switch (serviceId) {
       case "walk_partner":
-        // 산책 친구 찾기 → 찾기 탭의 산책 친구 탭
         router.push({ pathname: "/(tabs)/explore", params: { tab: "walk_partner" } } as never);
         break;
       case "find_caretaker":
-        // 돌보미 찾기 → 찾기 탭의 돌보미 찾기 탭
         router.push({ pathname: "/(tabs)/explore", params: { tab: "find_caretaker" } } as never);
         break;
       case "walk_request":
-        // 산책 부탁하기 → 요청 작성 화면
         router.push("/request/new" as never);
         break;
       case "short_care":
-        // 단기 돌봄 교환 → 찾기 탭의 돌봄 교환 탭
         router.push({ pathname: "/(tabs)/explore", params: { tab: "short_care" } } as never);
         break;
       default:
@@ -97,170 +42,169 @@ function OwnerHome() {
   };
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
       {/* 헤더 */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <View>
-          <Text style={[styles.greeting, { color: colors.muted }]}>안녕하세요 👋</Text>
-          <Text style={[styles.nickname, { color: colors.foreground }]}>{state.profile.nickname || "반려인"}</Text>
+      <View style={s.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerGreeting}>안녕하세요,</Text>
+          <Text style={s.headerName}>{state.profile.nickname || "반려인"}님</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Pressable
             onPress={() => { haptic(); router.push("/notifications" as never); }}
-            style={({ pressed }) => [styles.notificationBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.7 }]}
           >
-            <Text style={{ fontSize: 20 }}>🔔</Text>
+            <Text style={{ fontSize: 18 }}>🔔</Text>
             {(state.notifications || []).filter((n: any) => !n.isRead).length > 0 && (
-              <View style={styles.notifDot} />
+              <View style={s.notifDot} />
             )}
           </Pressable>
-          <View style={styles.neighborhoodBadge}>
-            <Text style={styles.neighborhoodText}>📍 {state.profile.neighborhood || "동네 미설정"}</Text>
-          </View>
+          <Pressable
+            onPress={() => { haptic(); router.push("/(tabs)/profile" as never); }}
+            style={({ pressed }) => [s.avatarBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={{ fontSize: 20 }}>{state.profile.avatarEmoji || "😊"}</Text>
+          </Pressable>
         </View>
       </View>
 
-      {/* 빠른 서비스 버튼 */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>무엇을 찾으시나요?</Text>
-        <View style={styles.serviceGrid}>
+      {/* 위치 배너 */}
+      <View style={s.locationBar}>
+        <Text style={s.locationIcon}>📍</Text>
+        <Text style={s.locationText}>{state.profile.neighborhood || "동네 미설정"}</Text>
+      </View>
+
+      {/* 서비스 그리드 */}
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>서비스</Text>
+        <View style={s.serviceGrid}>
           {services.map((svc) => (
             <Pressable
               key={svc.id}
               onPress={() => handleServicePress(svc.id)}
               style={({ pressed }) => [
-                styles.serviceCard,
-                { borderColor: svc.color + "40", backgroundColor: svc.color + "12" },
-                pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                s.serviceCard,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
               ]}
             >
-              <Text style={styles.serviceEmoji}>{svc.emoji}</Text>
-              <Text style={styles.serviceName}>{svc.title}</Text>
+              <View style={[s.serviceIconWrap, { backgroundColor: svc.color + "15" }]}>
+                <Text style={s.serviceEmoji}>{svc.emoji}</Text>
+              </View>
+              <Text style={s.serviceName}>{svc.title}</Text>
+              <Text style={s.serviceDesc}>{svc.description}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
-      {/* 근처 돌봄 요청 */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>근처 돌봄 요청</Text>
-          <Pressable onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}>
-            <Text style={styles.seeAllLink}>모두 보기 →</Text>
-          </Pressable>
-        </View>
-        <View style={styles.requestsList}>
-          {NEARBY_REQUESTS.map((req) => (
-            <Pressable
-              key={req.id}
-              onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
-              style={({ pressed }) => [
-                styles.requestCard,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-              ]}
-            >
-              <View style={styles.requestHeader}>
-                <View style={styles.requestTitleContainer}>
-                  <Text style={styles.requestTitle}>{req.title}</Text>
-                  {req.isUrgent && (
-                    <View style={styles.urgentBadge}>
-                      <Text style={styles.urgentText}>긴급</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.requestRating}>⭐ {req.rating}</Text>
-              </View>
-
-              <View style={styles.requestInfo}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>서비스</Text>
-                  <Text style={styles.infoValue}>{req.service}</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>거리</Text>
-                  <Text style={styles.infoValue}>{req.distance} km</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>시간</Text>
-                  <Text style={styles.infoValue}>{req.time}</Text>
-                </View>
-              </View>
-
-              <View style={styles.requestFooter}>
-                <Text style={styles.requesterName}>{req.requesterName}님의 요청</Text>
-                <TouchableOpacity
-                  style={styles.acceptBtn}
-                  onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
-                >
-                  <Text style={styles.acceptBtnText}>수락하기</Text>
-                </TouchableOpacity>
-              </View>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      {/* 산책 기록 확인 */}
+      {/* 산책 기록 배너 */}
       {(state.walkSessions || []).length > 0 && (
-        <View style={styles.section}>
+        <View style={s.section}>
           <Pressable
             onPress={() => { haptic(); router.push("/walk/history" as never); }}
-            style={({ pressed }) => [{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#FF704315",
-              borderRadius: 14,
-              padding: 16,
-              borderWidth: 1,
-              borderColor: "#FF704330",
-              gap: 12,
-            }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+            style={({ pressed }) => [s.bannerCard, s.bannerWalk, pressed && { opacity: 0.85 }]}
           >
-            <Text style={{ fontSize: 28 }}>🐾</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: "#E64A19" }}>산책 기록 확인</Text>
-              <Text style={{ fontSize: 12, color: "#FF7043", marginTop: 2 }}>
-                돌보미의 산책 기록을 확인해보세요
-              </Text>
+            <View style={s.bannerIconWrap}>
+              <Text style={{ fontSize: 24 }}>🐾</Text>
             </View>
-            <Text style={{ fontSize: 18, color: "#FF7043" }}>→</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.bannerTitle}>산책 기록 확인</Text>
+              <Text style={s.bannerSub}>돌보미의 산책 기록을 확인해보세요</Text>
+            </View>
+            <Text style={{ fontSize: 16, color: "#FF6B35" }}>›</Text>
           </Pressable>
         </View>
       )}
 
       {/* 추천 돌보미 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>추천 돌보미</Text>
-        <FlatList
-          data={nearbyCaretakers}
-          renderItem={({ item }) => (
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>추천 돌보미</Text>
+          <Pressable onPress={() => { haptic(); router.push("/(tabs)/explore" as never); }}>
+            <Text style={s.seeAll}>더보기</Text>
+          </Pressable>
+        </View>
+        <View style={{ gap: 10 }}>
+          {nearbyCaretakers.map((item) => (
             <Pressable
+              key={item.id}
               onPress={() => { haptic(); router.push(`/profile/${item.id}` as never); }}
-              style={({ pressed }) => [
-                styles.caretakerCard,
-                pressed && { opacity: 0.8 },
-              ]}
+              style={({ pressed }) => [s.walkerCard, pressed && { opacity: 0.85 }]}
             >
-              <View style={styles.caretakerInfo}>
-                <View style={styles.caretakerAvatar}>
-                  <Text style={styles.avatarText}>{(item.nickname || "돌").charAt(0)}</Text>
+              <View style={s.walkerAvatar}>
+                <Text style={{ fontSize: 28 }}>{item.profileEmoji}</Text>
+                {item.isActive && <View style={s.onlineDot} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={s.walkerName}>{item.nickname}</Text>
+                  {item.isVerified && (
+                    <View style={s.verifiedBadge}>
+                      <Text style={s.verifiedText}>인증</Text>
+                    </View>
+                  )}
+                  {item.hasTrainerCert && (
+                    <View style={s.trainerBadge}>
+                      <Text style={s.trainerText}>훈련사</Text>
+                    </View>
+                  )}
                 </View>
-                <View style={styles.caretakerDetails}>
-                  <Text style={styles.caretakerName}>{item.nickname || "돌보미"}</Text>
-                  <Text style={styles.caretakerRole}>{item.role === "caretaker" ? "돌보미" : "산책친구"}</Text>
-                  <Text style={styles.caretakerRating}>⭐ {item.rating} (리뷰)</Text>
+                <Text style={s.walkerBio} numberOfLines={1}>{item.bio}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 }}>
+                  <Text style={s.walkerMeta}>⭐ {item.rating}</Text>
+                  <Text style={s.walkerMeta}>📍 {item.distance}</Text>
+                  {item.pricePerHour && (
+                    <Text style={s.walkerMeta}>₩{(item.pricePerHour / 1000).toFixed(0)}k/h</Text>
+                  )}
                 </View>
               </View>
             </Pressable>
-          )}
-          scrollEnabled={false}
-        />
+          ))}
+        </View>
+      </View>
+
+      {/* 근처 요청 */}
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>근처 돌봄 요청</Text>
+          <Pressable onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}>
+            <Text style={s.seeAll}>더보기</Text>
+          </Pressable>
+        </View>
+        <View style={{ gap: 10 }}>
+          {MOCK_REQUESTS.slice(0, 3).map((req) => (
+            <Pressable
+              key={req.id}
+              onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
+              style={({ pressed }) => [s.requestCard, pressed && { opacity: 0.85 }]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View style={s.requestEmoji}>
+                  <Text style={{ fontSize: 24 }}>{req.petEmoji}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={s.requestTitle} numberOfLines={1}>{req.title}</Text>
+                    {req.isUrgent && (
+                      <View style={s.urgentBadge}>
+                        <Text style={s.urgentText}>긴급</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={s.requestMeta}>
+                    {req.requester} · 📍 {req.neighborhood} · {req.date} {req.time}
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
 }
 
-// 돌보미 홈
+// 돌보미(워커) 홈
 function CaretakerHome() {
   const { state, dispatch } = useApp();
   const router = useRouter();
@@ -270,7 +214,6 @@ function CaretakerHome() {
   const handleAcceptRequest = (reqId: string, reqTitle: string, requesterName: string) => {
     haptic();
     setHandledRequests(prev => ({ ...prev, [String(reqId)]: "accepted" }));
-    // 알림 생성
     dispatch({
       type: "ADD_NOTIFICATION",
       payload: {
@@ -284,7 +227,6 @@ function CaretakerHome() {
         createdAt: new Date().toISOString(),
       },
     });
-    // 채팅방 생성
     const chatRoomId = `request_${reqId}`;
     dispatch({
       type: "ADD_CHAT_MESSAGE",
@@ -320,54 +262,48 @@ function CaretakerHome() {
     });
   };
 
+  const completedWalks = (state.walkSessions || []).filter(ws => ws.status === "completed").length;
+
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
       {/* 헤더 */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <View>
-          <Text style={[styles.greeting, { color: colors.muted }]}>안녕하세요 👋</Text>
-          <Text style={[styles.nickname, { color: colors.foreground }]}>{state.profile.nickname || "돌보미"}</Text>
+      <View style={s.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerGreeting}>안녕하세요,</Text>
+          <Text style={s.headerName}>{state.profile.nickname || "돌보미"}님</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Pressable
             onPress={() => { haptic(); router.push("/notifications" as never); }}
-            style={({ pressed }) => [styles.notificationBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.7 }]}
           >
-            <Text style={{ fontSize: 20 }}>🔔</Text>
+            <Text style={{ fontSize: 18 }}>🔔</Text>
             {(state.notifications || []).filter((n: any) => !n.isRead).length > 0 && (
-              <View style={styles.notifDot} />
+              <View style={s.notifDot} />
             )}
           </Pressable>
-          <View style={styles.neighborhoodBadge}>
-            <Text style={styles.neighborhoodText}>📍 {state.profile.neighborhood || "동네 미설정"}</Text>
-          </View>
+          <Pressable
+            onPress={() => { haptic(); router.push("/(tabs)/profile" as never); }}
+            style={({ pressed }) => [s.avatarBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={{ fontSize: 20 }}>{state.profile.avatarEmoji || "😊"}</Text>
+          </Pressable>
         </View>
       </View>
 
-      {/* 활동 상태 */}
-      <View style={styles.section}>
-        <View style={[
-          styles.statusCard,
-          !state.profile.isOnline && { backgroundColor: "#FFF3EE", borderColor: "#FFCCBC" },
-        ]}>
-          <View>
-            <Text style={styles.statusLabel}>현재 활동 상태</Text>
-            <Text style={styles.statusValue}>
-              {state.profile.isOnline ? "🟢 온라인" : "🔴 오프라인"}
+      {/* 활동 상태 카드 */}
+      <View style={s.section}>
+        <View style={[s.statusCard, state.profile.isOnline ? s.statusOnline : s.statusOffline]}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.statusLabel}>현재 상태</Text>
+            <Text style={[s.statusValue, { color: state.profile.isOnline ? "#34C759" : "#FF3B30" }]}>
+              {state.profile.isOnline ? "● 활동 중" : "● 오프라인"}
             </Text>
             {!state.profile.isOnline && (
-              <Text style={{ fontSize: 12, color: "#FF7043", marginTop: 2 }}>
-                새 요청을 받지 않습니다
-              </Text>
+              <Text style={s.statusHint}>새 요청을 받지 않습니다</Text>
             )}
           </View>
           <Pressable
-            style={[
-              styles.statusToggle,
-              state.profile.isOnline
-                ? { backgroundColor: "#FFEBEE" }
-                : { backgroundColor: "#E8F5E9" },
-            ]}
             onPress={() => {
               haptic();
               dispatch({ type: "TOGGLE_ONLINE" });
@@ -379,23 +315,41 @@ function CaretakerHome() {
                 );
               }
             }}
+            style={({ pressed }) => [
+              s.statusToggleBtn,
+              state.profile.isOnline ? s.toggleOff : s.toggleOn,
+              pressed && { opacity: 0.8 },
+            ]}
           >
-            <Text style={[
-              styles.statusToggleText,
-              state.profile.isOnline
-                ? { color: "#C62828" }
-                : { color: "#2E7D32" },
-            ]}>
-              {state.profile.isOnline ? "오프라인으로 전환" : "온라인으로 전환"}
+            <Text style={[s.toggleText, state.profile.isOnline ? { color: "#FF3B30" } : { color: "#34C759" }]}>
+              {state.profile.isOnline ? "비활성화" : "활성화"}
             </Text>
           </Pressable>
         </View>
       </View>
 
+      {/* 통계 요약 */}
+      <View style={s.section}>
+        <View style={s.statsRow}>
+          <View style={s.statCard}>
+            <Text style={s.statNumber}>{completedWalks}</Text>
+            <Text style={s.statLabel}>완료 산책</Text>
+          </View>
+          <View style={s.statCard}>
+            <Text style={s.statNumber}>{state.profile.rating?.toFixed(1) || "0.0"}</Text>
+            <Text style={s.statLabel}>평점</Text>
+          </View>
+          <View style={s.statCard}>
+            <Text style={s.statNumber}>{MOCK_REQUESTS.filter(r => r.status === "pending").length}</Text>
+            <Text style={s.statLabel}>대기 요청</Text>
+          </View>
+        </View>
+      </View>
+
       {/* 제공 서비스 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>제공 서비스</Text>
-        <View style={styles.serviceGrid}>
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>제공 서비스</Text>
+        <View style={{ flexDirection: "row", gap: 10 }}>
           {SERVICE_TYPES.caretaker.map((svc) => (
             <Pressable
               key={svc.id}
@@ -404,98 +358,102 @@ function CaretakerHome() {
                 router.push({ pathname: "/(tabs)/explore", params: { tab: svc.id } } as never);
               }}
               style={({ pressed }) => [
-                styles.serviceCard,
-                { borderColor: svc.color + "40", backgroundColor: svc.color + "12" },
-                pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                s.serviceCardSmall,
+                { borderColor: svc.color + "30" },
+                pressed && { opacity: 0.85 },
               ]}
             >
-              <Text style={styles.serviceEmoji}>{svc.emoji}</Text>
-              <Text style={styles.serviceName}>{svc.title}</Text>
+              <Text style={{ fontSize: 24 }}>{svc.emoji}</Text>
+              <Text style={s.serviceNameSmall}>{svc.title}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
-      {/* 산책 기록 바로가기 */}
-      <View style={styles.section}>
-        <Pressable
-          onPress={() => { haptic(); router.push("/walk/history" as never); }}
-          style={({ pressed }) => [{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "#4CAF8215",
-            borderRadius: 14,
-            padding: 16,
-            borderWidth: 1,
-            borderColor: "#4CAF8230",
-            gap: 12,
-          }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
-        >
-          <Text style={{ fontSize: 28 }}>🐾</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: "700", color: "#2E7D32" }}>산책 기록</Text>
-            <Text style={{ fontSize: 12, color: "#4CAF82", marginTop: 2 }}>
-              {(state.walkSessions || []).filter(s => s.status === "completed").length}회 산책 완료
-            </Text>
-          </View>
-          <Text style={{ fontSize: 18, color: "#4CAF82" }}>→</Text>
-        </Pressable>
+      {/* 산책 기록 + 대시보드 */}
+      <View style={s.section}>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Pressable
+            onPress={() => { haptic(); router.push("/walk/history" as never); }}
+            style={({ pressed }) => [s.bannerCard, s.bannerWalk, { flex: 1 }, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={{ fontSize: 20 }}>🐾</Text>
+            <Text style={[s.bannerTitle, { fontSize: 13 }]}>산책 기록</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { haptic(); router.push("/dashboard" as never); }}
+            style={({ pressed }) => [s.bannerCard, { flex: 1, backgroundColor: "#F0F5FF", borderColor: "#D0E0FF" }, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={{ fontSize: 20 }}>📊</Text>
+            <Text style={[s.bannerTitle, { fontSize: 13, color: "#3478F6" }]}>대시보드</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* 새 요청 */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>새 요청 (3)</Text>
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>새 요청</Text>
           <Pressable onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}>
-            <Text style={styles.seeAllLink}>모두 보기 →</Text>
+            <Text style={s.seeAll}>더보기</Text>
           </Pressable>
         </View>
-        <View style={styles.requestsList}>
-          {MOCK_REQUESTS.slice(0, 2).map((req) => (
-            <Pressable
-              key={req.id}
-              onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
-              style={({ pressed }) => [
-                styles.requestCard,
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <View style={styles.requestHeader}>
-                <Text style={styles.requestTitle}>{req.title}</Text>
-                <Text style={styles.requestDate}>{req.date}</Text>
-              </View>
-              <Text style={styles.requestDescription}>{req.description}</Text>
-              <View style={styles.requestActions}>
+        <View style={{ gap: 10 }}>
+          {MOCK_REQUESTS.slice(0, 3).map((req) => (
+            <View key={req.id} style={s.requestCard}>
+              <Pressable
+                onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                  <View style={s.requestEmoji}>
+                    <Text style={{ fontSize: 24 }}>{req.petEmoji}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Text style={s.requestTitle} numberOfLines={1}>{req.title}</Text>
+                      {req.isUrgent && (
+                        <View style={s.urgentBadge}>
+                          <Text style={s.urgentText}>긴급</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={s.requestMeta}>
+                      {req.requester} · {req.neighborhood} · {req.date} {req.time}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+              <View style={s.requestActions}>
                 {handledRequests[String(req.id)] ? (
                   <View style={[
-                    styles.statusBadge,
-                    handledRequests[String(req.id)] === "accepted" ? styles.acceptedBadge : styles.rejectedBadge
+                    s.actionBadge,
+                    handledRequests[String(req.id)] === "accepted" ? s.acceptedBadge : s.rejectedBadge
                   ]}>
                     <Text style={[
-                      styles.statusBadgeText,
-                      handledRequests[String(req.id)] === "accepted" ? styles.acceptedBadgeText : styles.rejectedBadgeText
+                      s.actionBadgeText,
+                      handledRequests[String(req.id)] === "accepted" ? { color: "#34C759" } : { color: "#FF3B30" }
                     ]}>
-                      {handledRequests[String(req.id)] === "accepted" ? "✅ 수락됨" : "❌ 거절됨"}
+                      {handledRequests[String(req.id)] === "accepted" ? "✓ 수락됨" : "✕ 거절됨"}
                     </Text>
                   </View>
                 ) : (
                   <>
-                    <TouchableOpacity
-                      style={styles.acceptBtn}
-                      onPress={() => handleAcceptRequest(req.id, req.title, "요청자")}
-                    >
-                      <Text style={styles.acceptBtnText}>수락</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.rejectBtn}
+                    <Pressable
                       onPress={() => handleRejectRequest(req.id, req.title)}
+                      style={({ pressed }) => [s.rejectBtn, pressed && { opacity: 0.7 }]}
                     >
-                      <Text style={styles.rejectBtnText}>거절</Text>
-                    </TouchableOpacity>
+                      <Text style={s.rejectBtnText}>거절</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleAcceptRequest(req.id, req.title, req.requester)}
+                      style={({ pressed }) => [s.acceptBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+                    >
+                      <Text style={s.acceptBtnText}>수락</Text>
+                    </Pressable>
                   </>
                 )}
               </View>
-            </Pressable>
+            </View>
           ))}
         </View>
       </View>
@@ -514,38 +472,77 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
+  // Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
   },
-  greeting: {
+  headerGreeting: {
+    fontFamily: Fonts.regular,
     fontSize: 14,
-    color: "#9E9E9E",
-    marginBottom: 2,
+    color: "#8E8E93",
+    letterSpacing: -0.2,
   },
-  nickname: {
-    fontSize: 20,
-    fontWeight: "700",
+  headerName: {
+    fontFamily: Fonts.extraBold,
+    fontSize: 22,
     color: "#1A1A1A",
+    letterSpacing: -0.5,
   },
-  neighborhoodBadge: {
-    backgroundColor: "#FFF3E0",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative" as const,
   },
-  neighborhoodText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FF7043",
+  avatarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#FFF0EB",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#FF6B35",
   },
+  notifDot: {
+    position: "absolute" as const,
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FF3B30",
+    borderWidth: 1.5,
+    borderColor: "#F5F5F5",
+  },
+
+  // Location
+  locationBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  locationIcon: { fontSize: 14 },
+  locationText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: "#FF6B35",
+  },
+
+  // Section
   section: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     marginBottom: 24,
   },
   sectionHeader: {
@@ -555,257 +552,338 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
+    fontFamily: Fonts.bold,
     fontSize: 18,
-    fontWeight: "700",
     color: "#1A1A1A",
+    letterSpacing: -0.3,
+    marginBottom: 12,
   },
-  seeAllLink: {
-    fontSize: 12,
-    color: "#FF7043",
-    fontWeight: "600",
+  seeAll: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: "#FF6B35",
+    marginBottom: 12,
   },
+
+  // Service Grid
   serviceGrid: {
     flexDirection: "row",
-    gap: 12,
     flexWrap: "wrap",
+    gap: 10,
   },
   serviceCard: {
-    flex: 1,
-    minWidth: "30%",
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
-    gap: 8,
-  },
-  serviceEmoji: {
-    fontSize: 28,
-  },
-  serviceName: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#1A1A1A",
-    textAlign: "center",
-  },
-  requestsList: {
-    gap: 12,
-  },
-  requestCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    width: "48%" as any,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: "#F0F0F0",
-    padding: 12,
-    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  requestHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  requestTitleContainer: {
-    flex: 1,
-    flexDirection: "row",
+  serviceIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    marginBottom: 10,
   },
-  requestTitle: {
+  serviceEmoji: {
+    fontSize: 22,
+  },
+  serviceName: {
+    fontFamily: Fonts.bold,
     fontSize: 14,
-    fontWeight: "700",
     color: "#1A1A1A",
-    flex: 1,
-  },
-  requestRating: {
-    fontSize: 12,
-    color: "#FF7043",
-    fontWeight: "600",
-  },
-  requestDate: {
-    fontSize: 12,
-    color: "#9E9E9E",
-  },
-  requestDescription: {
-    fontSize: 13,
-    color: "#616161",
-    lineHeight: 18,
-  },
-  urgentBadge: {
-    backgroundColor: "#EF5350",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  urgentText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  requestInfo: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  infoItem: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 11,
-    color: "#9E9E9E",
     marginBottom: 2,
   },
-  infoValue: {
+  serviceDesc: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#8E8E93",
+    lineHeight: 15,
+  },
+  serviceCardSmall: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  serviceNameSmall: {
+    fontFamily: Fonts.bold,
     fontSize: 13,
-    fontWeight: "600",
     color: "#1A1A1A",
   },
-  requestFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  requesterName: {
-    fontSize: 12,
-    color: "#9E9E9E",
-  },
-  acceptBtn: {
-    backgroundColor: "#FF7043",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  acceptBtnText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  rejectBtn: {
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  rejectBtnText: {
-    color: "#616161",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  requestActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  caretakerCard: {
-    flexDirection: "row",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
-  },
-  caretakerInfo: {
+
+  // Banner
+  bannerCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    flex: 1,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
   },
-  caretakerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FF7043",
+  bannerWalk: {
+    backgroundColor: "#FFF5F0",
+    borderColor: "#FFD9C7",
+  },
+  bannerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#FF6B3515",
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  caretakerDetails: {
-    flex: 1,
-  },
-  caretakerName: {
+  bannerTitle: {
+    fontFamily: Fonts.bold,
     fontSize: 14,
-    fontWeight: "700",
-    color: "#1A1A1A",
+    color: "#FF6B35",
   },
-  caretakerRole: {
-    fontSize: 12,
-    color: "#9E9E9E",
-    marginTop: 2,
+  bannerSub: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#C4724A",
+    marginTop: 1,
   },
-  caretakerRating: {
-    fontSize: 12,
-    color: "#FF7043",
-    marginTop: 2,
-  },
-  statusCard: {
+
+  // Walker Card
+  walkerCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    borderRadius: 12,
-    padding: 16,
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: "#9E9E9E",
-    marginBottom: 4,
-  },
-  statusValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1A1A1A",
-  },
-  statusToggle: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: "#F0F0F0",
   },
-  statusToggleText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#616161",
-  },
-  notificationBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F5F5F5",
+  walkerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFF0EB",
     alignItems: "center",
     justifyContent: "center",
     position: "relative" as const,
   },
-  notifDot: {
+  onlineDot: {
     position: "absolute" as const,
-    top: 6,
-    right: 6,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#EF5350",
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#34C759",
     borderWidth: 2,
-    borderColor: "#F5F5F5",
+    borderColor: "#FFFFFF",
   },
-  statusBadge: {
+  walkerName: {
+    fontFamily: Fonts.bold,
+    fontSize: 14,
+    color: "#1A1A1A",
+  },
+  walkerBio: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: "#8E8E93",
+    marginTop: 2,
+  },
+  walkerMeta: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: "#636366",
+  },
+  verifiedBadge: {
+    backgroundColor: "#E3F2FD",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  verifiedText: {
+    fontFamily: Fonts.bold,
+    fontSize: 9,
+    color: "#1976D2",
+  },
+  trainerBadge: {
+    backgroundColor: "#FFF3E0",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  trainerText: {
+    fontFamily: Fonts.bold,
+    fontSize: 9,
+    color: "#E65100",
+  },
+
+  // Request Card
+  requestCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  requestEmoji: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#FFF5F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  requestTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: 14,
+    color: "#1A1A1A",
+    flex: 1,
+  },
+  requestMeta: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#8E8E93",
+    marginTop: 3,
+  },
+  urgentBadge: {
+    backgroundColor: "#FF3B30",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  urgentText: {
+    fontFamily: Fonts.bold,
+    fontSize: 9,
+    color: "#FFFFFF",
+  },
+  requestActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F5F5F5",
+  },
+  acceptBtn: {
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  acceptBtnText: {
+    fontFamily: Fonts.bold,
+    color: "#FFFFFF",
+    fontSize: 13,
+  },
+  rejectBtn: {
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  rejectBtnText: {
+    fontFamily: Fonts.semiBold,
+    color: "#8E8E93",
+    fontSize: 13,
+  },
+  actionBadge: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    alignItems: "center" as const,
   },
   acceptedBadge: {
-    backgroundColor: "#E8F5E9",
+    backgroundColor: "#F0FFF0",
   },
   rejectedBadge: {
-    backgroundColor: "#FFEBEE",
+    backgroundColor: "#FFF0F0",
   },
-  statusBadgeText: {
+  actionBadgeText: {
+    fontFamily: Fonts.bold,
+    fontSize: 13,
+  },
+
+  // Status Card (Caretaker)
+  statusCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+  },
+  statusOnline: {
+    backgroundColor: "#F0FFF0",
+    borderColor: "#C8E6C9",
+  },
+  statusOffline: {
+    backgroundColor: "#FFF5F0",
+    borderColor: "#FFD9C7",
+  },
+  statusLabel: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#8E8E93",
+    marginBottom: 2,
+  },
+  statusValue: {
+    fontFamily: Fonts.extraBold,
+    fontSize: 16,
+  },
+  statusHint: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#FF6B35",
+    marginTop: 2,
+  },
+  statusToggleBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  toggleOn: {
+    backgroundColor: "#F0FFF0",
+    borderColor: "#34C759",
+  },
+  toggleOff: {
+    backgroundColor: "#FFF0F0",
+    borderColor: "#FF3B30",
+  },
+  toggleText: {
+    fontFamily: Fonts.bold,
     fontSize: 12,
-    fontWeight: "700" as const,
   },
-  acceptedBadgeText: {
-    color: "#2E7D32",
+
+  // Stats
+  statsRow: {
+    flexDirection: "row",
+    gap: 10,
   },
-  rejectedBadgeText: {
-    color: "#C62828",
+  statCard: {
+    flex: 1,
+    backgroundColor: "#F8F8F8",
+    borderRadius: 14,
+    padding: 14,
+    alignItems: "center",
+  },
+  statNumber: {
+    fontFamily: Fonts.extraBold,
+    fontSize: 22,
+    color: "#1A1A1A",
+  },
+  statLabel: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: "#8E8E93",
+    marginTop: 2,
   },
 });

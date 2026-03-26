@@ -52,6 +52,11 @@ export default function PetRegisterScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [showBreedPicker, setShowBreedPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [weight, setWeight] = useState("");
+  const [aggression, setAggression] = useState<"없음" | "주의" | "위험">("없음");
+  const [medicalConditions, setMedicalConditions] = useState("");
+  const [walkNotes, setWalkNotes] = useState<string[]>([]);
+  const [preferredTrails, setPreferredTrails] = useState<string[]>([]);
 
   const isValid = name.trim() && breed.trim() && age.trim() && size;
 
@@ -106,6 +111,11 @@ export default function PetRegisterScreen() {
       size: size!,
       emoji,
       photoUri: photoUri || undefined,
+      aggression,
+      medicalConditions: medicalConditions.trim(),
+      walkNotes,
+      preferredTrails,
+      weight: weight ? parseFloat(weight) : undefined,
     };
 
     dispatch({ type: "ADD_PET", payload: newPet });
@@ -295,6 +305,110 @@ export default function PetRegisterScreen() {
                 </Text>
                 <Text style={[styles.sizeDesc, size === opt.value && { color: "#FF7043" }]}>
                   {opt.desc}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* 체중 입력 */}
+        <View style={styles.fieldSection}>
+          <Text style={styles.fieldLabel}>체중 (kg)</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="예: 5.2"
+            placeholderTextColor="#BDBDBD"
+            value={weight}
+            onChangeText={(text) => setWeight(text.replace(/[^0-9.]/g, ""))}
+            keyboardType="decimal-pad"
+            maxLength={5}
+            returnKeyType="done"
+          />
+        </View>
+
+        {/* 공격성 여부 */}
+        <View style={styles.fieldSection}>
+          <Text style={styles.fieldLabel}>공격성 여부</Text>
+          <View style={styles.sizeRow}>
+            {(["없음", "주의", "위험"] as const).map((level) => {
+              const aggrEmoji = level === "없음" ? "😊" : level === "주의" ? "⚠️" : "🚨";
+              const aggrColor = level === "없음" ? "#4CAF50" : level === "주의" ? "#FF9800" : "#F44336";
+              return (
+                <Pressable
+                  key={level}
+                  onPress={() => { haptic(); setAggression(level); }}
+                  style={({ pressed }) => [
+                    styles.sizeOption,
+                    aggression === level && { borderColor: aggrColor, backgroundColor: aggrColor + "10" },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                >
+                  <Text style={{ fontSize: 20 }}>{aggrEmoji}</Text>
+                  <Text style={[styles.sizeLabel, aggression === level && { color: aggrColor }]}>{level}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* 지병 정보 */}
+        <View style={styles.fieldSection}>
+          <Text style={styles.fieldLabel}>지병 정보</Text>
+          <TextInput
+            style={[styles.textInput, { minHeight: 60, textAlignVertical: "top" }]}
+            placeholder="알레르기, 관절 질환, 심장병 등 (없으면 비워두세요)"
+            placeholderTextColor="#BDBDBD"
+            value={medicalConditions}
+            onChangeText={setMedicalConditions}
+            multiline
+            maxLength={200}
+          />
+        </View>
+
+        {/* 산책 시 주의사항 */}
+        <View style={styles.fieldSection}>
+          <Text style={styles.fieldLabel}>산책 시 주의사항</Text>
+          <View style={styles.breedGrid}>
+            {["입마개 필수", "목줄 필수", "하네스 착용", "다른 개 접근 금지", "소음 민감", "간식 금지", "물 자주 필요", "뛰기 금지"].map((note) => (
+              <Pressable
+                key={note}
+                onPress={() => {
+                  haptic();
+                  setWalkNotes((prev) => prev.includes(note) ? prev.filter((n) => n !== note) : [...prev, note]);
+                }}
+                style={({ pressed }) => [
+                  styles.breedChip,
+                  walkNotes.includes(note) && { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.breedChipText, walkNotes.includes(note) && { color: "#FF7043", fontWeight: "700" }]}>
+                  {note}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* 선호 산책로 */}
+        <View style={styles.fieldSection}>
+          <Text style={styles.fieldLabel}>선호 산책로 (대전)</Text>
+          <View style={styles.breedGrid}>
+            {["갑천변 산책로", "대전숲 둘레길", "한밭수목원", "엑스포과학공원", "유성온천 산책로", "계족산 황톳길", "보문산 산책로", "대청호 오백리길", "뿌리공원", "동춘당공원"].map((trail) => (
+              <Pressable
+                key={trail}
+                onPress={() => {
+                  haptic();
+                  setPreferredTrails((prev) => prev.includes(trail) ? prev.filter((t) => t !== trail) : [...prev, trail]);
+                }}
+                style={({ pressed }) => [
+                  styles.breedChip,
+                  preferredTrails.includes(trail) && { borderColor: "#4CAF82", backgroundColor: "#E8F5E9" },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.breedChipText, preferredTrails.includes(trail) && { color: "#4CAF82", fontWeight: "700" }]}>
+                  {trail}
                 </Text>
               </Pressable>
             ))}

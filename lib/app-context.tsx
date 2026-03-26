@@ -23,14 +23,22 @@ export interface Pet {
   size: "소형" | "중형" | "대형";
   emoji: string;
   photoUri?: string;
+  aggression: "없음" | "주의" | "위험";
+  medicalConditions: string; // 지병 정보
+  walkNotes: string[]; // 산책 시 주의사항 (입마개 필수, 목줄 필수 등)
+  preferredTrails: string[]; // 선호 산책로
+  weight?: number; // kg
 }
 
 export interface Review {
   id: string;
   fromUserId: string;
   fromNickname: string;
+  fromEmoji?: string;
+  toUserId?: string;
   rating: number;
   content: string;
+  tags?: string[];
   serviceType: string;
   createdAt: string;
 }
@@ -87,7 +95,7 @@ export interface CareRequest {
 
 export interface Notification {
   id: string;
-  type: "comment" | "like" | "match_request" | "message" | "friend_add" | "match";
+  type: "comment" | "like" | "match_request" | "message" | "friend_add" | "match" | "system" | "sos" | "checklist";
   title: string;
   body: string;
   relatedId?: string;
@@ -101,8 +109,8 @@ export interface Payment {
   id: string;
   requestId?: string;
   amount: number;
-  method: "kakaopay" | "toss" | "kakao" | "card";
-  status: "pending" | "completed" | "cancelled";
+  method: "kakaopay" | "toss" | "kakao" | "card" | "escrow";
+  status: "pending" | "completed" | "cancelled" | "escrow_held" | "escrow_released";
   fromUserId?: string;
   toUserId?: string;
   description?: string;
@@ -120,14 +128,19 @@ export interface UserProfile {
   pets: Pet[];
   rating: number;
   reviewCount: number;
+  mannerScore: number;
   isCaretakerActive: boolean;
   caretakerServices: string[];
+  hourlyRate: number; // 시간당 요금
+  canHandleLargeDogs: boolean;
+  hasTrainerCert: boolean;
   joinedAt: string;
   friendCode: string;
   friends: Friend[];
   reviews: Review[];
   payments: Payment[];
   isOnline: boolean;
+  availableSlots: string[]; // 예약 가능 시간대 ["09:00-12:00", "14:00-18:00"]
 }
 
 interface AppState {
@@ -141,6 +154,12 @@ interface AppState {
   chatMessages: Record<string, ChatMessageData[]>;
   walkSessions: WalkSession[];
   activeWalkSessionId: string | null;
+  walkerVerification: WalkerVerification;
+  walkChecklists: Record<string, WalkChecklist[]>; // sessionId -> checklists
+  walkReports: WalkReport[];
+  bookings: Booking[];
+  mannerReviews: MannerReview[];
+  blacklist: string[]; // blocked user IDs
 }
 
 export interface WalkRoutePoint {
@@ -166,6 +185,86 @@ export interface WalkSession {
   avgSpeedKmh: number;
   maxSpeedKmh: number;
   pausedDurationSec: number;
+}
+
+export interface WalkerVerification {
+  isVerified: boolean;
+  certUploaded: boolean;
+  certImageUri?: string;
+  certType?: string; // 자격증 종류
+  identityAgreed: boolean; // 신분증 대조 동의
+  backgroundCheckAgreed: boolean; // 범죄이력 조회 동의
+  quizPassed: boolean;
+  quizScore?: number;
+  quizDate?: string;
+  verifiedAt?: string;
+  verificationLevel: "none" | "basic" | "certified" | "premium"; // 인증 등급
+}
+
+export interface WalkChecklist {
+  id: string;
+  sessionId: string;
+  type: "poop" | "water" | "food" | "issue" | "photo" | "rest";
+  label: string;
+  checked: boolean;
+  note?: string;
+  photoUri?: string;
+  timestamp: string;
+}
+
+export interface WalkReport {
+  id: string;
+  sessionId: string;
+  petName: string;
+  petEmoji: string;
+  walkerName: string;
+  ownerName: string;
+  distanceKm: number;
+  durationSec: number;
+  avgSpeedKmh: number;
+  maxSpeedKmh: number;
+  checklist: WalkChecklist[];
+  photos: string[];
+  routePoints: WalkRoutePoint[];
+  rating?: number;
+  review?: string;
+  createdAt: string;
+}
+
+export interface Booking {
+  id: string;
+  walkerId: string;
+  walkerName: string;
+  walkerEmoji: string;
+  ownerId: string;
+  ownerName: string;
+  petName: string;
+  petEmoji: string;
+  date: string; // YYYY-MM-DD
+  timeSlot: string; // HH:mm-HH:mm
+  duration: number; // 분
+  serviceType: string;
+  status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+  price: number;
+  escrowStatus: "held" | "released" | "refunded" | "none";
+  neighborhood: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface MannerReview {
+  id: string;
+  bookingId: string;
+  fromUserId: string;
+  fromNickname: string;
+  toUserId: string;
+  toNickname: string;
+  type: "walker_to_owner" | "owner_to_walker";
+  rating: number;
+  mannerScore: number; // 매너 점수 1-5
+  content: string;
+  tags: string[]; // 예: "시간 준수", "친절함", "반려견 관리 우수"
+  createdAt: string;
 }
 
 export interface ChatMessageData {
@@ -211,6 +310,15 @@ type AppAction =
   | { type: "COMPLETE_WALK_SESSION"; payload: string }
   | { type: "PAUSE_WALK_SESSION"; payload: string }
   | { type: "RESUME_WALK_SESSION"; payload: string }
+  | { type: "SET_WALKER_VERIFICATION"; payload: Partial<WalkerVerification> }
+  | { type: "ADD_WALK_CHECKLIST"; payload: { sessionId: string; item: WalkChecklist } }
+  | { type: "UPDATE_WALK_CHECKLIST"; payload: { sessionId: string; itemId: string; updates: Partial<WalkChecklist> } }
+  | { type: "ADD_WALK_REPORT"; payload: WalkReport }
+  | { type: "ADD_BOOKING"; payload: Booking }
+  | { type: "UPDATE_BOOKING"; payload: { bookingId: string; updates: Partial<Booking> } }
+  | { type: "ADD_MANNER_REVIEW"; payload: MannerReview }
+  | { type: "ADD_TO_BLACKLIST"; payload: string }
+  | { type: "REMOVE_FROM_BLACKLIST"; payload: string }
   | { type: "LOAD_STATE"; payload: AppState }
   | { type: "RESET_APP" };
 
@@ -223,6 +331,15 @@ function generateFriendCode(): string {
   return code.slice(0, 4) + "-" + code.slice(4);
 }
 
+const initialVerification: WalkerVerification = {
+  isVerified: false,
+  certUploaded: false,
+  identityAgreed: false,
+  backgroundCheckAgreed: false,
+  quizPassed: false,
+  verificationLevel: "none",
+};
+
 const initialProfile: UserProfile = {
   nickname: "",
   neighborhood: null,
@@ -232,14 +349,19 @@ const initialProfile: UserProfile = {
   pets: [],
   rating: 0,
   reviewCount: 0,
+  mannerScore: 0,
   isCaretakerActive: false,
   caretakerServices: [],
+  hourlyRate: 15000,
+  canHandleLargeDogs: false,
+  hasTrainerCert: false,
   joinedAt: new Date().toISOString(),
   friendCode: generateFriendCode(),
   friends: [],
   reviews: [],
   payments: [],
   isOnline: true,
+  availableSlots: [],
 };
 
 const initialState: AppState = {
@@ -253,6 +375,12 @@ const initialState: AppState = {
   chatMessages: {},
   walkSessions: [],
   activeWalkSessionId: null,
+  walkerVerification: initialVerification,
+  walkChecklists: {},
+  walkReports: [],
+  bookings: [],
+  mannerReviews: [],
+  blacklist: [],
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -446,6 +574,61 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ),
         activeWalkSessionId: state.activeWalkSessionId === action.payload ? null : state.activeWalkSessionId,
       };
+    case "SET_WALKER_VERIFICATION":
+      return {
+        ...state,
+        walkerVerification: { ...state.walkerVerification, ...action.payload },
+      };
+    case "ADD_WALK_CHECKLIST": {
+      const existing = state.walkChecklists[action.payload.sessionId] || [];
+      return {
+        ...state,
+        walkChecklists: {
+          ...state.walkChecklists,
+          [action.payload.sessionId]: [...existing, action.payload.item],
+        },
+      };
+    }
+    case "UPDATE_WALK_CHECKLIST": {
+      const items = state.walkChecklists[action.payload.sessionId] || [];
+      return {
+        ...state,
+        walkChecklists: {
+          ...state.walkChecklists,
+          [action.payload.sessionId]: items.map((i) =>
+            i.id === action.payload.itemId ? { ...i, ...action.payload.updates } : i
+          ),
+        },
+      };
+    }
+    case "ADD_WALK_REPORT":
+      return { ...state, walkReports: [action.payload, ...state.walkReports] };
+    case "ADD_BOOKING":
+      return { ...state, bookings: [action.payload, ...state.bookings] };
+    case "UPDATE_BOOKING":
+      return {
+        ...state,
+        bookings: state.bookings.map((b) =>
+          b.id === action.payload.bookingId ? { ...b, ...action.payload.updates } : b
+        ),
+      };
+    case "ADD_MANNER_REVIEW": {
+      const newMannerReviews = [...state.mannerReviews, action.payload];
+      // 매너 점수 업데이트
+      const myReviews = newMannerReviews.filter((r) => r.toUserId === "me");
+      const avgManner = myReviews.length > 0
+        ? myReviews.reduce((s, r) => s + r.mannerScore, 0) / myReviews.length
+        : 0;
+      return {
+        ...state,
+        mannerReviews: newMannerReviews,
+        profile: { ...state.profile, mannerScore: Math.round(avgManner * 10) / 10 },
+      };
+    }
+    case "ADD_TO_BLACKLIST":
+      return { ...state, blacklist: [...state.blacklist, action.payload] };
+    case "REMOVE_FROM_BLACKLIST":
+      return { ...state, blacklist: state.blacklist.filter((id) => id !== action.payload) };
     case "LOAD_STATE":
       return {
         ...initialState,
@@ -458,6 +641,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
           reviews: action.payload.profile?.reviews ?? [],
           pets: action.payload.profile?.pets ?? [],
           payments: action.payload.profile?.payments ?? [],
+          availableSlots: action.payload.profile?.availableSlots ?? [],
         },
         posts: action.payload.posts ?? [],
         payments: action.payload.payments ?? [],
@@ -466,9 +650,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
         chatMessages: action.payload.chatMessages ?? {},
         walkSessions: (action.payload as any).walkSessions ?? [],
         activeWalkSessionId: (action.payload as any).activeWalkSessionId ?? null,
+        walkerVerification: (action.payload as any).walkerVerification ?? initialVerification,
+        walkChecklists: (action.payload as any).walkChecklists ?? {},
+        walkReports: (action.payload as any).walkReports ?? [],
+        bookings: (action.payload as any).bookings ?? [],
+        mannerReviews: (action.payload as any).mannerReviews ?? [],
+        blacklist: (action.payload as any).blacklist ?? [],
       };
     case "RESET_APP":
-      return { ...initialState, isLoaded: true, profile: { ...initialProfile, friendCode: generateFriendCode() } };
+      return { ...initialState, isLoaded: true, profile: { ...initialProfile, friendCode: generateFriendCode() }, walkerVerification: initialVerification };
     default:
       return state;
   }
