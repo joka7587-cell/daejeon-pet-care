@@ -21,7 +21,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { DAEJEON_WALK_SPOTS, getSpotsByDistrict, type WalkSpot } from "@/lib/daejeon-spots";
 import { Fonts } from "@/hooks/use-fonts";
-import { LiveWalkMap } from "@/components/live-walk-map";
+import { KakaoMapView } from "@/components/kakao-map-webview";
 import { WalkReportCard, type WalkReportCardData } from "@/components/walk-report-card";
 import { PhotoTimestampBubble, type PhotoData } from "@/components/photo-timestamp-bubble";
 import { QuickBookingBar } from "@/components/quick-booking-bar";
@@ -1032,7 +1032,7 @@ export default function ChatScreen() {
       />
 
       {/* 실시간 산책 지도 모달 */}
-      <LiveWalkMap
+      <KakaoMapView
         visible={showLiveMap}
         onClose={() => setShowLiveMap(false)}
         workerName={otherUserName}

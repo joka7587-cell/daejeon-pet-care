@@ -61,6 +61,12 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  // 카카오맵 API 키를 클라이언트에 전달 (public)
+  app.get("/api/kakao-map-key", (_req, res) => {
+    const key = process.env.KAKAO_MAP_API_KEY || "";
+    res.json({ key });
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
