@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useApp } from "@/lib/app-context";
-import { View } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 
 export default function RootIndexScreen() {
   const router = useRouter();
@@ -9,6 +9,8 @@ export default function RootIndexScreen() {
   const hasNavigated = useRef(false);
 
   useEffect(() => {
+    // 상태가 로드될 때까지 대기
+    if (!state.isLoaded) return;
     // 중복 네비게이션 방지
     if (hasNavigated.current) return;
     hasNavigated.current = true;
@@ -25,7 +27,11 @@ export default function RootIndexScreen() {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [state.isLoaded, state.isOnboarded]);
 
-  return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center" }}>
+      <ActivityIndicator size="large" color="#FF6B35" />
+    </View>
+  );
 }

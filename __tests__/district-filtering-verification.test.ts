@@ -90,8 +90,8 @@ describe("산책 명소 - 5개 구 분포 검증", () => {
 // 2. 워커 구별 분포 검증
 // ═══════════════════════════════════════════════
 describe("워커(MOCK_CARETAKERS) - 5개 구 분포 검증", () => {
-  it("총 12명의 워커가 존재", () => {
-    expect(MOCK_CARETAKERS).toHaveLength(12);
+  it("총 17명의 워커가 존재 (기존 12 + 시드 5)", () => {
+    expect(MOCK_CARETAKERS).toHaveLength(17);
   });
 
   it("5개 구 모두에 워커가 1명 이상 존재", () => {
@@ -131,10 +131,13 @@ describe("워커(MOCK_CARETAKERS) - 5개 구 분포 검증", () => {
     expect(names).toContain("유천동 소희");
   });
 
-  it("동구 워커: 판암동 동현 (1명)", () => {
+  it("동구 워커: 판암동 동현 + 시드 워커 5명 (6명)", () => {
     const workers = MOCK_CARETAKERS.filter((c) => c.district === "동구");
-    expect(workers).toHaveLength(1);
-    expect(workers[0].nickname).toBe("판암동 동현");
+    expect(workers).toHaveLength(6);
+    const names = workers.map((w) => w.nickname);
+    expect(names).toContain("판암동 동현");
+    expect(names).toContain("자양동 하늘이맘");
+    expect(names).toContain("가양동 뽀삐아빠");
   });
 
   it("대덕구 워커: 신탄진 유진, 송촌동 재민 (2명)", () => {
@@ -345,10 +348,12 @@ describe("홈 화면 filteredWalkers 로직 시뮬레이션", () => {
     expect(names).toContain("유천동 소희");
   });
 
-  it("동구 선택 시 동구 활성 워커만 표시", () => {
+  it("동구 선택 시 동구 활성 워커만 표시 (6명: 판암동 동현 + 시드 5명)", () => {
     const result = simulateFilteredWalkers("동구");
-    expect(result.length).toBe(1);
-    expect(result[0].nickname).toBe("판암동 동현");
+    expect(result.length).toBe(6);
+    const names = result.map((w) => w.nickname);
+    expect(names).toContain("판암동 동현");
+    expect(names).toContain("자양동 하늘이맘");
   });
 
   it("대덕구 선택 시 대덕구 활성 워커만 표시", () => {
@@ -410,13 +415,13 @@ describe("구별 데이터 요약 (산책 명소 + 워커 수)", () => {
     expect(total).toBe(12);
   });
 
-  it("전체 워커 합계 = 12", () => {
+  it("전체 워커 합계 = 17 (기존 12 + 시드 5)", () => {
     const total = summary.reduce((sum, s) => sum + s.workers, 0);
-    expect(total).toBe(12);
+    expect(total).toBe(17);
   });
 
-  it("활성 워커가 11명 (수빈 1명 비활성)", () => {
+  it("활성 워커가 16명 (수빈 1명 비활성)", () => {
     const totalActive = summary.reduce((sum, s) => sum + s.activeWorkers, 0);
-    expect(totalActive).toBe(11);
+    expect(totalActive).toBe(16);
   });
 });

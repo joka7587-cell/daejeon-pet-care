@@ -58,6 +58,10 @@ export interface WorkerDetail {
   // 소개 텍스트
   introduction: string;
   specialNotes: string;
+
+  // 활동 시간대 및 동네 (선택)
+  availableSlots?: string[];
+  neighborhoods?: string[];
 }
 
 // ─── 워커 상세 정보 더미 데이터 ───
@@ -559,8 +563,16 @@ export const WORKER_DETAILS: Record<string, WorkerDetail> = {
   },
 };
 
+// 시드 워커 상세 자동 병합 (시연용)
+import { SEED_WORKER_DETAILS } from "./seed-data";
+Object.entries(SEED_WORKER_DETAILS).forEach(([key, val]) => {
+  if (!WORKER_DETAILS[key]) {
+    WORKER_DETAILS[key] = val;
+  }
+});
+
 /**
- * 워커 ID로 상세 정보 조회
+ * 워커 ID로 상세 정보를 조회합니다.
  */
 export function getWorkerDetail(workerId: string): WorkerDetail | null {
   return WORKER_DETAILS[workerId] || null;

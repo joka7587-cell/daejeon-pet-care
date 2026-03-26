@@ -310,6 +310,15 @@ export const MOCK_CARETAKERS: MockUser[] = [
   },
 ];
 
+// 시드 워커 자동 병합 (시연용)
+import { SEED_WALKERS } from "./seed-data";
+const seedIds = new Set(SEED_WALKERS.map((w) => w.id));
+SEED_WALKERS.forEach((sw) => {
+  if (!MOCK_CARETAKERS.find((c) => c.id === sw.id)) {
+    MOCK_CARETAKERS.push(sw);
+  }
+});
+
 export const MOCK_OWNERS: MockUser[] = [
   {
     id: "o1",

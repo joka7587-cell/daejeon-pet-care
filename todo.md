@@ -579,3 +579,14 @@
 - [x] isWorkerChat 판별 로직 수정 (includes("worker_"))
 - [x] 채팅 탭에 워커 필터 탭 추가 + 워커 뱃지 표시
 - [x] chatRoom에서 워커 이름/이모지 폴백 로직 추가
+
+## Phase 23: 시연용 시드 데이터 자동 로드
+- [x] 자양동/가양동 기반 도그워커 5명 더미 데이터 생성
+- [x] 산책 예약 3건 더미 데이터 생성 (confirmed/pending/completed)
+- [x] 보호자 대전 시민 인증 완료 상태 자동 설정
+- [x] 워커 데이터에 이름, 사진, 평점, 자격증 사진 URL 포함
+- [x] seedData.ts 모듈 작성 (5명 워커 + 5명 상세 + 3건 예약 + 보호자 프로필)
+- [x] 앱 초기화 시 useEffect로 자동 로드 (AppProvider + MOCK_CARETAKERS/WORKER_DETAILS 병합)
+- [x] isOnboarded: true로 로그인 건너뛰기
+- [x] app/index.tsx에 isLoaded 대기 로직 추가
+- [x] 테스트 작성 및 실행 (35개 통과)

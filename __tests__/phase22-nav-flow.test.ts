@@ -14,7 +14,8 @@ describe("Phase 22: 워커 클릭 → 채팅 전체 네비게이션 플로우", 
     it("워커 카드 클릭 시 /profile/{workerId} 경로가 유효해야 한다", () => {
       MOCK_CARETAKERS.forEach((w) => {
         const path = `/profile/${w.id}`;
-        expect(path).toMatch(/^\/profile\/c\d+$/);
+        // c1~c12 또는 seed_w1~seed_w5 형식
+        expect(path).toMatch(/^\/profile\/(c\d+|seed_w\d+)$/);
       });
     });
   });
@@ -32,7 +33,8 @@ describe("Phase 22: 워커 클릭 → 채팅 전체 네비게이션 플로우", 
     it("워커 상세에서 생성되는 roomId 형식이 올바라야 한다", () => {
       MOCK_CARETAKERS.forEach((w) => {
         const roomId = `room_worker_${w.id}`;
-        expect(roomId).toMatch(/^room_worker_c\d+$/);
+        // c1~c12 또는 seed_w1~seed_w5 형식
+        expect(roomId).toMatch(/^room_worker_(c\d+|seed_w\d+)$/);
         // isWorkerChat 판별: includes("worker_")
         expect(roomId.includes("worker_")).toBe(true);
       });

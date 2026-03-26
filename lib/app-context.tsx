@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { sendLocalNotification, updateBadge } from "@/lib/push-notifications";
+import {
+  getSeedAppState,
+  SEED_BOOKINGS,
+  SEED_NOTIFICATIONS,
+  SEED_PAYMENTS,
+  SEED_CHAT_ROOMS,
+  SEED_OWNER_PROFILE,
+} from "@/lib/seed-data";
 
 export type UserRole = "owner" | "caretaker" | null;
 
@@ -764,7 +772,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(stored) as AppState;
           dispatch({ type: "LOAD_STATE", payload: parsed });
         } else {
-          dispatch({ type: "LOAD_STATE", payload: initialState });
+          // 시연용: 최초 실행 시 시드 데이터 자동 로드
+          const seeded: AppState = {
+            ...initialState,
+            isOnboarded: true,
+            isLoaded: true,
+            profile: {
+              ...initialProfile,
+              ...SEED_OWNER_PROFILE,
+              friendCode: generateFriendCode(),
+              joinedAt: new Date().toISOString(),
+            } as UserProfile,
+            bookings: SEED_BOOKINGS,
+            notifications: SEED_NOTIFICATIONS,
+            payments: SEED_PAYMENTS,
+            chatRooms: SEED_CHAT_ROOMS,
+          };
+          dispatch({ type: "LOAD_STATE", payload: seeded });
         }
       } catch (_) {
         dispatch({ type: "LOAD_STATE", payload: initialState });
