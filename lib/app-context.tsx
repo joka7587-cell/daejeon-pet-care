@@ -134,6 +134,17 @@ export interface UserProfile {
   availableSlots: string[]; // 예약 가능 시간대 ["09:00-12:00", "14:00-18:00"]
 }
 
+export interface ChatRoom {
+  id: string;
+  participantId: string;
+  participantName: string;
+  participantEmoji: string;
+  type: "friend" | "worker" | "request";
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+}
+
 interface AppState {
   isOnboarded: boolean;
   isLoaded: boolean;
@@ -142,6 +153,7 @@ interface AppState {
   payments: Payment[];
   notifications: Notification[];
   requests: CareRequest[];
+  chatRooms: ChatRoom[];
   chatMessages: Record<string, ChatMessageData[]>;
   walkSessions: WalkSession[];
   activeWalkSessionId: string | null;
@@ -304,6 +316,8 @@ type AppAction =
   | { type: "MARK_ALL_NOTIFICATIONS_READ" }
   | { type: "ADD_REQUEST"; payload: CareRequest }
   | { type: "UPDATE_REQUEST_STATUS"; payload: { requestId: string; status: CareRequest["status"] } }
+  | { type: "ADD_CHAT_ROOM"; payload: ChatRoom }
+  | { type: "UPDATE_CHAT_ROOM"; payload: { roomId: string; updates: Partial<ChatRoom> } }
   | { type: "ADD_CHAT_MESSAGE"; payload: { roomId: string; message: ChatMessageData } }
   | { type: "SET_CHAT_MESSAGES"; payload: { roomId: string; messages: ChatMessageData[] } }
   | { type: "TOGGLE_ONLINE" }
@@ -375,6 +389,7 @@ const initialState: AppState = {
   payments: [],
   notifications: [],
   requests: [],
+  chatRooms: [],
   chatMessages: {},
   walkSessions: [],
   activeWalkSessionId: null,
@@ -511,11 +526,34 @@ function appReducer(state: AppState, action: AppAction): AppState {
           r.id === action.payload.requestId ? { ...r, status: action.payload.status } : r
         ),
       };
+    case "ADD_CHAT_ROOM": {
+      const existing = state.chatRooms.find((r) => r.id === action.payload.id);
+      if (existing) return state; // 이미 존재하면 무시
+      return { ...state, chatRooms: [action.payload, ...state.chatRooms] };
+    }
+    case "UPDATE_CHAT_ROOM":
+      return {
+        ...state,
+        chatRooms: state.chatRooms.map((r) =>
+          r.id === action.payload.roomId ? { ...r, ...action.payload.updates } : r
+        ),
+      };
     case "ADD_CHAT_MESSAGE": {
+      // 채팅방 마지막 메시지 업데이트
+      const updatedRooms = state.chatRooms.map((r) =>
+        r.id === action.payload.roomId
+          ? {
+              ...r,
+              lastMessage: action.payload.message.content,
+              lastMessageTime: action.payload.message.createdAt,
+            }
+          : r
+      );
       const roomKey = action.payload.roomId;
       const existing = state.chatMessages[roomKey] || [];
       return {
         ...state,
+        chatRooms: updatedRooms,
         chatMessages: {
           ...state.chatMessages,
           [roomKey]: [...existing, action.payload.message],
