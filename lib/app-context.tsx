@@ -263,8 +263,20 @@ export interface ChatMessageData {
   senderId: number;
   senderName: string;
   content: string;
-  type: "text" | "image";
+  type: "text" | "image" | "location";
   imageUri?: string;
+  // Location pin data (for type === "location")
+  locationData?: {
+    spotId: string;
+    name: string;
+    district: string;
+    dong: string;
+    emoji: string;
+    rating: number;
+    walkTime: string;
+    latitude: number;
+    longitude: number;
+  };
   createdAt: string;
 }
 

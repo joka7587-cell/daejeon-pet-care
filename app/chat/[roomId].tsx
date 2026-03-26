@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -17,6 +18,8 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useApp, ChatMessageData } from "@/lib/app-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { DAEJEON_WALK_SPOTS, getSpotsByDistrict, type WalkSpot } from "@/lib/daejeon-spots";
+import { Fonts } from "@/hooks/use-fonts";
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -27,8 +30,19 @@ interface ChatMessage {
   senderId: number;
   senderName: string;
   content: string;
-  type: "text" | "image";
+  type: "text" | "image" | "location";
   imageUri?: string;
+  locationData?: {
+    spotId: string;
+    name: string;
+    district: string;
+    dong: string;
+    emoji: string;
+    rating: number;
+    walkTime: string;
+    latitude: number;
+    longitude: number;
+  };
   createdAt: string;
 }
 
@@ -49,6 +63,15 @@ const KEYWORD_REPLIES: Record<string, string> = {
   "강아지": "강아지 이야기 좋아해요! 어떤 견종이에요? 🐶",
 };
 
+// 산책 명소 관련 자동 응답
+const SPOT_REPLIES = [
+  "좋은 산책 장소네요! 거기서 만나요 🐾",
+  "오, 거기 좋죠! 산책하기 딱 좋은 곳이에요 🌳",
+  "그 공원 저도 좋아해요! 시간 맞춰볼게요 😊",
+  "거기 반려견 산책하기 정말 좋은 곳이에요! 👍",
+  "좋아요! 그 근처에서 만나면 되겠네요 📍",
+];
+
 // 친구별 랜덤 응답
 const FRIEND_REPLIES = [
   "안녕하세요! 반가워요 😊",
@@ -62,6 +85,155 @@ const FRIEND_REPLIES = [
   "좋은 정보 감사합니다! 👍",
   "네, 알겠습니다! 연락 주세요 🐾",
 ];
+
+const DISTRICT_TABS = ["전체", "서구", "유성구", "중구", "동구", "대덕구"] as const;
+
+// ─── 산책 명소 선택 모달 ───
+function SpotPickerModal({
+  visible,
+  onClose,
+  onSelect,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (spot: WalkSpot) => void;
+}) {
+  const [selectedDistrict, setSelectedDistrict] = useState("전체");
+
+  const spots =
+    selectedDistrict === "전체"
+      ? DAEJEON_WALK_SPOTS
+      : getSpotsByDistrict(selectedDistrict);
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={ms.overlay}>
+        <View style={ms.sheet}>
+          {/* 헤더 */}
+          <View style={ms.sheetHeader}>
+            <Text style={ms.sheetTitle}>산책 장소 보내기</Text>
+            <Pressable
+              onPress={onClose}
+              style={({ pressed }) => [ms.closeBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={ms.closeBtnText}>닫기</Text>
+            </Pressable>
+          </View>
+
+          {/* 구 필터 */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 6, paddingVertical: 8 }}
+          >
+            {DISTRICT_TABS.map((d) => {
+              const isActive = selectedDistrict === d;
+              return (
+                <Pressable
+                  key={d}
+                  onPress={() => {
+                    haptic();
+                    setSelectedDistrict(d);
+                  }}
+                  style={[ms.districtChip, isActive && ms.districtChipActive]}
+                >
+                  <Text style={[ms.districtChipText, isActive && ms.districtChipTextActive]}>
+                    {d}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* 명소 리스트 */}
+          <FlatList
+            data={spots}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => {
+                  haptic();
+                  onSelect(item);
+                }}
+                style={({ pressed }) => [ms.spotCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              >
+                <View style={ms.spotEmoji}>
+                  <Text style={{ fontSize: 28 }}>{item.emoji}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={ms.spotName}>{item.name}</Text>
+                  <Text style={ms.spotMeta}>
+                    📍 {item.district} {item.dong} · ⭐ {item.rating} · {item.walkTime}
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                    {item.features.slice(0, 3).map((f) => (
+                      <View key={f} style={ms.featureTag}>
+                        <Text style={ms.featureTagText}>{f}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+                <View style={ms.pinBtn}>
+                  <Text style={ms.pinBtnText}>📍</Text>
+                </View>
+              </Pressable>
+            )}
+            ListEmptyComponent={
+              <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                <Text style={{ fontSize: 32 }}>🔍</Text>
+                <Text style={{ fontSize: 14, color: "#8E8E93", marginTop: 8 }}>
+                  해당 지역에 등록된 산책 명소가 없어요
+                </Text>
+              </View>
+            }
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── 위치 메시지 버블 ───
+function LocationBubble({
+  locationData,
+  isOwn,
+}: {
+  locationData: ChatMessage["locationData"];
+  isOwn: boolean;
+}) {
+  if (!locationData) return null;
+  return (
+    <View style={[lb.container, isOwn ? lb.containerOwn : lb.containerOther]}>
+      <View style={lb.header}>
+        <View style={lb.emojiWrap}>
+          <Text style={{ fontSize: 22 }}>{locationData.emoji}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[lb.name, isOwn && { color: "#FFFFFF" }]}>{locationData.name}</Text>
+          <Text style={[lb.meta, isOwn && { color: "rgba(255,255,255,0.8)" }]}>
+            📍 {locationData.district} {locationData.dong}
+          </Text>
+        </View>
+      </View>
+      <View style={[lb.infoRow, isOwn && { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+        <Text style={[lb.infoText, isOwn && { color: "rgba(255,255,255,0.9)" }]}>
+          ⭐ {locationData.rating}
+        </Text>
+        <Text style={[lb.infoDivider, isOwn && { backgroundColor: "rgba(255,255,255,0.3)" }]} />
+        <Text style={[lb.infoText, isOwn && { color: "rgba(255,255,255,0.9)" }]}>
+          🕐 {locationData.walkTime}
+        </Text>
+      </View>
+      <View style={[lb.pinBar, isOwn && { borderTopColor: "rgba(255,255,255,0.2)" }]}>
+        <Text style={{ fontSize: 14 }}>📍</Text>
+        <Text style={[lb.pinText, isOwn && { color: "rgba(255,255,255,0.8)" }]}>
+          산책 장소 핀
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -78,6 +250,7 @@ export default function ChatScreen() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showSpotPicker, setShowSpotPicker] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const userId = 1;
@@ -109,10 +282,10 @@ export default function ChatScreen() {
         content: m.content,
         type: m.type,
         imageUri: m.imageUri,
+        locationData: m.locationData,
         createdAt: m.createdAt,
       })));
     }
-    // 저장된 메시지가 없으면 빈 상태로 시작 (환영 메시지 없음)
     setIsInitialized(true);
   }, [roomKey]);
 
@@ -127,6 +300,7 @@ export default function ChatScreen() {
         content: m.content,
         type: m.type,
         imageUri: m.imageUri,
+        locationData: m.locationData,
         createdAt: m.createdAt,
       }));
       dispatch({ type: "SET_CHAT_MESSAGES", payload: { roomId: roomKey, messages: toSave } });
@@ -178,6 +352,47 @@ export default function ChatScreen() {
       };
       setMessages((prev) => [...prev, autoReply]);
     }, 1000 + Math.random() * 1500);
+  };
+
+  // ─── 산책 명소 핀 전송 ───
+  const handleSendSpotPin = (spot: WalkSpot) => {
+    haptic();
+    setShowSpotPicker(false);
+
+    const newMsg: ChatMessage = {
+      id: `msg_${roomId}_loc_${Date.now()}`,
+      senderId: userId,
+      senderName: userName,
+      content: `📍 ${spot.name} (${spot.district} ${spot.dong})`,
+      type: "location",
+      locationData: {
+        spotId: spot.id,
+        name: spot.name,
+        district: spot.district,
+        dong: spot.dong,
+        emoji: spot.emoji,
+        rating: spot.rating,
+        walkTime: spot.walkTime,
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+      },
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, newMsg]);
+
+    // 자동 응답
+    setTimeout(() => {
+      const reply = SPOT_REPLIES[Math.floor(Math.random() * SPOT_REPLIES.length)];
+      const autoReply: ChatMessage = {
+        id: `msg_${roomId}_locreply_${Date.now()}`,
+        senderId: 2,
+        senderName: otherUserName,
+        content: reply,
+        type: "text",
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, autoReply]);
+    }, 1200 + Math.random() * 1000);
   };
 
   const pickImage = async () => {
@@ -261,6 +476,29 @@ export default function ChatScreen() {
         <View style={styles.systemMessageRow}>
           <View style={styles.systemBubble}>
             <Text style={styles.systemText}>{item.content}</Text>
+          </View>
+        </View>
+      );
+    }
+
+    // 위치 메시지
+    if (item.type === "location" && item.locationData) {
+      return (
+        <View style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
+          {!isOwn && (
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarEmoji}>{otherUserEmoji}</Text>
+            </View>
+          )}
+          <View style={{ maxWidth: "80%" }}>
+            {!isOwn && <Text style={styles.senderName}>{item.senderName}</Text>}
+            <LocationBubble locationData={item.locationData} isOwn={isOwn} />
+            <Text style={[styles.messageTime, isOwn && { textAlign: "right" }]}>
+              {new Date(item.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
           </View>
         </View>
       );
@@ -388,11 +626,22 @@ export default function ChatScreen() {
         style={styles.inputContainer}
       >
         <View style={styles.inputWrapper}>
+          {/* 사진 버튼 */}
           <Pressable
             onPress={pickImage}
-            style={({ pressed }) => [styles.photoBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]}
           >
-            <Text style={styles.photoBtnText}>📷</Text>
+            <Text style={styles.actionBtnText}>📷</Text>
+          </Pressable>
+          {/* 산책 명소 핀 버튼 */}
+          <Pressable
+            onPress={() => {
+              haptic();
+              setShowSpotPicker(true);
+            }}
+            style={({ pressed }) => [styles.actionBtn, styles.pinActionBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.actionBtnText}>📍</Text>
           </Pressable>
           <TextInput
             style={styles.input}
@@ -419,6 +668,13 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
 
+      {/* 산책 명소 선택 모달 */}
+      <SpotPickerModal
+        visible={showSpotPicker}
+        onClose={() => setShowSpotPicker(false)}
+        onSelect={handleSendSpotPin}
+      />
+
       {/* 이미지 전체화면 미리보기 */}
       <Modal visible={!!previewImage} transparent animationType="fade">
         <Pressable
@@ -444,6 +700,7 @@ export default function ChatScreen() {
   );
 }
 
+// ─── 메인 채팅 스타일 ───
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
@@ -549,16 +806,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  inputWrapper: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  photoBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  inputWrapper: { flexDirection: "row", alignItems: "flex-end", gap: 6 },
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: "#F8F8F8",
     alignItems: "center",
     justifyContent: "center",
   },
-  photoBtnText: { fontSize: 20 },
+  pinActionBtn: {
+    backgroundColor: "#FFF5F0",
+    borderWidth: 1,
+    borderColor: "#FFD9C7",
+  },
+  actionBtnText: { fontSize: 18 },
   input: {
     flex: 1,
     borderWidth: 1,
@@ -573,11 +835,11 @@ const styles = StyleSheet.create({
   sendBtn: {
     backgroundColor: "#FF7043",
     borderRadius: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 56,
+    minWidth: 52,
   },
   sendBtnDisabled: { backgroundColor: "#BDBDBD", opacity: 0.6 },
   sendBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
@@ -598,4 +860,189 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   previewCloseBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+});
+
+// ─── 산책 명소 선택 모달 스타일 ───
+const ms = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "80%",
+    paddingTop: 8,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  sheetTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: 18,
+    color: "#1A1A1A",
+    letterSpacing: -0.3,
+  },
+  closeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#F5F5F5",
+  },
+  closeBtnText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: "#8E8E93",
+  },
+  districtChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+  },
+  districtChipActive: {
+    backgroundColor: "#FF6B35",
+    borderColor: "#FF6B35",
+  },
+  districtChipText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 12,
+    color: "#8E8E93",
+  },
+  districtChipTextActive: {
+    color: "#FFFFFF",
+    fontFamily: Fonts.bold,
+  },
+  spotCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+  },
+  spotEmoji: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#FFF5F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  spotName: {
+    fontFamily: Fonts.bold,
+    fontSize: 15,
+    color: "#1A1A1A",
+  },
+  spotMeta: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#8E8E93",
+    marginTop: 2,
+  },
+  featureTag: {
+    backgroundColor: "#F0FFF4",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  featureTagText: {
+    fontFamily: Fonts.medium,
+    fontSize: 10,
+    color: "#2E7D32",
+  },
+  pinBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FF6B35",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pinBtnText: {
+    fontSize: 16,
+  },
+});
+
+// ─── 위치 버블 스타일 ───
+const lb = StyleSheet.create({
+  container: {
+    borderRadius: 16,
+    padding: 12,
+    width: SCREEN_WIDTH * 0.65,
+  },
+  containerOwn: {
+    backgroundColor: "#FF7043",
+  },
+  containerOther: {
+    backgroundColor: "#F8F8F8",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  emojiWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  name: {
+    fontFamily: Fonts.bold,
+    fontSize: 14,
+    color: "#1A1A1A",
+  },
+  meta: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#8E8E93",
+    marginTop: 1,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F0F0",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  infoText: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: "#1A1A1A",
+  },
+  infoDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: "#D0D0D0",
+  },
+  pinBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E8E8E8",
+  },
+  pinText: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: "#8E8E93",
+  },
 });

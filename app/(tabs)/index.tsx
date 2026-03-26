@@ -1,8 +1,23 @@
-import { useState } from "react";
-import { ScrollView, View, Text, Pressable, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { useState, useMemo } from "react";
+import {
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  FlatList,
+} from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { MOCK_CARETAKERS, MOCK_REQUESTS, SERVICE_TYPES } from "@/lib/mock-data";
+import {
+  DAEJEON_WALK_SPOTS,
+  getTodayRecommendedSpot,
+  getSpotsByDistrict,
+  getWalkersNearSpot,
+  getDistrictFromNeighborhood,
+  type WalkSpot,
+} from "@/lib/daejeon-spots";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -12,11 +27,258 @@ function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
 
-// 반려인(보호자) 홈
+const DISTRICTS = ["전체", "서구", "유성구", "중구", "동구", "대덕구"] as const;
+
+// ─── 구 필터 탭 컴포넌트 ───
+function DistrictTabs({
+  selected,
+  onSelect,
+}: {
+  selected: string;
+  onSelect: (d: string) => void;
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingVertical: 10 }}
+    >
+      {DISTRICTS.map((d) => {
+        const isActive = selected === d;
+        return (
+          <Pressable
+            key={d}
+            onPress={() => {
+              haptic();
+              onSelect(d);
+            }}
+            style={[s.districtTab, isActive && s.districtTabActive]}
+          >
+            <Text style={[s.districtTabText, isActive && s.districtTabTextActive]}>
+              {d}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+// ─── 오늘의 추천 산책로 카드 ───
+function RecommendedSpotCard({
+  spot,
+  nearbyWalkers,
+  onPress,
+}: {
+  spot: WalkSpot;
+  nearbyWalkers: typeof MOCK_CARETAKERS;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [s.spotCard, pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}
+    >
+      {/* 상단 배경 그라데이션 효과 */}
+      <View style={s.spotCardHeader}>
+        <View style={s.spotEmojiWrap}>
+          <Text style={{ fontSize: 36 }}>{spot.emoji}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <Text style={s.spotBadge}>오늘의 추천</Text>
+          </View>
+          <Text style={s.spotName}>{spot.name}</Text>
+          <Text style={s.spotLocation}>
+            📍 {spot.district} {spot.dong}
+          </Text>
+        </View>
+      </View>
+
+      {/* 산책로 정보 */}
+      <View style={s.spotInfoRow}>
+        <View style={s.spotInfoItem}>
+          <Text style={s.spotInfoLabel}>난이도</Text>
+          <Text style={s.spotInfoValue}>{spot.difficulty}</Text>
+        </View>
+        <View style={s.spotInfoDivider} />
+        <View style={s.spotInfoItem}>
+          <Text style={s.spotInfoLabel}>소요시간</Text>
+          <Text style={s.spotInfoValue}>{spot.walkTime}</Text>
+        </View>
+        <View style={s.spotInfoDivider} />
+        <View style={s.spotInfoItem}>
+          <Text style={s.spotInfoLabel}>평점</Text>
+          <Text style={s.spotInfoValue}>⭐ {spot.rating}</Text>
+        </View>
+      </View>
+
+      {/* 특징 태그 */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 6, paddingTop: 8 }}
+      >
+        {spot.features.slice(0, 4).map((f) => (
+          <View key={f} style={s.featureTag}>
+            <Text style={s.featureTagText}>{f}</Text>
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* 근처 활동 워커 */}
+      {nearbyWalkers.length > 0 && (
+        <View style={s.spotWalkers}>
+          <Text style={s.spotWalkersLabel}>
+            이 근처 활동 중인 돌보미 {nearbyWalkers.length}명
+          </Text>
+          <View style={{ flexDirection: "row", gap: -4 }}>
+            {nearbyWalkers.slice(0, 4).map((w, i) => (
+              <View
+                key={w.id}
+                style={[
+                  s.miniAvatar,
+                  { marginLeft: i > 0 ? -6 : 0, zIndex: 10 - i },
+                ]}
+              >
+                <Text style={{ fontSize: 14 }}>{w.profileEmoji}</Text>
+              </View>
+            ))}
+            {nearbyWalkers.length > 4 && (
+              <View style={[s.miniAvatar, { marginLeft: -6, backgroundColor: "#FFE0D0" }]}>
+                <Text style={{ fontSize: 9, color: "#FF6B35", fontFamily: Fonts.bold }}>
+                  +{nearbyWalkers.length - 4}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+// ─── 워커 카드 (리디자인) ───
+function WalkerCard({
+  item,
+  onPress,
+}: {
+  item: (typeof MOCK_CARETAKERS)[0];
+  onPress: () => void;
+}) {
+  const district = item.district || getDistrictFromNeighborhood(item.neighborhood);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [s.walkerCard, pressed && { opacity: 0.85 }]}
+    >
+      <View style={s.walkerCardTop}>
+        <View style={s.walkerAvatar}>
+          <Text style={{ fontSize: 28 }}>{item.profileEmoji}</Text>
+          {item.isActive && <View style={s.onlineDot} />}
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <Text style={s.walkerName}>{item.nickname}</Text>
+            {item.specialBadge && (
+              <View style={s.expertBadge}>
+                <Text style={s.expertBadgeText}>{item.specialBadge}</Text>
+              </View>
+            )}
+            {item.isVerified && !item.specialBadge && (
+              <View style={s.verifiedBadge}>
+                <Text style={s.verifiedText}>✓ 인증</Text>
+              </View>
+            )}
+          </View>
+          <Text style={s.walkerBio} numberOfLines={1}>
+            {item.bio}
+          </Text>
+        </View>
+      </View>
+
+      {/* 가격 + 동네 + 평점 */}
+      <View style={s.walkerMetaRow}>
+        <View style={s.walkerMetaItem}>
+          <Text style={s.walkerMetaLabel}>시간당</Text>
+          <Text style={s.walkerMetaValue}>
+            {item.pricePerHour
+              ? `₩${item.pricePerHour.toLocaleString()}`
+              : "문의"}
+          </Text>
+        </View>
+        <View style={s.walkerMetaDivider} />
+        <View style={s.walkerMetaItem}>
+          <Text style={s.walkerMetaLabel}>활동 지역</Text>
+          <Text style={s.walkerMetaValue}>
+            {district} {item.neighborhood}
+          </Text>
+        </View>
+        <View style={s.walkerMetaDivider} />
+        <View style={s.walkerMetaItem}>
+          <Text style={s.walkerMetaLabel}>평점</Text>
+          <Text style={s.walkerMetaValue}>⭐ {item.rating}</Text>
+        </View>
+      </View>
+
+      {/* 서비스 태그 + 뱃지 */}
+      <View style={s.walkerTags}>
+        {item.hasTrainerCert && (
+          <View style={s.trainerBadge}>
+            <Text style={s.trainerText}>훈련사</Text>
+          </View>
+        )}
+        {item.canHandleLargeDogs && (
+          <View style={s.largeDogTag}>
+            <Text style={s.largeDogTagText}>대형견 OK</Text>
+          </View>
+        )}
+        {item.responseTime && (
+          <View style={s.responseTag}>
+            <Text style={s.responseTagText}>⚡ {item.responseTime}</Text>
+          </View>
+        )}
+        <View style={s.reviewTag}>
+          <Text style={s.reviewTagText}>후기 {item.reviewCount}건</Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── 반려인(보호자) 홈 ───
 function OwnerHome() {
   const { state } = useApp();
   const router = useRouter();
-  const nearbyCaretakers = MOCK_CARETAKERS.filter((c) => c.isActive).slice(0, 4);
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("전체");
+
+  const todaySpot = useMemo(() => getTodayRecommendedSpot(), []);
+
+  // 선택한 구에 해당하는 산책 명소
+  const districtSpots = useMemo(() => {
+    if (selectedDistrict === "전체") return DAEJEON_WALK_SPOTS.slice(0, 3);
+    return getSpotsByDistrict(selectedDistrict).slice(0, 3);
+  }, [selectedDistrict]);
+
+  // 선택한 구에 해당하는 워커 필터링
+  const filteredWalkers = useMemo(() => {
+    if (selectedDistrict === "전체") {
+      return MOCK_CARETAKERS.filter((c) => c.isActive);
+    }
+    return MOCK_CARETAKERS.filter((c) => {
+      const d = c.district || getDistrictFromNeighborhood(c.neighborhood);
+      return d === selectedDistrict && c.isActive;
+    });
+  }, [selectedDistrict]);
+
+  // 추천 산책로 근처 워커
+  const nearbyWalkers = useMemo(() => {
+    return getWalkersNearSpot(todaySpot.district, MOCK_CARETAKERS).filter(
+      (w) => w.isActive
+    );
+  }, [todaySpot]);
+
   const services = SERVICE_TYPES.owner;
 
   const handleServicePress = (serviceId: string) => {
@@ -49,7 +311,10 @@ function OwnerHome() {
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Pressable
-            onPress={() => { haptic(); router.push("/notifications" as never); }}
+            onPress={() => {
+              haptic();
+              router.push("/notifications" as never);
+            }}
             style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.7 }]}
           >
             <Text style={{ fontSize: 18 }}>🔔</Text>
@@ -58,7 +323,10 @@ function OwnerHome() {
             )}
           </Pressable>
           <Pressable
-            onPress={() => { haptic(); router.push("/(tabs)/profile" as never); }}
+            onPress={() => {
+              haptic();
+              router.push("/(tabs)/profile" as never);
+            }}
             style={({ pressed }) => [s.avatarBtn, pressed && { opacity: 0.7 }]}
           >
             <Text style={{ fontSize: 20 }}>{state.profile.avatarEmoji || "😊"}</Text>
@@ -69,7 +337,66 @@ function OwnerHome() {
       {/* 위치 배너 */}
       <View style={s.locationBar}>
         <Text style={s.locationIcon}>📍</Text>
-        <Text style={s.locationText}>{state.profile.neighborhood || "동네 미설정"}</Text>
+        <Text style={s.locationText}>
+          {state.profile.neighborhood || "동네 미설정"} · 대전광역시
+        </Text>
+      </View>
+
+      {/* 구 필터 탭 */}
+      <DistrictTabs selected={selectedDistrict} onSelect={setSelectedDistrict} />
+
+      {/* 오늘의 추천 산책로 */}
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>오늘의 추천 산책로</Text>
+          <Pressable
+            onPress={() => {
+              haptic();
+              router.push("/(tabs)/map" as never);
+            }}
+          >
+            <Text style={s.seeAll}>전체보기</Text>
+          </Pressable>
+        </View>
+        <RecommendedSpotCard
+          spot={todaySpot}
+          nearbyWalkers={nearbyWalkers}
+          onPress={() => {
+            haptic();
+            router.push("/(tabs)/map" as never);
+          }}
+        />
+
+        {/* 구별 추가 산책 명소 */}
+        {districtSpots.length > 0 && districtSpots[0].id !== todaySpot.id && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 10, marginTop: 12 }}
+          >
+            {districtSpots
+              .filter((sp) => sp.id !== todaySpot.id)
+              .slice(0, 3)
+              .map((sp) => (
+                <Pressable
+                  key={sp.id}
+                  onPress={() => {
+                    haptic();
+                    router.push("/(tabs)/map" as never);
+                  }}
+                  style={({ pressed }) => [s.miniSpotCard, pressed && { opacity: 0.85 }]}
+                >
+                  <Text style={{ fontSize: 24 }}>{sp.emoji}</Text>
+                  <Text style={s.miniSpotName} numberOfLines={1}>
+                    {sp.name}
+                  </Text>
+                  <Text style={s.miniSpotInfo}>
+                    ⭐ {sp.rating} · {sp.walkTime}
+                  </Text>
+                </Pressable>
+              ))}
+          </ScrollView>
+        )}
       </View>
 
       {/* 서비스 그리드 */}
@@ -99,7 +426,10 @@ function OwnerHome() {
       {(state.walkSessions || []).length > 0 && (
         <View style={s.section}>
           <Pressable
-            onPress={() => { haptic(); router.push("/walk/history" as never); }}
+            onPress={() => {
+              haptic();
+              router.push("/walk/history" as never);
+            }}
             style={({ pressed }) => [s.bannerCard, s.bannerWalk, pressed && { opacity: 0.85 }]}
           >
             <View style={s.bannerIconWrap}>
@@ -114,58 +444,58 @@ function OwnerHome() {
         </View>
       )}
 
-      {/* 추천 돌보미 */}
+      {/* 추천 돌보미 (구 필터 적용) */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>추천 돌보미</Text>
-          <Pressable onPress={() => { haptic(); router.push("/(tabs)/explore" as never); }}>
+          <Text style={s.sectionTitle}>
+            {selectedDistrict === "전체"
+              ? "추천 돌보미"
+              : `${selectedDistrict} 돌보미`}
+          </Text>
+          <Pressable
+            onPress={() => {
+              haptic();
+              router.push("/(tabs)/explore" as never);
+            }}
+          >
             <Text style={s.seeAll}>더보기</Text>
           </Pressable>
         </View>
-        <View style={{ gap: 10 }}>
-          {nearbyCaretakers.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => { haptic(); router.push(`/profile/${item.id}` as never); }}
-              style={({ pressed }) => [s.walkerCard, pressed && { opacity: 0.85 }]}
-            >
-              <View style={s.walkerAvatar}>
-                <Text style={{ fontSize: 28 }}>{item.profileEmoji}</Text>
-                {item.isActive && <View style={s.onlineDot} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={s.walkerName}>{item.nickname}</Text>
-                  {item.isVerified && (
-                    <View style={s.verifiedBadge}>
-                      <Text style={s.verifiedText}>인증</Text>
-                    </View>
-                  )}
-                  {item.hasTrainerCert && (
-                    <View style={s.trainerBadge}>
-                      <Text style={s.trainerText}>훈련사</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={s.walkerBio} numberOfLines={1}>{item.bio}</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 }}>
-                  <Text style={s.walkerMeta}>⭐ {item.rating}</Text>
-                  <Text style={s.walkerMeta}>📍 {item.distance}</Text>
-                  {item.pricePerHour && (
-                    <Text style={s.walkerMeta}>₩{(item.pricePerHour / 1000).toFixed(0)}k/h</Text>
-                  )}
-                </View>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+
+        {filteredWalkers.length === 0 ? (
+          <View style={s.emptyCard}>
+            <Text style={{ fontSize: 32 }}>🔍</Text>
+            <Text style={s.emptyText}>
+              {selectedDistrict}에 활동 중인 돌보미가 없어요
+            </Text>
+            <Text style={s.emptySubText}>다른 지역을 선택해보세요</Text>
+          </View>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {filteredWalkers.slice(0, 5).map((item) => (
+              <WalkerCard
+                key={item.id}
+                item={item}
+                onPress={() => {
+                  haptic();
+                  router.push(`/profile/${item.id}` as never);
+                }}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
       {/* 근처 요청 */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>근처 돌봄 요청</Text>
-          <Pressable onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}>
+          <Pressable
+            onPress={() => {
+              haptic();
+              router.push("/(tabs)/requests" as never);
+            }}
+          >
             <Text style={s.seeAll}>더보기</Text>
           </Pressable>
         </View>
@@ -173,7 +503,10 @@ function OwnerHome() {
           {MOCK_REQUESTS.slice(0, 3).map((req) => (
             <Pressable
               key={req.id}
-              onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
+              onPress={() => {
+                haptic();
+                router.push(`/request/${req.id}` as never);
+              }}
               style={({ pressed }) => [s.requestCard, pressed && { opacity: 0.85 }]}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -182,7 +515,9 @@ function OwnerHome() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={s.requestTitle} numberOfLines={1}>{req.title}</Text>
+                    <Text style={s.requestTitle} numberOfLines={1}>
+                      {req.title}
+                    </Text>
                     {req.isUrgent && (
                       <View style={s.urgentBadge}>
                         <Text style={s.urgentText}>긴급</Text>
@@ -202,15 +537,18 @@ function OwnerHome() {
   );
 }
 
-// 돌보미(워커) 홈
+// ─── 돌보미(워커) 홈 ───
 function CaretakerHome() {
   const { state, dispatch } = useApp();
   const router = useRouter();
   const [handledRequests, setHandledRequests] = useState<Record<string, "accepted" | "rejected">>({});
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("전체");
+
+  const todaySpot = useMemo(() => getTodayRecommendedSpot(), []);
 
   const handleAcceptRequest = (reqId: string, reqTitle: string, requesterName: string) => {
     haptic();
-    setHandledRequests(prev => ({ ...prev, [String(reqId)]: "accepted" }));
+    setHandledRequests((prev) => ({ ...prev, [String(reqId)]: "accepted" }));
     dispatch({
       type: "ADD_NOTIFICATION",
       payload: {
@@ -244,7 +582,7 @@ function CaretakerHome() {
 
   const handleRejectRequest = (reqId: string, reqTitle: string) => {
     haptic();
-    setHandledRequests(prev => ({ ...prev, [String(reqId)]: "rejected" }));
+    setHandledRequests((prev) => ({ ...prev, [String(reqId)]: "rejected" }));
     dispatch({
       type: "ADD_NOTIFICATION",
       payload: {
@@ -259,7 +597,7 @@ function CaretakerHome() {
     });
   };
 
-  const completedWalks = (state.walkSessions || []).filter(ws => ws.status === "completed").length;
+  const completedWalks = (state.walkSessions || []).filter((ws) => ws.status === "completed").length;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
@@ -271,7 +609,10 @@ function CaretakerHome() {
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Pressable
-            onPress={() => { haptic(); router.push("/notifications" as never); }}
+            onPress={() => {
+              haptic();
+              router.push("/notifications" as never);
+            }}
             style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.7 }]}
           >
             <Text style={{ fontSize: 18 }}>🔔</Text>
@@ -280,7 +621,10 @@ function CaretakerHome() {
             )}
           </Pressable>
           <Pressable
-            onPress={() => { haptic(); router.push("/(tabs)/profile" as never); }}
+            onPress={() => {
+              haptic();
+              router.push("/(tabs)/profile" as never);
+            }}
             style={({ pressed }) => [s.avatarBtn, pressed && { opacity: 0.7 }]}
           >
             <Text style={{ fontSize: 20 }}>{state.profile.avatarEmoji || "😊"}</Text>
@@ -296,9 +640,7 @@ function CaretakerHome() {
             <Text style={[s.statusValue, { color: state.profile.isOnline ? "#34C759" : "#FF3B30" }]}>
               {state.profile.isOnline ? "● 활동 중" : "● 오프라인"}
             </Text>
-            {!state.profile.isOnline && (
-              <Text style={s.statusHint}>새 요청을 받지 않습니다</Text>
-            )}
+            {!state.profile.isOnline && <Text style={s.statusHint}>새 요청을 받지 않습니다</Text>}
           </View>
           <Pressable
             onPress={() => {
@@ -337,10 +679,34 @@ function CaretakerHome() {
             <Text style={s.statLabel}>평점</Text>
           </View>
           <View style={s.statCard}>
-            <Text style={s.statNumber}>{MOCK_REQUESTS.filter(r => r.status === "pending").length}</Text>
+            <Text style={s.statNumber}>{MOCK_REQUESTS.filter((r) => r.status === "pending").length}</Text>
             <Text style={s.statLabel}>대기 요청</Text>
           </View>
         </View>
+      </View>
+
+      {/* 구 필터 탭 */}
+      <DistrictTabs selected={selectedDistrict} onSelect={setSelectedDistrict} />
+
+      {/* 오늘의 추천 산책로 (돌보미도 볼 수 있음) */}
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>오늘의 추천 산책로</Text>
+        <Pressable
+          onPress={() => {
+            haptic();
+            router.push("/(tabs)/map" as never);
+          }}
+          style={({ pressed }) => [s.spotCardMini, pressed && { opacity: 0.85 }]}
+        >
+          <Text style={{ fontSize: 28 }}>{todaySpot.emoji}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.spotCardMiniName}>{todaySpot.name}</Text>
+            <Text style={s.spotCardMiniInfo}>
+              📍 {todaySpot.district} · ⭐ {todaySpot.rating} · {todaySpot.walkTime}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 16, color: "#FF6B35" }}>›</Text>
+        </Pressable>
       </View>
 
       {/* 제공 서비스 */}
@@ -371,15 +737,25 @@ function CaretakerHome() {
       <View style={s.section}>
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Pressable
-            onPress={() => { haptic(); router.push("/walk/history" as never); }}
+            onPress={() => {
+              haptic();
+              router.push("/walk/history" as never);
+            }}
             style={({ pressed }) => [s.bannerCard, s.bannerWalk, { flex: 1 }, pressed && { opacity: 0.85 }]}
           >
             <Text style={{ fontSize: 20 }}>🐾</Text>
             <Text style={[s.bannerTitle, { fontSize: 13 }]}>산책 기록</Text>
           </Pressable>
           <Pressable
-            onPress={() => { haptic(); router.push("/dashboard" as never); }}
-            style={({ pressed }) => [s.bannerCard, { flex: 1, backgroundColor: "#F0F5FF", borderColor: "#D0E0FF" }, pressed && { opacity: 0.85 }]}
+            onPress={() => {
+              haptic();
+              router.push("/dashboard" as never);
+            }}
+            style={({ pressed }) => [
+              s.bannerCard,
+              { flex: 1, backgroundColor: "#F0F5FF", borderColor: "#D0E0FF" },
+              pressed && { opacity: 0.85 },
+            ]}
           >
             <Text style={{ fontSize: 20 }}>📊</Text>
             <Text style={[s.bannerTitle, { fontSize: 13, color: "#3478F6" }]}>대시보드</Text>
@@ -391,7 +767,12 @@ function CaretakerHome() {
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>새 요청</Text>
-          <Pressable onPress={() => { haptic(); router.push("/(tabs)/requests" as never); }}>
+          <Pressable
+            onPress={() => {
+              haptic();
+              router.push("/(tabs)/requests" as never);
+            }}
+          >
             <Text style={s.seeAll}>더보기</Text>
           </Pressable>
         </View>
@@ -399,7 +780,10 @@ function CaretakerHome() {
           {MOCK_REQUESTS.slice(0, 3).map((req) => (
             <View key={req.id} style={s.requestCard}>
               <Pressable
-                onPress={() => { haptic(); router.push(`/request/${req.id}` as never); }}
+                onPress={() => {
+                  haptic();
+                  router.push(`/request/${req.id}` as never);
+                }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 }}>
                   <View style={s.requestEmoji}>
@@ -407,7 +791,9 @@ function CaretakerHome() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <Text style={s.requestTitle} numberOfLines={1}>{req.title}</Text>
+                      <Text style={s.requestTitle} numberOfLines={1}>
+                        {req.title}
+                      </Text>
                       {req.isUrgent && (
                         <View style={s.urgentBadge}>
                           <Text style={s.urgentText}>긴급</Text>
@@ -422,14 +808,18 @@ function CaretakerHome() {
               </Pressable>
               <View style={s.requestActions}>
                 {handledRequests[String(req.id)] ? (
-                  <View style={[
-                    s.actionBadge,
-                    handledRequests[String(req.id)] === "accepted" ? s.acceptedBadge : s.rejectedBadge
-                  ]}>
-                    <Text style={[
-                      s.actionBadgeText,
-                      handledRequests[String(req.id)] === "accepted" ? { color: "#34C759" } : { color: "#FF3B30" }
-                    ]}>
+                  <View
+                    style={[
+                      s.actionBadge,
+                      handledRequests[String(req.id)] === "accepted" ? s.acceptedBadge : s.rejectedBadge,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        s.actionBadgeText,
+                        handledRequests[String(req.id)] === "accepted" ? { color: "#34C759" } : { color: "#FF3B30" },
+                      ]}
+                    >
                       {handledRequests[String(req.id)] === "accepted" ? "✓ 수락됨" : "✕ 거절됨"}
                     </Text>
                   </View>
@@ -528,13 +918,36 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 4,
   },
   locationIcon: { fontSize: 14 },
   locationText: {
     fontFamily: Fonts.semiBold,
     fontSize: 13,
     color: "#FF6B35",
+  },
+
+  // District Tabs
+  districtTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+  },
+  districtTabActive: {
+    backgroundColor: "#FF6B35",
+    borderColor: "#FF6B35",
+  },
+  districtTabText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: "#8E8E93",
+  },
+  districtTabTextActive: {
+    color: "#FFFFFF",
+    fontFamily: Fonts.bold,
   },
 
   // Section
@@ -560,6 +973,165 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: "#FF6B35",
     marginBottom: 12,
+  },
+
+  // ─── Recommended Spot Card ───
+  spotCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    shadowColor: "#FF6B35",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  spotCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 12,
+  },
+  spotEmojiWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: "#FFF5F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  spotBadge: {
+    fontFamily: Fonts.bold,
+    fontSize: 10,
+    color: "#FFFFFF",
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  spotName: {
+    fontFamily: Fonts.extraBold,
+    fontSize: 18,
+    color: "#1A1A1A",
+    letterSpacing: -0.3,
+  },
+  spotLocation: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: "#8E8E93",
+    marginTop: 2,
+  },
+  spotInfoRow: {
+    flexDirection: "row",
+    backgroundColor: "#FAFAFA",
+    borderRadius: 12,
+    padding: 10,
+  },
+  spotInfoItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  spotInfoDivider: {
+    width: 1,
+    backgroundColor: "#E8E8E8",
+    marginVertical: 2,
+  },
+  spotInfoLabel: {
+    fontFamily: Fonts.regular,
+    fontSize: 10,
+    color: "#8E8E93",
+    marginBottom: 2,
+  },
+  spotInfoValue: {
+    fontFamily: Fonts.bold,
+    fontSize: 13,
+    color: "#1A1A1A",
+  },
+  featureTag: {
+    backgroundColor: "#F0FFF4",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+  },
+  featureTagText: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: "#2E7D32",
+  },
+  spotWalkers: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F5F5F5",
+  },
+  spotWalkersLabel: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: "#8E8E93",
+  },
+  miniAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#FFF0EB",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+
+  // Mini Spot Card
+  miniSpotCard: {
+    width: 120,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    alignItems: "center",
+    gap: 6,
+  },
+  miniSpotName: {
+    fontFamily: Fonts.bold,
+    fontSize: 12,
+    color: "#1A1A1A",
+    textAlign: "center",
+  },
+  miniSpotInfo: {
+    fontFamily: Fonts.regular,
+    fontSize: 10,
+    color: "#8E8E93",
+  },
+
+  // Spot Card Mini (Caretaker)
+  spotCardMini: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#FFF5F0",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#FFD9C7",
+  },
+  spotCardMiniName: {
+    fontFamily: Fonts.bold,
+    fontSize: 14,
+    color: "#1A1A1A",
+  },
+  spotCardMiniInfo: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#8E8E93",
+    marginTop: 2,
   },
 
   // Service Grid
@@ -654,16 +1226,23 @@ const s = StyleSheet.create({
     marginTop: 1,
   },
 
-  // Walker Card
+  // ─── Walker Card (Redesigned) ───
   walkerCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
     borderColor: "#F0F0F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  walkerCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   walkerAvatar: {
     width: 48,
@@ -687,7 +1266,7 @@ const s = StyleSheet.create({
   },
   walkerName: {
     fontFamily: Fonts.bold,
-    fontSize: 14,
+    fontSize: 15,
     color: "#1A1A1A",
   },
   walkerBio: {
@@ -696,32 +1275,127 @@ const s = StyleSheet.create({
     color: "#8E8E93",
     marginTop: 2,
   },
-  walkerMeta: {
-    fontFamily: Fonts.medium,
-    fontSize: 11,
-    color: "#8E8E93",
+  expertBadge: {
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  expertBadgeText: {
+    fontFamily: Fonts.bold,
+    fontSize: 9,
+    color: "#FFFFFF",
   },
   verifiedBadge: {
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingVertical: 2,
     borderRadius: 4,
   },
   verifiedText: {
     fontFamily: Fonts.bold,
     fontSize: 9,
-    color: "#1976D2",
+    color: "#2E7D32",
   },
   trainerBadge: {
     backgroundColor: "#FFF3E0",
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   trainerText: {
     fontFamily: Fonts.bold,
-    fontSize: 9,
+    fontSize: 10,
     color: "#E65100",
+  },
+
+  // Walker Meta Row
+  walkerMetaRow: {
+    flexDirection: "row",
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F5F5F5",
+  },
+  walkerMetaItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  walkerMetaDivider: {
+    width: 1,
+    backgroundColor: "#F0F0F0",
+    marginVertical: 2,
+  },
+  walkerMetaLabel: {
+    fontFamily: Fonts.regular,
+    fontSize: 10,
+    color: "#8E8E93",
+    marginBottom: 2,
+  },
+  walkerMetaValue: {
+    fontFamily: Fonts.bold,
+    fontSize: 12,
+    color: "#1A1A1A",
+  },
+
+  // Walker Tags
+  walkerTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 10,
+  },
+  largeDogTag: {
+    backgroundColor: "#E3F2FD",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  largeDogTagText: {
+    fontFamily: Fonts.medium,
+    fontSize: 10,
+    color: "#1976D2",
+  },
+  responseTag: {
+    backgroundColor: "#FFF8E1",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  responseTagText: {
+    fontFamily: Fonts.medium,
+    fontSize: 10,
+    color: "#F57F17",
+  },
+  reviewTag: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  reviewTagText: {
+    fontFamily: Fonts.medium,
+    fontSize: 10,
+    color: "#8E8E93",
+  },
+
+  // Empty
+  emptyCard: {
+    alignItems: "center",
+    padding: 32,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 16,
+    gap: 8,
+  },
+  emptyText: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+    color: "#8E8E93",
+  },
+  emptySubText: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: "#C0C0C0",
   },
 
   // Request Card
