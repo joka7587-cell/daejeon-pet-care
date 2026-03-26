@@ -275,7 +275,7 @@ export interface ChatMessageData {
   senderId: number;
   senderName: string;
   content: string;
-  type: "text" | "image" | "location";
+  type: "text" | "image" | "location" | "photo" | "walk_report" | "walk_status";
   imageUri?: string;
   // Location pin data (for type === "location")
   locationData?: {
@@ -288,6 +288,36 @@ export interface ChatMessageData {
     walkTime: string;
     latitude: number;
     longitude: number;
+  };
+  // Photo with timestamp/location metadata (for type === "photo")
+  photoData?: {
+    uri: string;
+    district: string; // "대전 유성구 궁동"
+    formattedTime: string; // "14:30"
+    latitude: number;
+    longitude: number;
+  };
+  // Walk report card (for type === "walk_report")
+  walkReportData?: {
+    reportId: string;
+    workerName: string;
+    petName: string;
+    petEmoji: string;
+    durationMin: number;
+    distanceKm: number;
+    caloriesBurned: number;
+    stepsEstimated: number;
+    photoCount: number;
+    date: string;
+    startTime: string;
+    endTime: string;
+    petMood: "happy" | "normal" | "tired" | null;
+  };
+  // Walk status update (for type === "walk_status")
+  walkStatusData?: {
+    status: "started" | "paused" | "resumed" | "completed";
+    district?: string;
+    timestamp: string;
   };
   createdAt: string;
 }
