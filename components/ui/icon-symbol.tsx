@@ -56,6 +56,13 @@ const MAPPING = {
   // Toggle
   "toggle.on": "toggle-on",
   "toggle.off": "toggle-off",
+  // Admin/Simulation
+  "play.fill": "play-arrow",
+  "pause.fill": "pause",
+  "stop.fill": "stop",
+  "arrow.clockwise": "refresh",
+  "ant.fill": "bug-report",
+  "wrench.fill": "build",
 } as unknown as IconMapping;
 
 /**

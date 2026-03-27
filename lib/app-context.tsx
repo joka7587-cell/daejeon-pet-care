@@ -9,6 +9,11 @@ import {
   SEED_CHAT_ROOMS,
   SEED_OWNER_PROFILE,
 } from "@/lib/seed-data";
+import {
+  WalkSimulationState,
+  initialSimulationState,
+  SimulationCoord,
+} from "@/lib/walk-simulation";
 
 export type UserRole = "owner" | "caretaker" | null;
 
@@ -173,6 +178,7 @@ interface AppState {
   bookings: Booking[];
   mannerReviews: MannerReview[];
   blacklist: string[]; // blocked user IDs
+  walkSimulation: WalkSimulationState;
 }
 
 export interface WalkRoutePoint {
@@ -376,6 +382,7 @@ type AppAction =
   | { type: "ADD_MANNER_REVIEW"; payload: MannerReview }
   | { type: "ADD_TO_BLACKLIST"; payload: string }
   | { type: "REMOVE_FROM_BLACKLIST"; payload: string }
+  | { type: "SET_WALK_SIMULATION"; payload: Partial<WalkSimulationState> }
   | { type: "LOAD_STATE"; payload: AppState }
   | { type: "RESET_APP" };
 
@@ -441,6 +448,7 @@ const initialState: AppState = {
   bookings: [],
   mannerReviews: [],
   blacklist: [],
+  walkSimulation: initialSimulationState,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -712,6 +720,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, blacklist: [...state.blacklist, action.payload] };
     case "REMOVE_FROM_BLACKLIST":
       return { ...state, blacklist: state.blacklist.filter((id) => id !== action.payload) };
+    case "SET_WALK_SIMULATION":
+      return { ...state, walkSimulation: { ...state.walkSimulation, ...action.payload } };
     case "LOAD_STATE":
       return {
         ...initialState,

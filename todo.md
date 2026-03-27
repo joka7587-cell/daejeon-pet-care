@@ -593,3 +593,13 @@
 
 ## 버그 수정 (Phase 24)
 - [x] BUG: Metro 번들러 lightningcss/react-native-css-interop Unexpected token Semicolon 에러 수정
+
+## 산책 시뮬레이션 모드 (Phase 25)
+- [x] 대전 엑스포 공원 근처 5개 좌표 배열 정의 (시뮬레이션 경로)
+- [x] 시뮬레이션 상태 관리 (AppContext에 walkSimulation 상태 추가)
+- [x] 도그워커 산책 시작 시 시뮬레이션 모드 옵션 (5초 간격 좌표 전송)
+- [x] 관리자 전용 숨겨진 메뉴 (프로필 설정 내 히든 메뉴)
+- [x] 보호자 앱 지도 마커 부드러운 이동 애니메이션 (4초 ease-in-out)
+- [x] 시뮬레이션 진행 상태 표시 (현재 좌표 인덱스, 진행률)
+- [x] 보호자용 실시간 추적 화면 (admin/live-tracker.tsx)
+- [x] 테스트 작성 및 실행 (19개 추가, 총 507개 통과)

@@ -20,6 +20,7 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
+  withSpring,
 } from "react-native-reanimated";
 import { Fonts } from "@/hooks/use-fonts";
 import * as Haptics from "expo-haptics";
@@ -111,7 +112,7 @@ const DISTRICT_LABELS = [
   { name: "대덕구", lat: 36.400, lon: 127.430 },
 ];
 
-// ─── 위치 핀 애니메이션 ───
+// ─── 위치 핀 애니메이션 (부드러운 이동 지원) ───
 function PulsingPin({
   x,
   y,
@@ -124,6 +125,8 @@ function PulsingPin({
   label: string;
 }) {
   const pulseScale = useSharedValue(1);
+  const animX = useSharedValue(x - 20);
+  const animY = useSharedValue(y - 20);
 
   useEffect(() => {
     pulseScale.value = withRepeat(
@@ -133,13 +136,24 @@ function PulsingPin({
     );
   }, []);
 
+  // 좌표가 변경되면 부드럽게 이동 (4초 애니메이션)
+  useEffect(() => {
+    animX.value = withTiming(x - 20, { duration: 4000, easing: Easing.inOut(Easing.ease) });
+    animY.value = withTiming(y - 20, { duration: 4000, easing: Easing.inOut(Easing.ease) });
+  }, [x, y]);
+
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],
     opacity: 2 - pulseScale.value,
   }));
 
+  const positionStyle = useAnimatedStyle(() => ({
+    left: animX.value,
+    top: animY.value,
+  }));
+
   return (
-    <View style={[pinStyles.container, { left: x - 20, top: y - 20 }]}>
+    <Animated.View style={[pinStyles.container, positionStyle]}>
       <Animated.View style={[pinStyles.pulse, pulseStyle]} />
       <View style={pinStyles.pin}>
         <Text style={{ fontSize: 16 }}>{emoji}</Text>
@@ -147,7 +161,7 @@ function PulsingPin({
       <View style={pinStyles.labelWrap}>
         <Text style={pinStyles.label}>{label}</Text>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

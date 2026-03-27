@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -73,6 +73,27 @@ export default function ProfileScreen() {
   const { colorScheme, setColorScheme } = useThemeContext();
   const isCaretaker = profile.role === "caretaker";
   const [showNeighborhoodPicker, setShowNeighborhoodPicker] = useState(false);
+
+  // 관리자 메뉴 진입: 앱 버전 영역 5번 탭
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const adminTapCount = useRef(0);
+  const adminTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleVersionTap = useCallback(() => {
+    adminTapCount.current += 1;
+    if (adminTapTimer.current) clearTimeout(adminTapTimer.current);
+    if (adminTapCount.current >= 5) {
+      adminTapCount.current = 0;
+      haptic();
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      setShowAdminMenu(true);
+    } else {
+      adminTapTimer.current = setTimeout(() => {
+        adminTapCount.current = 0;
+      }, 3000);
+    }
+  }, []);
   const isDark = colorScheme === "dark";
 
   // 닉네임 편집 상태
@@ -495,7 +516,52 @@ export default function ProfileScreen() {
               <Text style={styles.resetText}>앱 초기화 (데이터 전체 삭제)</Text>
               <Text style={[styles.settingArrow, { color: "#8E8E93" }]}>›</Text>
             </Pressable>
+            <View style={[styles.settingDivider, { backgroundColor: "#E8E8E8" }]} />
+            <Pressable
+              onPress={handleVersionTap}
+              style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={[styles.settingText, { color: "#C0C0C0" }]}>v1.0.0 (빌드 25.03)</Text>
+            </Pressable>
           </SectionCard>
+
+          {/* 관리자 전용 메뉴 (숨겨진 메뉴) */}
+          {showAdminMenu && (
+            <SectionCard title="🔧 관리자 전용">
+              <Pressable
+                onPress={() => { haptic(); router.push("/admin/simulation" as never); }}
+                style={({ pressed }) => [styles.menuRow, { borderBottomColor: "#E8E8E8" }, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={{ fontSize: 20 }}>🚶</Text>
+                <Text style={[styles.menuLabel, { color: "#1A1A1A" }]}>산책 시뮬레이션</Text>
+                <View style={{ flex: 1 }} />
+                <View style={[styles.menuBadge, { backgroundColor: "#FF6B3520" }]}>
+                  <Text style={[styles.menuBadgeText, { color: "#FF6B35" }]}>시연용</Text>
+                </View>
+                <Text style={[styles.menuArrow, { color: "#8E8E93" }]}>›</Text>
+              </Pressable>
+              <View style={[styles.settingDivider, { backgroundColor: "#E8E8E8" }]} />
+              <Pressable
+                onPress={() => { haptic(); router.push("/admin/live-tracker" as never); }}
+                style={({ pressed }) => [styles.menuRow, { borderBottomColor: "#E8E8E8" }, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={{ fontSize: 20 }}>📍</Text>
+                <Text style={[styles.menuLabel, { color: "#1A1A1A" }]}>실시간 추적 (보호자 뷰)</Text>
+                <View style={{ flex: 1 }} />
+                <View style={[styles.menuBadge, { backgroundColor: "#4CAF8220" }]}>
+                  <Text style={[styles.menuBadgeText, { color: "#4CAF82" }]}>보호자</Text>
+                </View>
+                <Text style={[styles.menuArrow, { color: "#8E8E93" }]}>›</Text>
+              </Pressable>
+              <View style={[styles.settingDivider, { backgroundColor: "#E8E8E8" }]} />
+              <Pressable
+                onPress={() => { haptic(); setShowAdminMenu(false); }}
+                style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={[styles.settingText, { color: "#EF5350" }]}>관리자 메뉴 닫기</Text>
+              </Pressable>
+            </SectionCard>
+          )}
         </View>
       </ScrollView>
 
