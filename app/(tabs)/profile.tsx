@@ -74,11 +74,16 @@ export default function ProfileScreen() {
   const isCaretaker = profile.role === "caretaker";
   const [showNeighborhoodPicker, setShowNeighborhoodPicker] = useState(false);
 
-  // 관리자 메뉴 진입: 앱 버전 영역 5번 탭
+  // 관리자 히든 진입로: 프로필 헤더 로고 5번 탭 → 비밀번호 입력
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminPasswordError, setAdminPasswordError] = useState(false);
   const adminTapCount = useRef(0);
   const adminTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleVersionTap = useCallback(() => {
+
+  // 프로필 헤더 로고 영역 5번 탭 → 비밀번호 모달 표시
+  const handleLogoTap = useCallback(() => {
     adminTapCount.current += 1;
     if (adminTapTimer.current) clearTimeout(adminTapTimer.current);
     if (adminTapCount.current >= 5) {
@@ -87,13 +92,42 @@ export default function ProfileScreen() {
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      setShowAdminMenu(true);
+      setAdminPassword("");
+      setAdminPasswordError(false);
+      setShowAdminPasswordModal(true);
     } else {
       adminTapTimer.current = setTimeout(() => {
         adminTapCount.current = 0;
       }, 3000);
     }
   }, []);
+
+  // 비밀번호 확인 → 관리자 대시보드 이동
+  const handleAdminPasswordSubmit = useCallback(() => {
+    if (adminPassword === "1234") {
+      haptic();
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      setShowAdminPasswordModal(false);
+      setAdminPassword("");
+      setAdminPasswordError(false);
+      setShowAdminMenu(true);
+      router.push("/admin/dashboard" as never);
+    } else {
+      haptic();
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      setAdminPasswordError(true);
+      setAdminPassword("");
+    }
+  }, [adminPassword, router]);
+
+  // 기존 버전 탭 핸들러 (하위 호환 유지)
+  const handleVersionTap = useCallback(() => {
+    handleLogoTap();
+  }, [handleLogoTap]);
   const isDark = colorScheme === "dark";
 
   // 닉네임 편집 상태
@@ -162,6 +196,14 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         {/* 프로필 헤더 */}
         <View style={[styles.profileHeader, isCaretaker ? styles.profileHeaderGreen : styles.profileHeaderOrange]}>
+          {/* 반려이음 로고 - 5번 탭 시 관리자 비밀번호 입력 */}
+          <Pressable
+            onPress={handleLogoTap}
+            style={({ pressed }) => [pressed && { opacity: 0.9 }]}
+          >
+            <Text style={styles.headerLogoText}>반려이음</Text>
+          </Pressable>
+
           {/* 아바타 - 탭하여 변경 */}
           <Pressable
             onPress={() => { haptic(); setShowAvatarModal(true); }}
@@ -671,6 +713,64 @@ export default function ProfileScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* 관리자 비밀번호 입력 모달 */}
+      <Modal
+        visible={showAdminPasswordModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAdminPasswordModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowAdminPasswordModal(false)}>
+            <Pressable style={[styles.adminPwModal, { backgroundColor: "#F8F8F8" }]} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.adminPwIconWrap}>
+                <Text style={{ fontSize: 32 }}>🔐</Text>
+              </View>
+              <Text style={[styles.modalTitle, { color: "#1A1A1A" }]}>관리자 인증</Text>
+              <Text style={[styles.modalSubtitle, { color: "#8E8E93" }]}>
+                관리자 비밀번호를 입력하세요
+              </Text>
+              <TextInput
+                style={[
+                  styles.adminPwInput,
+                  { color: "#1A1A1A", borderColor: adminPasswordError ? "#EF4444" : "#E8E8E8", backgroundColor: "#FFFFFF" },
+                ]}
+                value={adminPassword}
+                onChangeText={(t) => { setAdminPassword(t); setAdminPasswordError(false); }}
+                placeholder="비밀번호 4자리"
+                placeholderTextColor="#C0C0C0"
+                secureTextEntry
+                keyboardType="number-pad"
+                maxLength={4}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleAdminPasswordSubmit}
+              />
+              {adminPasswordError && (
+                <Text style={styles.adminPwError}>비밀번호가 일치하지 않습니다</Text>
+              )}
+              <View style={styles.modalActions}>
+                <Pressable
+                  onPress={() => setShowAdminPasswordModal(false)}
+                  style={({ pressed }) => [styles.modalCancelBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={[styles.modalCancelText, { color: "#8E8E93" }]}>취소</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleAdminPasswordSubmit}
+                  style={({ pressed }) => [styles.modalSaveBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+                >
+                  <Text style={styles.modalSaveText}>확인</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -994,5 +1094,45 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF7043",
     alignItems: "center",
     justifyContent: "center",
+  },
+  // 반려이음 로고 텍스트
+  headerLogoText: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: "#C0C0C0",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  // 관리자 비밀번호 모달
+  adminPwModal: {
+    width: "85%" as any,
+    maxWidth: 360,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    gap: 12,
+  },
+  adminPwIconWrap: {
+    alignItems: "center" as const,
+    marginBottom: 4,
+  },
+  adminPwInput: {
+    borderWidth: 1.5,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 24,
+    fontWeight: "700" as const,
+    textAlign: "center" as const,
+    letterSpacing: 12,
+    marginTop: 4,
+  },
+  adminPwError: {
+    fontSize: 13,
+    color: "#EF4444",
+    fontWeight: "600" as const,
+    textAlign: "center" as const,
+    marginTop: -4,
   },
 });
