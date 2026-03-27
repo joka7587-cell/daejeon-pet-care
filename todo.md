@@ -634,3 +634,10 @@
 ## 버그 수정 (Phase 29)
 - [x] BUG: dashboard.tsx SVG 내부 'Text strings must be rendered within a Text component' 에러 수정 (placeholder G/Circle/Rect 제거, SVG 내 JSX 주석 정리)
 - [x] BUG: dashboard.tsx 지도 컨테이너 width/height 보정 (기존 mapContainer 정상 확인, SVG 에러가 JS 실행 차단 원인이었음)
+
+## 관제 지도 카카오맵 WebView 교체 (Phase 30)
+- [x] 대시보드 ControlMap 컴포넌트를 카카오맵 WebView로 교체
+- [x] HTML 스트링에 카카오맵 스크립트 + div 삽입
+- [x] WebView width/height 100% 부모 컨테이너 꼽 채움
+- [x] 워커 마커 CustomOverlay + 맥동 CSS 애니메이션 + 대전 5구 라벨 + 인포윈도우
+- [x] 테스트 실행 (566개 통과, TS 에러 0건)

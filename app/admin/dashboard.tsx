@@ -14,9 +14,11 @@ import {
   Platform,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
-import Svg, { Circle, G, Text as SvgText, Rect, Line } from "react-native-svg";
+import Svg, { Circle, Text as SvgText } from "react-native-svg";
+import { WebView } from "react-native-webview";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -42,6 +44,7 @@ import {
   type ActiveWalkerLocation,
   type PendingWalker,
 } from "@/lib/admin-dashboard-data";
+import { getApiBaseUrl } from "@/constants/oauth";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -155,65 +158,349 @@ function PieChart({ data, size = 200 }: { data: DistrictStats[]; size?: number }
   );
 }
 
-// ─── 관제 지도 컴포넌트 ───
+// ─── 관제 지도 HTML 생성 ───
+function generateControlMapHTML(
+  apiKey: string,
+  walkers: ActiveWalkerLocation[],
+): string {
+  const walkersJSON = JSON.stringify(
+    walkers.map((w) => ({
+      id: w.id,
+      nickname: w.nickname,
+      emoji: w.profileEmoji,
+      lat: w.latitude,
+      lng: w.longitude,
+      district: w.district,
+      neighborhood: w.neighborhood,
+      status: w.status,
+      petName: w.petName,
+      petBreed: w.petBreed,
+      ownerName: w.ownerName,
+      distance: w.distanceCovered,
+      elapsed: w.elapsedMinutes,
+    }))
+  );
+
+  const statusColors: Record<string, string> = {
+    walking: "#4CAF82",
+    resting: "#F59E0B",
+    returning: "#3B82F6",
+  };
+  const statusLabels: Record<string, string> = {
+    walking: "산책 중",
+    resting: "휴식 중",
+    returning: "복귀 중",
+  };
+  const statusColorsJSON = JSON.stringify(statusColors);
+  const statusLabelsJSON = JSON.stringify(statusLabels);
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #map { width: 100%; height: 100%; }
+    .walker-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      font-size: 20px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s;
+    }
+    .walker-marker:hover { transform: scale(1.15); }
+    .walker-marker .pulse-ring {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .info-window {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #FFFFFF;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      min-width: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .info-window .walker-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1A1A1A;
+      margin-bottom: 4px;
+    }
+    .info-window .walker-detail {
+      font-size: 11px;
+      color: #8E8E93;
+      margin-bottom: 3px;
+    }
+    .info-window .walker-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin-top: 4px;
+    }
+    .district-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #2E7D32;
+      background: rgba(255,255,255,0.85);
+      padding: 3px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(46,125,50,0.2);
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #F8FBF5;
+      z-index: 9999;
+      transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loading-text {
+      font-size: 14px;
+      color: #8E8E93;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading" class="loading-overlay">
+    <div class="loading-text">🗺️ 대전 관제 지도 로딩 중...</div>
+  </div>
+  <div id="map"></div>
+
+  <script>
+    var script = document.createElement('script');
+    script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + '${apiKey}' + '&autoload=false';
+    script.onload = function() {
+      kakao.maps.load(initMap);
+    };
+    script.onerror = function() {
+      document.getElementById('loading').innerHTML =
+        '<div class="loading-text">카카오맵 로드 실패</div>';
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'SDK load failed' }));
+      }
+    };
+    document.head.appendChild(script);
+
+    var map;
+    var openInfoWindow = null;
+    var statusColors = ${statusColorsJSON};
+    var statusLabels = ${statusLabelsJSON};
+
+    function initMap() {
+      var container = document.getElementById('map');
+      var options = {
+        center: new kakao.maps.LatLng(36.3504, 127.3845),
+        level: 8
+      };
+      map = new kakao.maps.Map(container, options);
+      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+
+      var districts = [
+        { name: '서구', lat: 36.355, lng: 127.38 },
+        { name: '유성구', lat: 36.385, lng: 127.33 },
+        { name: '중구', lat: 36.33, lng: 127.42 },
+        { name: '동구', lat: 36.32, lng: 127.455 },
+        { name: '대덕구', lat: 36.43, lng: 127.42 }
+      ];
+      districts.forEach(function(d) {
+        var el = document.createElement('div');
+        el.className = 'district-label';
+        el.textContent = d.name;
+        new kakao.maps.CustomOverlay({
+          position: new kakao.maps.LatLng(d.lat, d.lng),
+          content: el,
+          map: map,
+          yAnchor: 0.5
+        });
+      });
+
+      var walkers = ${walkersJSON};
+      walkers.forEach(function(w) {
+        addWalkerMarker(w);
+      });
+
+      document.getElementById('loading').classList.add('hidden');
+      setTimeout(function() {
+        document.getElementById('loading').style.display = 'none';
+      }, 400);
+
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
+      }
+    }
+
+    function addWalkerMarker(w) {
+      var position = new kakao.maps.LatLng(w.lat, w.lng);
+      var color = statusColors[w.status] || '#8E8E93';
+      var label = statusLabels[w.status] || w.status;
+
+      var content = document.createElement('div');
+      content.className = 'walker-marker';
+      content.style.background = color;
+      content.innerHTML = '<div class="pulse-ring" style="border-color:' + color + '"></div>' + w.emoji;
+
+      var overlay = new kakao.maps.CustomOverlay({
+        position: position,
+        content: content,
+        map: map,
+        yAnchor: 0.5
+      });
+
+      var infoContent =
+        '<div class="info-window">' +
+          '<div class="walker-name">' + w.emoji + ' ' + w.nickname + '</div>' +
+          '<div class="walker-detail">📍 ' + w.district + ' ' + w.neighborhood + '</div>' +
+          '<div class="walker-detail">🐾 ' + w.petName + '(' + w.petBreed + ') · 보호자: ' + w.ownerName + '</div>' +
+          '<div class="walker-detail">🚶 ' + w.distance + 'km · ' + w.elapsed + '분 경과</div>' +
+          '<div class="walker-badge" style="background:' + color + '">' + label + '</div>' +
+        '</div>';
+
+      var infoWindow = new kakao.maps.InfoWindow({
+        content: infoContent,
+        removable: true
+      });
+
+      content.addEventListener('click', function() {
+        if (openInfoWindow) openInfoWindow.close();
+        infoWindow.open(map, new kakao.maps.Marker({ position: position, map: null }));
+        openInfoWindow = infoWindow;
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'markerClick', id: w.id }));
+        }
+      });
+    }
+  </script>
+</body>
+</html>`;
+}
+
+// ─── 관제 지도 컴포넌트 (카카오맵 WebView) ───
 function ControlMap({ walkers }: { walkers: ActiveWalkerLocation[] }) {
   const mapWidth = SCREEN_WIDTH - 48;
-  const mapHeight = mapWidth * 0.75;
+  const mapHeight = mapWidth * 0.85;
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
+  const webViewRef = useRef<any>(null);
 
-  // 대전 좌표 범위
-  const bounds = { minLat: 36.28, maxLat: 36.45, minLng: 127.33, maxLng: 127.48 };
+  useEffect(() => {
+    const fetchKey = async () => {
+      try {
+        const baseUrl = getApiBaseUrl();
+        const res = await fetch(`${baseUrl}/api/kakao-map-key`);
+        const data = await res.json();
+        if (data.key) {
+          setApiKey(data.key);
+          setError(null);
+        } else {
+          setError("카카오맵 API 키가 설정되지 않았습니다.");
+          setLoading(false);
+        }
+      } catch {
+        setError("API 키를 가져오는 데 실패했습니다.");
+        setLoading(false);
+      }
+    };
+    fetchKey();
+  }, []);
 
-  const toXY = (lat: number, lng: number) => {
-    const x = ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * mapWidth;
-    const y = ((bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)) * mapHeight;
-    return { x, y };
-  };
+  const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "ready") {
+        setMapReady(true);
+        setLoading(false);
+      } else if (data.type === "error") {
+        setError(data.message);
+        setLoading(false);
+      } else if (data.type === "markerClick") {
+        haptic();
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const mapHTML = apiKey ? generateControlMapHTML(apiKey, walkers) : "";
 
   return (
     <View style={[styles.mapContainer, { width: mapWidth, height: mapHeight }]}>
-      {/* 배경 그리드 */}
-      <Svg width={mapWidth} height={mapHeight} style={StyleSheet.absoluteFill}>
-        {[0.2, 0.4, 0.6, 0.8].map((p, i) => (
-          <G key={i}>
-            <Line x1={p * mapWidth} y1={0} x2={p * mapWidth} y2={mapHeight} stroke="#E8E8E8" strokeWidth={0.5} />
-            <Line x1={0} y1={p * mapHeight} x2={mapWidth} y2={p * mapHeight} stroke="#E8E8E8" strokeWidth={0.5} />
-          </G>
-        ))}
-        {[
-          { name: "서구", lat: 36.355, lng: 127.38 },
-          { name: "유성구", lat: 36.385, lng: 127.37 },
-          { name: "중구", lat: 36.33, lng: 127.42 },
-          { name: "동구", lat: 36.32, lng: 127.45 },
-          { name: "대덕구", lat: 36.43, lng: 127.42 },
-        ].map((d, i) => {
-          const { x, y } = toXY(d.lat, d.lng);
-          return (
-            <SvgText
-              key={i}
-              x={x}
-              y={y}
-              textAnchor="middle"
-              fontSize={10}
-              fill="#C0C0C0"
-              fontFamily={Fonts.medium}
-            >
-              {d.name}
-            </SvgText>
-          );
-        })}
-      </Svg>
-
-      {/* 워커 마커 */}
-      {walkers.map((w) => {
-        const { x, y } = toXY(w.latitude, w.longitude);
-        const statusInfo = WALKER_STATUS_MAP[w.status];
-        return (
-          <View key={w.id} style={[styles.walkerMarker, { left: x - 16, top: y - 16 }]}>
-            <PulsingDot color={statusInfo.color} />
-            <Text style={styles.markerEmoji}>{w.profileEmoji}</Text>
-          </View>
-        );
-      })}
+      {error ? (
+        <View style={styles.mapErrorContainer}>
+          <Text style={styles.mapErrorEmoji}>⚠️</Text>
+          <Text style={[styles.mapErrorText, { fontFamily: Fonts.medium }]}>{error}</Text>
+          <Text style={[styles.mapErrorSub, { fontFamily: Fonts.regular }]}>
+            카카오 Developers에서 JavaScript API 키를 발급받아 설정해주세요.
+          </Text>
+        </View>
+      ) : apiKey ? (
+        <>
+          {Platform.OS === "web" ? (
+            <iframe
+              srcDoc={mapHTML}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+                borderRadius: 12,
+              }}
+              title="관제 지도"
+            />
+          ) : (
+            <WebView
+              ref={webViewRef}
+              source={{ html: mapHTML }}
+              style={{ flex: 1, borderRadius: 12 }}
+              onMessage={handleMessage}
+              javaScriptEnabled
+              domStorageEnabled
+              originWhitelist={["*"]}
+              scrollEnabled={false}
+              bounces={false}
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+          {loading && (
+            <View style={styles.mapLoadingOverlay}>
+              <ActivityIndicator size="large" color="#2E7D32" />
+              <Text style={[styles.mapLoadingText, { fontFamily: Fonts.regular }]}>대전 관제 지도 로딩 중...</Text>
+            </View>
+          )}
+        </>
+      ) : (
+        <View style={styles.mapLoadingOverlay}>
+          <ActivityIndicator size="large" color="#2E7D32" />
+          <Text style={[styles.mapLoadingText, { fontFamily: Fonts.regular }]}>API 키 확인 중...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -770,12 +1057,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
     borderRadius: 12,
     overflow: "hidden",
-    position: "relative",
+    position: "relative" as const,
   },
-  walkerMarker: { position: "absolute", width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  markerEmoji: { fontSize: 18, position: "absolute" },
-  pulsingContainer: { position: "absolute", width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  pulsingRing: { position: "absolute", width: 28, height: 28, borderRadius: 14, borderWidth: 2 },
+  mapErrorContainer: {
+    flex: 1,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    padding: 24,
+  },
+  mapErrorEmoji: { fontSize: 40, marginBottom: 12 },
+  mapErrorText: { fontSize: 14, color: "#1A1A1A", textAlign: "center" as const, marginBottom: 8 },
+  mapErrorSub: { fontSize: 12, color: "#8E8E93", textAlign: "center" as const, lineHeight: 18 },
+  mapLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#F8FBF5",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    borderRadius: 12,
+    gap: 12,
+  },
+  mapLoadingText: { fontSize: 13, color: "#8E8E93" },
+  walkerMarker: { position: "absolute" as const, width: 32, height: 32, alignItems: "center" as const, justifyContent: "center" as const },
+  markerEmoji: { fontSize: 18, position: "absolute" as const },
+  pulsingContainer: { position: "absolute" as const, width: 32, height: 32, alignItems: "center" as const, justifyContent: "center" as const },
+  pulsingRing: { position: "absolute" as const, width: 28, height: 28, borderRadius: 14, borderWidth: 2 },
   pulsingCore: { width: 8, height: 8, borderRadius: 4 },
   walkerList: { marginTop: 12, gap: 8 },
   walkerRow: {
