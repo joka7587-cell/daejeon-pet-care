@@ -651,3 +651,6 @@
 ## 카카오맵 최소 샘플 (Phase 32)
 - [x] 관제 지도 HTML을 가장 단순한 카카오맵 샘플로 교체 (generateSimpleMapHTML 추가)
 - [x] 단순 지도 로드 성공 후 0.5초 후 풀 버전(워커 마커 포함)으로 자동 전환
+
+## 버그 수정 (Phase 33)
+- [x] BUG: 찾기(explore) 메뉴 UI 레이아웃 불안정 수정 (FlatList flex:1, 헤더 영역 flexGrow:0/flexShrink:0 고정, FlatList 성능 최적화)

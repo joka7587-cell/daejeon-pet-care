@@ -285,6 +285,7 @@ function OwnerExplore({ initialTab }: { initialTab?: string }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 8 }}
+        style={{ flexGrow: 0, flexShrink: 0 }}
       >
         {tabs.map((tab) => (
           <Pressable
@@ -305,7 +306,7 @@ function OwnerExplore({ initialTab }: { initialTab?: string }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 6, paddingVertical: 6 }}
-        style={{ backgroundColor: "#FAFAFA" }}
+        style={{ backgroundColor: "#FAFAFA", flexGrow: 0, flexShrink: 0 }}
       >
         {neighborhoods.map((n) => (
           <Pressable
@@ -320,22 +321,24 @@ function OwnerExplore({ initialTab }: { initialTab?: string }) {
         ))}
       </ScrollView>
 
-      {/* 필터 패널 (돌보미 탭에서만) */}
-      {showFilters && (
-        <FilterPanel
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          largeDogOnly={largeDogOnly}
-          setLargeDogOnly={setLargeDogOnly}
-          trainerOnly={trainerOnly}
-          setTrainerOnly={setTrainerOnly}
-          verifiedOnly={verifiedOnly}
-          setVerifiedOnly={setVerifiedOnly}
-        />
-      )}
+      {/* 필터 패널 (돌보미 탭에서만) - 고정 높이로 레이아웃 안정화 */}
+      <View style={{ flexGrow: 0, flexShrink: 0 }}>
+        {showFilters && (
+          <FilterPanel
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            largeDogOnly={largeDogOnly}
+            setLargeDogOnly={setLargeDogOnly}
+            trainerOnly={trainerOnly}
+            setTrainerOnly={setTrainerOnly}
+            verifiedOnly={verifiedOnly}
+            setVerifiedOnly={setVerifiedOnly}
+          />
+        )}
+      </View>
 
       {/* 결과 수 */}
-      <View style={s.resultCount}>
+      <View style={[s.resultCount, { flexGrow: 0, flexShrink: 0 }]}>
         <Text style={s.resultCountText}>
           {activeTab === "walk_request"
             ? `산책 요청 ${filteredRequests.length}건`
@@ -343,9 +346,10 @@ function OwnerExplore({ initialTab }: { initialTab?: string }) {
         </Text>
       </View>
 
-      {/* 목록 */}
+      {/* 목록 - flex:1로 남은 공간 전체 차지하여 레이아웃 안정화 */}
       {activeTab === "walk_request" ? (
         <FlatList
+          style={{ flex: 1 }}
           data={filteredRequests}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20, gap: 10 }}
@@ -389,10 +393,15 @@ function OwnerExplore({ initialTab }: { initialTab?: string }) {
         />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={filteredAndSorted}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20, gap: 10 }}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
           ListEmptyComponent={
             <View style={s.emptyCard}>
               <Text style={{ fontSize: 40 }}>🔍</Text>
@@ -439,7 +448,7 @@ function CaretakerExplore({ initialTab }: { initialTab?: string }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 8, flexDirection: "row", gap: 10 }}>
+      <View style={{ paddingHorizontal: 16, paddingVertical: 8, flexDirection: "row", gap: 10, flexGrow: 0, flexShrink: 0 }}>
         {tabs.map((tab) => (
           <Pressable
             key={tab.id}
@@ -461,7 +470,7 @@ function CaretakerExplore({ initialTab }: { initialTab?: string }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 6, paddingVertical: 6 }}
-        style={{ backgroundColor: "#FAFAFA" }}
+        style={{ backgroundColor: "#FAFAFA", flexGrow: 0, flexShrink: 0 }}
       >
         {neighborhoods.map((n) => (
           <Pressable
@@ -477,10 +486,15 @@ function CaretakerExplore({ initialTab }: { initialTab?: string }) {
       </ScrollView>
 
       <FlatList
+        style={{ flex: 1 }}
         data={filteredOwners}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, gap: 10 }}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         ListHeaderComponent={
           <View style={s.infoCard}>
             <Text style={s.infoCardText}>
@@ -565,6 +579,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     height: 42,
     gap: 8,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   searchIcon: { fontSize: 14 },
   searchInput: {
