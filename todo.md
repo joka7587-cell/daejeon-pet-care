@@ -641,3 +641,9 @@
 - [x] WebView width/height 100% 부모 컨테이너 꼽 채움
 - [x] 워커 마커 CustomOverlay + 맥동 CSS 애니메이션 + 대전 5구 라벨 + 인포윈도우
 - [x] 테스트 실행 (566개 통과, TS 에러 0건)
+
+## 버그 수정 (Phase 31)
+- [x] BUG: dashboard.tsx SVG 컴포넌트 내부 공백/줄바꿈 제거 (sliceElements 외부 추출 + 한 줄 연결)
+- [x] WebView에 domStorageEnabled={true} 속성 확인 (기존 적용됨)
+- [x] WebView에 mixedContentMode="always" 속성 추가 (dashboard + kakao-map-webview)
+- [x] 카카오맵 WebView 전체 설정 보완 (allowFileAccess, allowUniversalAccessFromFileURLs 추가)

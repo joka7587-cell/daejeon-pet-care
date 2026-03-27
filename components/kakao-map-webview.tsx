@@ -678,13 +678,17 @@ export function KakaoMapView({
                     source={{ html: mapHTML }}
                     style={s.webview}
                     onMessage={handleMessage}
-                    javaScriptEnabled
-                    domStorageEnabled
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    mixedContentMode="always"
+                    allowsInlineMediaPlayback={true}
                     originWhitelist={["*"]}
                     scrollEnabled={false}
                     bounces={false}
                     showsHorizontalScrollIndicator={false}
                     showsVerticalScrollIndicator={false}
+                    allowFileAccess={true}
+                    allowUniversalAccessFromFileURLs={true}
                   />
                 )}
                 {loading && (

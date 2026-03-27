@@ -85,60 +85,23 @@ function PieChart({ data, size = 200 }: { data: DistrictStats[]; size?: number }
     return { ...d, path, lx, ly, angle };
   });
 
+  const sliceElements = (() => {
+    const strokeWidth = 40;
+    const r = radius - strokeWidth / 2;
+    const circumference = 2 * Math.PI * r;
+    let offset = circumference * 0.25;
+    return data.map((d, i) => {
+      const sliceLen = (d.matchCount / total) * circumference;
+      const dashArray = `${sliceLen} ${circumference - sliceLen}`;
+      const currentOffset = offset;
+      offset -= sliceLen;
+      return <Circle key={i} cx={center} cy={center} r={r} fill="none" stroke={d.color} strokeWidth={strokeWidth} strokeDasharray={dashArray} strokeDashoffset={currentOffset} strokeLinecap="butt" />;
+    });
+  })();
+
   return (
     <View style={{ alignItems: "center" }}>
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {(() => {
-          const strokeWidth = 40;
-          const r = radius - strokeWidth / 2;
-          const circumference = 2 * Math.PI * r;
-          let offset = circumference * 0.25; // start from top
-
-          return data.map((d, i) => {
-            const sliceLen = (d.matchCount / total) * circumference;
-            const dashArray = `${sliceLen} ${circumference - sliceLen}`;
-            const currentOffset = offset;
-            offset -= sliceLen;
-
-            return (
-              <Circle
-                key={i}
-                cx={center}
-                cy={center}
-                r={r}
-                fill="none"
-                stroke={d.color}
-                strokeWidth={strokeWidth}
-                strokeDasharray={dashArray}
-                strokeDashoffset={currentOffset}
-                strokeLinecap="butt"
-              />
-            );
-          });
-        })()}
-        <Circle cx={center} cy={center} r={radius - 50} fill="white" />
-        <SvgText
-          x={center}
-          y={center - 8}
-          textAnchor="middle"
-          fontSize={12}
-          fill="#8E8E93"
-          fontFamily={Fonts.medium}
-        >
-          총 매칭
-        </SvgText>
-        <SvgText
-          x={center}
-          y={center + 14}
-          textAnchor="middle"
-          fontSize={20}
-          fontWeight="bold"
-          fill="#1A1A1A"
-          fontFamily={Fonts.bold}
-        >
-          {total}건
-        </SvgText>
-      </Svg>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>{sliceElements}<Circle cx={center} cy={center} r={radius - 50} fill="white" /><SvgText x={center} y={center - 8} textAnchor="middle" fontSize={12} fill="#8E8E93" fontFamily={Fonts.medium}>{"총 매칭"}</SvgText><SvgText x={center} y={center + 14} textAnchor="middle" fontSize={20} fontWeight="bold" fill="#1A1A1A" fontFamily={Fonts.bold}>{`${total}건`}</SvgText></Svg>
 
       {/* 범례 */}
       <View style={styles.legendContainer}>
@@ -479,13 +442,17 @@ function ControlMap({ walkers }: { walkers: ActiveWalkerLocation[] }) {
               source={{ html: mapHTML }}
               style={{ flex: 1, borderRadius: 12 }}
               onMessage={handleMessage}
-              javaScriptEnabled
-              domStorageEnabled
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              mixedContentMode="always"
+              allowsInlineMediaPlayback={true}
               originWhitelist={["*"]}
               scrollEnabled={false}
               bounces={false}
               showsHorizontalScrollIndicator={false}
               showsVerticalScrollIndicator={false}
+              allowFileAccess={true}
+              allowUniversalAccessFromFileURLs={true}
             />
           )}
           {loading && (
