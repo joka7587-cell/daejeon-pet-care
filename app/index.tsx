@@ -31,7 +31,7 @@ export default function RootIndexScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center" }}>
-      <ActivityIndicator size="large" color="#FF6B35" />
+      <ActivityIndicator size="large" color="#2E7D32" />
     </View>
   );
 }

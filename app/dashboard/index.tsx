@@ -320,7 +320,7 @@ const st = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
   },
-  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#FF6B35" },
+  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#2E7D32" },
   headerTitle: { fontFamily: Fonts.bold, fontSize: 17, color: "#1A1A1A" },
 
   tabBar: {
@@ -336,7 +336,7 @@ const st = StyleSheet.create({
     backgroundColor: "#F8F8F8",
     alignItems: "center",
   },
-  tabActive: { backgroundColor: "#FF6B35" },
+  tabActive: { backgroundColor: "#2E7D32" },
   tabText: { fontFamily: Fonts.semiBold, fontSize: 13, color: "#8E8E93" },
   tabTextActive: { color: "#FFFFFF" },
 
@@ -351,7 +351,7 @@ const st = StyleSheet.create({
     gap: 8,
   },
   heroEmoji: { fontSize: 40 },
-  heroValue: { fontFamily: Fonts.extraBold, fontSize: 32, color: "#FF6B35" },
+  heroValue: { fontFamily: Fonts.extraBold, fontSize: 32, color: "#2E7D32" },
   heroLabel: { fontFamily: Fonts.medium, fontSize: 14, color: "#8E8E93" },
 
   // Metrics Grid
@@ -381,7 +381,7 @@ const st = StyleSheet.create({
   sectionTitle: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A", marginBottom: 12 },
   monthGrid: { flexDirection: "row", justifyContent: "space-around" },
   monthItem: { alignItems: "center", gap: 4 },
-  monthValue: { fontFamily: Fonts.bold, fontSize: 18, color: "#FF6B35" },
+  monthValue: { fontFamily: Fonts.bold, fontSize: 18, color: "#2E7D32" },
   monthLabel: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93" },
 
   // Recent Activity
@@ -414,7 +414,7 @@ const st = StyleSheet.create({
     gap: 8,
   },
   earningsMonth: { fontFamily: Fonts.medium, fontSize: 14, color: "#8E8E93" },
-  earningsAmount: { fontFamily: Fonts.extraBold, fontSize: 36, color: "#FF6B35" },
+  earningsAmount: { fontFamily: Fonts.extraBold, fontSize: 36, color: "#2E7D32" },
   changeBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
   changeText: { fontFamily: Fonts.semiBold, fontSize: 12 },
 
@@ -440,7 +440,7 @@ const st = StyleSheet.create({
     borderRadius: 10,
     overflow: "hidden",
   },
-  barFill: { height: "100%", backgroundColor: "#FF6B35", borderRadius: 10 },
+  barFill: { height: "100%", backgroundColor: "#2E7D32", borderRadius: 10 },
   barValue: { fontFamily: Fonts.semiBold, fontSize: 12, color: "#1A1A1A", width: 40, textAlign: "right" },
 
   // Settlement

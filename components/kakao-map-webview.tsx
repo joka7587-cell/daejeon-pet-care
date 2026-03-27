@@ -207,7 +207,7 @@ function generateKakaoMapHTML(
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: #FF6B35;
+      background: #2E7D32;
       border: 2.5px solid #FFFFFF;
       box-shadow: 0 2px 8px rgba(0,0,0,0.25);
       font-size: 18px;
@@ -475,7 +475,7 @@ function generateKakaoMapHTML(
       routeLine = new kakao.maps.Polyline({
         path: path,
         strokeWeight: 4,
-        strokeColor: '#FF6B35',
+        strokeColor: '#2E7D32',
         strokeOpacity: 0.8,
         strokeStyle: 'solid'
       });
@@ -689,14 +689,14 @@ export function KakaoMapView({
                 )}
                 {loading && (
                   <View style={s.loadingOverlay}>
-                    <ActivityIndicator size="large" color="#FF6B35" />
+                    <ActivityIndicator size="large" color="#2E7D32" />
                     <Text style={s.loadingText}>대전 지도 로딩 중...</Text>
                   </View>
                 )}
               </>
             ) : (
               <View style={s.loadingOverlay}>
-                <ActivityIndicator size="large" color="#FF6B35" />
+                <ActivityIndicator size="large" color="#2E7D32" />
                 <Text style={s.loadingText}>API 키 확인 중...</Text>
               </View>
             )}
@@ -860,7 +860,7 @@ const s = StyleSheet.create({
   infoCard: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#E8F5E9",
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
@@ -875,7 +875,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#FF6B35",
+    borderColor: "#2E7D32",
   },
   infoName: { fontFamily: Fonts.bold, fontSize: 15, color: "#1A1A1A" },
   infoSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#8E8E93", marginTop: 2 },

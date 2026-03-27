@@ -681,7 +681,7 @@ export default function VerifyScreen() {
             ) : (
               <Pressable
                 onPress={handleQuizRetry}
-                style={({ pressed }) => [styles.submitBtn, { backgroundColor: "#FF7043" }, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [styles.submitBtn, { backgroundColor: "#2E7D32" }, pressed && { opacity: 0.8 }]}
               >
                 <Text style={styles.submitBtnText}>다시 도전하기</Text>
               </Pressable>

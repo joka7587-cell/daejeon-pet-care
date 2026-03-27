@@ -296,9 +296,9 @@ describe("Dashboard", () => {
 
 // ========== 10. 테마 및 UI ==========
 describe("Theme and UI Design", () => {
-  it("should use orange accent color (#FF6B35)", () => {
-    const primaryColor = "#FF6B35";
-    expect(primaryColor).toBe("#FF6B35");
+  it("should use orange accent color (#2E7D32)", () => {
+    const primaryColor = "#2E7D32";
+    expect(primaryColor).toBe("#2E7D32");
   });
 
   it("should define Pretendard font family", () => {

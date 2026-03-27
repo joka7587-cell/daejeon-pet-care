@@ -14,7 +14,7 @@ export default function TabLayout() {
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 52 + bottomPadding;
 
-  const accentColor = "#FF6B35";
+  const accentColor = "#2E7D32";
 
   return (
     <Tabs

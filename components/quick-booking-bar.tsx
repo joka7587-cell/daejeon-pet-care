@@ -294,7 +294,7 @@ function calculatePrice(hourlyRate: number, duration: string): number {
 
 const s = StyleSheet.create({
   container: {
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#E8F5E9",
     borderTopWidth: 1,
     borderTopColor: "#FFE0D0",
     paddingHorizontal: 16,
@@ -341,11 +341,11 @@ const s = StyleSheet.create({
   selectorValueText: {
     fontFamily: Fonts.bold,
     fontSize: 13,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
   selectorArrow: {
     fontSize: 16,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
 
   // 산책 시간 선택
@@ -366,8 +366,8 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   durationButtonActive: {
-    backgroundColor: "#FF6B35",
-    borderColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
+    borderColor: "#2E7D32",
   },
   durationButtonText: {
     fontFamily: Fonts.medium,
@@ -406,12 +406,12 @@ const s = StyleSheet.create({
   priceEstimate: {
     fontFamily: Fonts.bold,
     fontSize: 14,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
 
   // 제출 버튼
   submitButton: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingVertical: 11,
     borderRadius: 8,
     alignItems: "center",
@@ -471,8 +471,8 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   dateOptionActive: {
-    backgroundColor: "#FF6B35",
-    borderColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
+    borderColor: "#2E7D32",
   },
   dateOptionText: {
     fontFamily: Fonts.medium,
@@ -501,8 +501,8 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   timeOptionActive: {
-    backgroundColor: "#FF6B35",
-    borderColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
+    borderColor: "#2E7D32",
   },
   timeOptionText: {
     fontFamily: Fonts.medium,

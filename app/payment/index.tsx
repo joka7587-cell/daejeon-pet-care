@@ -154,7 +154,7 @@ export default function PaymentScreen() {
             onPress={() => { haptic(); setSelectedMethod("kakao"); }}
             style={({ pressed }) => [
               styles.methodCard,
-              { backgroundColor: "#F8F8F8", borderColor: selectedMethod === "kakao" ? "#FF7043" : "#E8E8E8" },
+              { backgroundColor: "#F8F8F8", borderColor: selectedMethod === "kakao" ? "#2E7D32" : "#E8E8E8" },
               selectedMethod === "kakao" && { backgroundColor: "#F8F8F8" },
               pressed && { opacity: 0.7 },
             ]}
@@ -164,7 +164,7 @@ export default function PaymentScreen() {
               <Text style={[styles.methodName, { color: "#1A1A1A" }]}>카카오페이</Text>
               <Text style={[styles.methodDesc, { color: "#8E8E93" }]}>카카오페이로 간편 결제</Text>
             </View>
-            <View style={[styles.radio, { borderColor: selectedMethod === "kakao" ? "#FF7043" : "#E8E8E8" }]}>
+            <View style={[styles.radio, { borderColor: selectedMethod === "kakao" ? "#2E7D32" : "#E8E8E8" }]}>
               {selectedMethod === "kakao" && <View style={styles.radioInner} />}
             </View>
           </Pressable>
@@ -173,7 +173,7 @@ export default function PaymentScreen() {
             onPress={() => { haptic(); setSelectedMethod("toss"); }}
             style={({ pressed }) => [
               styles.methodCard,
-              { backgroundColor: "#F8F8F8", borderColor: selectedMethod === "toss" ? "#FF7043" : "#E8E8E8" },
+              { backgroundColor: "#F8F8F8", borderColor: selectedMethod === "toss" ? "#2E7D32" : "#E8E8E8" },
               selectedMethod === "toss" && { backgroundColor: "#F8F8F8" },
               pressed && { opacity: 0.7 },
             ]}
@@ -183,7 +183,7 @@ export default function PaymentScreen() {
               <Text style={[styles.methodName, { color: "#1A1A1A" }]}>토스페이</Text>
               <Text style={[styles.methodDesc, { color: "#8E8E93" }]}>토스로 간편 결제</Text>
             </View>
-            <View style={[styles.radio, { borderColor: selectedMethod === "toss" ? "#FF7043" : "#E8E8E8" }]}>
+            <View style={[styles.radio, { borderColor: selectedMethod === "toss" ? "#2E7D32" : "#E8E8E8" }]}>
               {selectedMethod === "toss" && <View style={styles.radioInner} />}
             </View>
           </Pressable>
@@ -192,7 +192,7 @@ export default function PaymentScreen() {
             onPress={() => { haptic(); setSelectedMethod("card"); }}
             style={({ pressed }) => [
               styles.methodCard,
-              { backgroundColor: "#F8F8F8", borderColor: selectedMethod === "card" ? "#FF7043" : "#E8E8E8" },
+              { backgroundColor: "#F8F8F8", borderColor: selectedMethod === "card" ? "#2E7D32" : "#E8E8E8" },
               selectedMethod === "card" && { backgroundColor: "#F8F8F8" },
               pressed && { opacity: 0.7 },
             ]}
@@ -202,7 +202,7 @@ export default function PaymentScreen() {
               <Text style={[styles.methodName, { color: "#1A1A1A" }]}>신용/체크카드</Text>
               <Text style={[styles.methodDesc, { color: "#8E8E93" }]}>카드 직접 결제</Text>
             </View>
-            <View style={[styles.radio, { borderColor: selectedMethod === "card" ? "#FF7043" : "#E8E8E8" }]}>
+            <View style={[styles.radio, { borderColor: selectedMethod === "card" ? "#2E7D32" : "#E8E8E8" }]}>
               {selectedMethod === "card" && <View style={styles.radioInner} />}
             </View>
           </Pressable>
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   totalLabel: { fontSize: 15, fontWeight: "700" },
-  totalValue: { fontSize: 20, fontWeight: "800", color: "#FF7043" },
+  totalValue: { fontSize: 20, fontWeight: "800", color: "#2E7D32" },
   methodSection: { gap: 10 },
   methodTitle: { fontSize: 16, fontWeight: "700" },
   methodCard: {
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#FF7043" },
+  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#2E7D32" },
   noticeCard: {
     borderRadius: 12,
     padding: 16,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 13, fontWeight: "700", color: "#F57F17" },
   noticeText: { fontSize: 12, lineHeight: 20 },
   payBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
@@ -327,11 +327,11 @@ const styles = StyleSheet.create({
   },
   successCheck: { fontSize: 36, color: "#FFFFFF", fontWeight: "800" },
   successTitle: { fontSize: 24, fontWeight: "800" },
-  successAmount: { fontSize: 28, fontWeight: "800", color: "#FF7043" },
+  successAmount: { fontSize: 28, fontWeight: "800", color: "#2E7D32" },
   successDesc: { fontSize: 14, textAlign: "center", lineHeight: 20 },
   successActions: { gap: 10, width: "100%", paddingHorizontal: 20, marginTop: 16 },
   reviewBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",

@@ -174,7 +174,7 @@ export default function WalkReportScreen() {
                 <Polyline
                   points={routeSvg.points}
                   fill="none"
-                  stroke="#FF6B35"
+                  stroke="#2E7D32"
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -234,7 +234,7 @@ const st = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#FF6B35" },
+  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#2E7D32" },
   headerTitle: { fontFamily: Fonts.bold, fontSize: 17 },
 
   reportHeader: {
@@ -274,7 +274,7 @@ const st = StyleSheet.create({
     gap: 4,
   },
   metricCardLarge: { paddingVertical: 20 },
-  metricValue: { fontFamily: Fonts.extraBold, fontSize: 24, color: "#FF6B35" },
+  metricValue: { fontFamily: Fonts.extraBold, fontSize: 24, color: "#2E7D32" },
   metricValueSm: { fontFamily: Fonts.bold, fontSize: 18 },
   metricLabel: { fontFamily: Fonts.regular, fontSize: 10, textAlign: "center" },
 
@@ -322,7 +322,7 @@ const st = StyleSheet.create({
   reviewPromptTitle: { fontFamily: Fonts.bold, fontSize: 14 },
   reviewPromptSub: { fontFamily: Fonts.regular, fontSize: 11, marginTop: 2 },
   reviewBtn: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -332,7 +332,7 @@ const st = StyleSheet.create({
   emptyText: { fontFamily: Fonts.medium, fontSize: 15, marginTop: 12 },
   backBtnAlt: {
     marginTop: 16,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,

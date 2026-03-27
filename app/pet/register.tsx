@@ -190,7 +190,7 @@ export default function PetRegisterScreen() {
           <Text style={[styles.fieldLabel, { color: "#8E8E93" }]}>아이콘</Text>
           <Pressable
             onPress={() => { haptic(); setShowEmojiPicker(!showEmojiPicker); }}
-            style={({ pressed }) => [styles.emojiSelector, { backgroundColor: "#F8F8F8", borderColor: "#FFCCBC" }, pressed && { opacity: 0.8 }]}
+            style={({ pressed }) => [styles.emojiSelector, { backgroundColor: "#F8F8F8", borderColor: "#C8E6C9" }, pressed && { opacity: 0.8 }]}
           >
             <Text style={styles.selectedEmoji}>{emoji}</Text>
             <Text style={styles.emojiSelectorText}>변경</Text>
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   selectedEmoji: { fontSize: 32 },
-  emojiSelectorText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
+  emojiSelectorText: { fontSize: 13, color: "#2E7D32", fontWeight: "600" },
   emojiGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -446,8 +446,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   emojiOptionActive: {
-    borderColor: "#FF7043",
-    backgroundColor: "#FFF3EE",
+    borderColor: "#2E7D32",
+    backgroundColor: "#E8F5E9",
     borderWidth: 2,
   },
   breedGrid: {
@@ -465,9 +465,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
-  breedChipActive: { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
+  breedChipActive: { borderColor: "#2E7D32", backgroundColor: "#E8F5E9" },
   breedChipText: { fontSize: 13 },
-  breedChipTextActive: { color: "#FF7043", fontWeight: "700" },
+  breedChipTextActive: { color: "#2E7D32", fontWeight: "700" },
   sizeRow: { flexDirection: "row", gap: 10 },
   sizeOption: {
     flex: 1,
@@ -478,14 +478,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sizeOptionActive: {
-    borderColor: "#FF7043",
-    backgroundColor: "#FFF3EE",
+    borderColor: "#2E7D32",
+    backgroundColor: "#E8F5E9",
   },
   sizeLabel: { fontSize: 15, fontWeight: "700" },
-  sizeLabelActive: { color: "#FF7043" },
+  sizeLabelActive: { color: "#2E7D32" },
   sizeDesc: { fontSize: 11 },
   submitBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",

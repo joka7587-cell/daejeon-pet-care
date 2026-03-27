@@ -116,7 +116,7 @@ export default function WalkDetailScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
   const { state } = useApp();
-  const accentColor = state.profile.role === "caretaker" ? "#4CAF82" : "#FF7043";
+  const accentColor = state.profile.role === "caretaker" ? "#4CAF82" : "#2E7D32";
 
   const session = (state.walkSessions || []).find((s) => s.id === sessionId);
 
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 12,
   },
   errorBackBtnText: { color: "#FFFFFF", fontWeight: "700" },

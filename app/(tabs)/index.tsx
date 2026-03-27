@@ -146,7 +146,7 @@ function RecommendedSpotCard({
             ))}
             {nearbyWalkers.length > 4 && (
               <View style={[s.miniAvatar, { marginLeft: -6, backgroundColor: "#FFE0D0" }]}>
-                <Text style={{ fontSize: 9, color: "#FF6B35", fontFamily: Fonts.bold }}>
+                <Text style={{ fontSize: 9, color: "#2E7D32", fontFamily: Fonts.bold }}>
                   +{nearbyWalkers.length - 4}
                 </Text>
               </View>
@@ -306,7 +306,12 @@ function OwnerHome() {
       {/* 헤더 */}
       <View style={s.header}>
         <View style={{ flex: 1 }}>
-          <Text style={s.headerGreeting}>안녕하세요,</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <Text style={s.headerGreeting}>안녕하세요,</Text>
+            <View style={s.daejeonBadge}>
+              <Text style={s.daejeonBadgeText}>Daejeon Only</Text>
+            </View>
+          </View>
           <Text style={s.headerName}>{state.profile.nickname || "반려인"}님</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -439,7 +444,7 @@ function OwnerHome() {
               <Text style={s.bannerTitle}>산책 기록 확인</Text>
               <Text style={s.bannerSub}>돌보미의 산책 기록을 확인해보세요</Text>
             </View>
-            <Text style={{ fontSize: 16, color: "#FF6B35" }}>›</Text>
+            <Text style={{ fontSize: 16, color: "#2E7D32" }}>›</Text>
           </Pressable>
         </View>
       )}
@@ -604,7 +609,12 @@ function CaretakerHome() {
       {/* 헤더 */}
       <View style={s.header}>
         <View style={{ flex: 1 }}>
-          <Text style={s.headerGreeting}>안녕하세요,</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <Text style={s.headerGreeting}>안녕하세요,</Text>
+            <View style={s.daejeonBadge}>
+              <Text style={s.daejeonBadgeText}>Daejeon Only</Text>
+            </View>
+          </View>
           <Text style={s.headerName}>{state.profile.nickname || "돌보미"}님</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -705,7 +715,7 @@ function CaretakerHome() {
               📍 {todaySpot.district} · ⭐ {todaySpot.rating} · {todaySpot.walkTime}
             </Text>
           </View>
-          <Text style={{ fontSize: 16, color: "#FF6B35" }}>›</Text>
+          <Text style={{ fontSize: 16, color: "#2E7D32" }}>›</Text>
         </Pressable>
       </View>
 
@@ -898,7 +908,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: "#FF6B35",
+    borderColor: "#2E7D32",
   },
   notifDot: {
     position: "absolute" as const,
@@ -924,7 +934,7 @@ const s = StyleSheet.create({
   locationText: {
     fontFamily: Fonts.semiBold,
     fontSize: 13,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
 
   // District Tabs
@@ -937,8 +947,8 @@ const s = StyleSheet.create({
     borderColor: "#E8E8E8",
   },
   districtTabActive: {
-    backgroundColor: "#FF6B35",
-    borderColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
+    borderColor: "#2E7D32",
   },
   districtTabText: {
     fontFamily: Fonts.semiBold,
@@ -971,7 +981,7 @@ const s = StyleSheet.create({
   seeAll: {
     fontFamily: Fonts.semiBold,
     fontSize: 13,
-    color: "#FF6B35",
+    color: "#2E7D32",
     marginBottom: 12,
   },
 
@@ -982,7 +992,7 @@ const s = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: "#F0F0F0",
-    shadowColor: "#FF6B35",
+    shadowColor: "#2E7D32",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -1006,7 +1016,7 @@ const s = StyleSheet.create({
     fontFamily: Fonts.bold,
     fontSize: 10,
     color: "#FFFFFF",
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -1210,14 +1220,14 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: "#FF6B3515",
+    backgroundColor: "#2E7D3215",
     alignItems: "center",
     justifyContent: "center",
   },
   bannerTitle: {
     fontFamily: Fonts.bold,
     fontSize: 14,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
   bannerSub: {
     fontFamily: Fonts.regular,
@@ -1276,7 +1286,7 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   expertBadge: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1446,7 +1456,7 @@ const s = StyleSheet.create({
     borderTopColor: "#F8F8F8",
   },
   acceptBtn: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1512,7 +1522,7 @@ const s = StyleSheet.create({
   statusHint: {
     fontFamily: Fonts.regular,
     fontSize: 11,
-    color: "#FF6B35",
+    color: "#2E7D32",
     marginTop: 2,
   },
   statusToggleBtn: {
@@ -1556,5 +1566,18 @@ const s = StyleSheet.create({
     fontSize: 11,
     color: "#8E8E93",
     marginTop: 2,
+  },
+  // 대전 전용 배지
+  daejeonBadge: {
+    backgroundColor: "#FFC107",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  daejeonBadgeText: {
+    fontFamily: Fonts.bold,
+    fontSize: 10,
+    color: "#1A1A1A",
+    letterSpacing: 0.5,
   },
 });

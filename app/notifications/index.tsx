@@ -43,13 +43,13 @@ const NOTIFICATION_ICONS: Record<Notification["type"], string> = {
 const NOTIFICATION_COLORS: Record<Notification["type"], string> = {
   comment: "#2196F3",
   like: "#EF5350",
-  match_request: "#FF7043",
+  match_request: "#2E7D32",
   message: "#4CAF82",
   friend_add: "#9C27B0",
   match: "#4CAF82",
   system: "#FF9500",
   sos: "#FF3B30",
-  checklist: "#FF6B35",
+  checklist: "#2E7D32",
 };
 
 // 데모 알림 데이터
@@ -177,7 +177,7 @@ export default function NotificationsScreen() {
         style={({ pressed }) => [
           styles.notificationCard,
           { backgroundColor: "#FFFFFF", borderColor: "#E8E8E8" },
-          !item.isRead && { backgroundColor: "#F8F8F8", borderColor: "#FFCCBC" },
+          !item.isRead && { backgroundColor: "#F8F8F8", borderColor: "#C8E6C9" },
           pressed && { opacity: 0.8 },
         ]}
       >
@@ -229,7 +229,7 @@ export default function NotificationsScreen() {
 
       {/* 안읽은 알림 카운트 */}
       {unreadCount > 0 && (
-        <View style={[styles.unreadBanner, { backgroundColor: "#F8F8F8", borderBottomColor: "#FFCCBC" }]}>
+        <View style={[styles.unreadBanner, { backgroundColor: "#F8F8F8", borderBottomColor: "#C8E6C9" }]}>
           <Text style={styles.unreadBannerText}>
             📬 읽지 않은 알림 {unreadCount}개
           </Text>
@@ -272,20 +272,20 @@ const styles = StyleSheet.create({
   markReadBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: "#FF704320",
+    backgroundColor: "#2E7D3220",
     borderRadius: 8,
   },
-  markReadBtnText: { fontSize: 12, color: "#FF7043", fontWeight: "700" },
+  markReadBtnText: { fontSize: 12, color: "#2E7D32", fontWeight: "700" },
   unreadBanner: {
-    // backgroundColor: "#FFF3EE",
+    // backgroundColor: "#E8F5E9",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    // borderBottomColor: "#FFCCBC",
+    // borderBottomColor: "#C8E6C9",
   },
   unreadBannerText: {
     fontSize: 13,
-    color: "#FF7043",
+    color: "#2E7D32",
     fontWeight: "600",
     textAlign: "center",
   },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   notificationUnread: {
     // backgroundColor: "#FFFBF8",
-    // borderColor: "#FFCCBC",
+    // borderColor: "#C8E6C9",
   },
   iconContainer: {
     width: 44,
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     marginTop: 4,
   },
   emptyContainer: {

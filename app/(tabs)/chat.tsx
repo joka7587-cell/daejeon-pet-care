@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   headerBadge: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -363,15 +363,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tabActive: {
-    backgroundColor: "#FFF3EE",
-    borderColor: "#FF7043",
+    backgroundColor: "#E8F5E9",
+    borderColor: "#2E7D32",
   },
   tabText: {
     fontSize: 12,
     fontWeight: "600",
   },
   tabTextActive: {
-    color: "#FF7043",
+    color: "#2E7D32",
     fontWeight: "700",
   },
   listContent: {
@@ -399,9 +399,9 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   friendAvatarContainer: {
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     borderWidth: 1.5,
-    borderColor: "#FFCCBC",
+    borderColor: "#C8E6C9",
   },
   requestAvatarContainer: {
     backgroundColor: "#E3F2FD",
@@ -424,14 +424,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -2,
     right: -2,
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     borderRadius: 8,
     width: 16,
     height: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#FFCCBC",
+    borderColor: "#C8E6C9",
   },
   requestBadge: {
     position: "absolute",
@@ -455,14 +455,14 @@ const styles = StyleSheet.create({
   },
   userName: { fontSize: 15, fontWeight: "700" },
   friendTag: {
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderWidth: 1,
-    borderColor: "#FFCCBC",
+    borderColor: "#C8E6C9",
   },
-  friendTagText: { fontSize: 10, color: "#FF7043", fontWeight: "700" },
+  friendTagText: { fontSize: 10, color: "#2E7D32", fontWeight: "700" },
   requestTag: {
     backgroundColor: "#E3F2FD",
     borderRadius: 6,
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   time: { fontSize: 12 },
   lastMessage: { fontSize: 13, lineHeight: 18 },
   unreadBadge: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   emptyDesc: { fontSize: 13, textAlign: "center", lineHeight: 20 },
   addFriendBtn: {
     marginTop: 12,
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,

@@ -78,7 +78,7 @@ const s = StyleSheet.create({
     overflow: "hidden",
     width: SCREEN_WIDTH * 0.6,
   },
-  containerOwn: { backgroundColor: "#FF7043" },
+  containerOwn: { backgroundColor: "#2E7D32" },
   containerOther: { backgroundColor: "#F8F8F8" },
   image: {
     width: "100%",
@@ -89,13 +89,13 @@ const s = StyleSheet.create({
   demoImage: {
     width: "100%",
     height: SCREEN_WIDTH * 0.4,
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   demoEmoji: { fontSize: 48 },
-  demoText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
+  demoText: { fontSize: 13, color: "#2E7D32", fontWeight: "600" },
   overlay: {
     backgroundColor: "rgba(0,0,0,0.55)",
     paddingHorizontal: 10,

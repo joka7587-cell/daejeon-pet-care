@@ -65,7 +65,7 @@ export function generatePortOnePaymentHTML(
     }
     .logo { font-size: 48px; margin-bottom: 16px; }
     .title { font-size: 20px; font-weight: 700; color: #1A1A1A; margin-bottom: 8px; }
-    .amount { font-size: 28px; font-weight: 800; color: #FF6B35; margin-bottom: 24px; }
+    .amount { font-size: 28px; font-weight: 800; color: #2E7D32; margin-bottom: 24px; }
     .info { font-size: 14px; color: #8E8E93; margin-bottom: 24px; line-height: 1.6; }
     .btn {
       display: block;
@@ -78,7 +78,7 @@ export function generatePortOnePaymentHTML(
       cursor: pointer;
       margin-bottom: 12px;
     }
-    .btn-primary { background: #FF6B35; color: white; }
+    .btn-primary { background: #2E7D32; color: white; }
     .btn-secondary { background: #F0F0F0; color: #1A1A1A; }
     .status { margin-top: 16px; font-size: 14px; color: #8E8E93; }
     .loading { display: none; }
@@ -86,7 +86,7 @@ export function generatePortOnePaymentHTML(
     .spinner {
       width: 40px; height: 40px;
       border: 3px solid #E8E8E8;
-      border-top-color: #FF6B35;
+      border-top-color: #2E7D32;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       margin: 0 auto 16px;
@@ -241,7 +241,7 @@ export function generateOntongPaymentHTML(
     .amount { font-size: 32px; font-weight: 800; color: #1B3A6B; }
     .cashback {
       display: inline-block;
-      background: #FF6B35;
+      background: #2E7D32;
       color: white;
       padding: 4px 12px;
       border-radius: 12px;
@@ -303,7 +303,7 @@ export function generateOntongPaymentHTML(
     </div>
     <div class="info-row">
       <span class="info-label">캐시백 (10%)</span>
-      <span class="info-value" style="color:#FF6B35">${cashback.toLocaleString("ko-KR")}원</span>
+      <span class="info-value" style="color:#2E7D32">${cashback.toLocaleString("ko-KR")}원</span>
     </div>
     <div class="spinner" id="spinner"></div>
     <button class="btn btn-ontong" id="payBtn" onclick="processPayment()">온통대전으로 결제</button>

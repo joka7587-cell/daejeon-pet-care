@@ -185,7 +185,7 @@ export default function LoginScreen() {
     header: { alignItems: "center", marginTop: 48, marginBottom: 36 },
     logoCircle: {
       width: 72, height: 72, borderRadius: 36,
-      backgroundColor: "#FF6B35", alignItems: "center", justifyContent: "center",
+      backgroundColor: "#2E7D32", alignItems: "center", justifyContent: "center",
       marginBottom: 16,
     },
     appTitle: { ...Typography.h1, color: "#1A1A1A", marginBottom: 4 },
@@ -211,10 +211,10 @@ export default function LoginScreen() {
       flex: 1, padding: 16, borderRadius: 14, borderWidth: 2,
       borderColor: "#E8E8E8", backgroundColor: "#F8F8F8", alignItems: "center", gap: 8,
     },
-    roleCardActive: { borderColor: "#FF6B35", backgroundColor: `${"#FF6B35"}10` },
+    roleCardActive: { borderColor: "#2E7D32", backgroundColor: `${"#2E7D32"}10` },
     roleIcon: { fontSize: 28 },
     roleLabel: { ...Typography.bodyMedium, color: "#1A1A1A" },
-    roleLabelActive: { color: "#FF6B35" },
+    roleLabelActive: { color: "#2E7D32" },
     roleDesc: { ...Typography.caption, color: "#8E8E93", textAlign: "center" },
 
     // Input
@@ -225,7 +225,7 @@ export default function LoginScreen() {
       backgroundColor: "#F8F8F8", borderRadius: 12,
       borderWidth: 1, borderColor: "#E8E8E8", paddingHorizontal: 14,
     },
-    inputWrapperFocused: { borderColor: "#FF6B35" },
+    inputWrapperFocused: { borderColor: "#2E7D32" },
     inputIcon: { marginRight: 10 },
     input: {
       flex: 1, paddingVertical: 14, fontFamily: Fonts.regular, fontSize: 15,
@@ -242,7 +242,7 @@ export default function LoginScreen() {
 
     // Buttons
     primaryBtn: {
-      backgroundColor: "#FF6B35", borderRadius: 14, paddingVertical: 16,
+      backgroundColor: "#2E7D32", borderRadius: 14, paddingVertical: 16,
       alignItems: "center", marginBottom: 12,
     },
     primaryBtnDisabled: { opacity: 0.6 },

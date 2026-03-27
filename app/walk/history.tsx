@@ -51,7 +51,7 @@ export default function WalkHistoryScreen() {
   const router = useRouter();
   const { state } = useApp();
   const [filter, setFilter] = useState<FilterType>("all");
-  const accentColor = state.profile.role === "caretaker" ? "#4CAF82" : "#FF7043";
+  const accentColor = state.profile.role === "caretaker" ? "#4CAF82" : "#2E7D32";
 
   const sessions = (state.walkSessions || []).filter((s) => {
     if (filter === "completed") return s.status === "completed";

@@ -171,7 +171,7 @@ export function SocketChatUI({
 
   const getMessageBubbleStyle = (senderId: string) => {
     return senderId === userId
-      ? { backgroundColor: "#FF6B35", borderBottomRightRadius: 4 }
+      ? { backgroundColor: "#2E7D32", borderBottomRightRadius: 4 }
       : { backgroundColor: "#F0F0F0", borderBottomLeftRadius: 4 };
   };
 
@@ -206,7 +206,7 @@ export function SocketChatUI({
       >
         {isLoading ? (
           <View style={s.loadingContainer}>
-            <ActivityIndicator size="large" color="#FF6B35" />
+            <ActivityIndicator size="large" color="#2E7D32" />
             <Text style={s.loadingText}>메시지 로드 중...</Text>
           </View>
         ) : messages.length === 0 ? (
@@ -457,7 +457,7 @@ const s = StyleSheet.create({
   sendButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 20,
   },
   sendButtonDisabled: {
@@ -480,7 +480,7 @@ const s = StyleSheet.create({
   connectionBannerText: {
     fontFamily: Fonts.medium,
     fontSize: 12,
-    color: "#FF6B35",
+    color: "#2E7D32",
     textAlign: "center",
   },
 });

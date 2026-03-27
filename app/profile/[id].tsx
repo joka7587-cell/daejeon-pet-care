@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
   },
-  profileHeaderOrange: { backgroundColor: "#FFF3EE" },
+  profileHeaderOrange: { backgroundColor: "#E8F5E9" },
   profileHeaderGreen: { backgroundColor: "#F0FFF4" },
   avatarWrap: {
     position: "relative",
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   userName: { fontSize: 22, fontWeight: "800", color: "#1A1A1A" },
   roleBadge: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5 },
-  roleBadgeOrange: { backgroundColor: "#FF7043" },
+  roleBadgeOrange: { backgroundColor: "#2E7D32" },
   roleBadgeGreen: { backgroundColor: "#4CAF82" },
   roleBadgeText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   neighborhoodBadge: { flexDirection: "row", alignItems: "center" },
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
   },
-  requestBtnOrange: { backgroundColor: "#FF7043" },
+  requestBtnOrange: { backgroundColor: "#2E7D32" },
   requestBtnGreen: { backgroundColor: "#4CAF82" },
   requestBtnText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
   requestedCard: {
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   requestedText: { fontSize: 16, fontWeight: "700", color: "#4CAF82" },
   backBtn: {
     marginTop: 16,
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 12,
     paddingHorizontal: 24,
     paddingVertical: 12,

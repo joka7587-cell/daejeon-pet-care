@@ -273,7 +273,7 @@ export default function SimulationScreen() {
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.coordLabel, isActive && { color: "#FF6B35", fontWeight: "700" }]}>
+                  <Text style={[s.coordLabel, isActive && { color: "#2E7D32", fontWeight: "700" }]}>
                     {coord.label}
                   </Text>
                   <Text style={s.coordDetail}>
@@ -423,7 +423,7 @@ const s = StyleSheet.create({
   backBtnText: {
     fontFamily: Fonts.semiBold,
     fontSize: 17,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
   headerTitle: {
     fontFamily: Fonts.bold,
@@ -532,8 +532,8 @@ const s = StyleSheet.create({
     borderColor: "#F0F0F0",
   },
   coordItemActive: {
-    backgroundColor: "#FFF3EE",
-    borderColor: "#FF6B35",
+    backgroundColor: "#E8F5E9",
+    borderColor: "#2E7D32",
   },
   coordItemDone: {
     backgroundColor: "#F0FFF4",
@@ -548,7 +548,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   coordIndexActive: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
   },
   coordIndexDone: {
     backgroundColor: "#4CAF82",
@@ -573,7 +573,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -621,7 +621,7 @@ const s = StyleSheet.create({
   },
   progressBarFill: {
     height: 8,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 4,
   },
   progressInfo: {
@@ -639,7 +639,7 @@ const s = StyleSheet.create({
     marginTop: 16,
   },
   startBtn: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",

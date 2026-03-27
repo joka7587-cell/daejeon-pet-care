@@ -278,7 +278,7 @@ export default function BookingScreen() {
                   st.calCellText,
                   isPast && { color: "#D1D1D6" },
                   isSelected && { color: "#FFF" },
-                  isToday && !isSelected && { color: "#FF6B35" },
+                  isToday && !isSelected && { color: "#2E7D32" },
                 ]}>{day}</Text>
               )}
             </Pressable>
@@ -455,7 +455,7 @@ export default function BookingScreen() {
         <View style={st.divider} />
         <View style={st.summaryRow}>
           <Text style={[st.summaryLabel, { fontFamily: Fonts.bold, color: "#1A1A1A" }]}>합계</Text>
-          <Text style={[st.summaryValue, { fontFamily: Fonts.bold, color: "#FF6B35", fontSize: 18 }]}>
+          <Text style={[st.summaryValue, { fontFamily: Fonts.bold, color: "#2E7D32", fontSize: 18 }]}>
             {formatPrice(basePrice + serviceFee)}
           </Text>
         </View>
@@ -578,8 +578,8 @@ export default function BookingScreen() {
         </View>
         {couponDiscount > 0 && (
           <View style={st.summaryRow}>
-            <Text style={[st.summaryLabel, { color: "#FF6B35" }]}>쿠폰 할인</Text>
-            <Text style={[st.summaryValue, { color: "#FF6B35" }]}>-{formatPrice(couponDiscount)}</Text>
+            <Text style={[st.summaryLabel, { color: "#2E7D32" }]}>쿠폰 할인</Text>
+            <Text style={[st.summaryValue, { color: "#2E7D32" }]}>-{formatPrice(couponDiscount)}</Text>
           </View>
         )}
         <View style={st.divider} />
@@ -587,7 +587,7 @@ export default function BookingScreen() {
           <Text style={[st.summaryLabel, { fontFamily: Fonts.bold, fontSize: 17, color: "#1A1A1A" }]}>
             최종 결제 금액
           </Text>
-          <Text style={[st.summaryValue, { fontFamily: Fonts.bold, fontSize: 22, color: "#FF6B35" }]}>
+          <Text style={[st.summaryValue, { fontFamily: Fonts.bold, fontSize: 22, color: "#2E7D32" }]}>
             {formatPrice(finalPrice)}
           </Text>
         </View>
@@ -798,9 +798,9 @@ const st = StyleSheet.create({
   progressBar: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   progressItem: { alignItems: "center", gap: 4 },
   progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#E5E5EA" },
-  progressDotActive: { backgroundColor: "#FF6B35", width: 10, height: 10, borderRadius: 5 },
+  progressDotActive: { backgroundColor: "#2E7D32", width: 10, height: 10, borderRadius: 5 },
   progressLabel: { fontSize: 11, fontFamily: Fonts.regular, color: "#C7C7CC" },
-  progressLabelActive: { color: "#FF6B35", fontFamily: Fonts.medium },
+  progressLabelActive: { color: "#2E7D32", fontFamily: Fonts.medium },
 
   // 서비스 카드
   serviceCard: {
@@ -808,12 +808,12 @@ const st = StyleSheet.create({
     backgroundColor: "#F8F8F8", borderRadius: 14, padding: 16, marginBottom: 10,
     borderWidth: 2, borderColor: "transparent",
   },
-  serviceCardActive: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
+  serviceCardActive: { backgroundColor: "#2E7D32", borderColor: "#2E7D32" },
   serviceCardLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   serviceEmoji: { fontSize: 32 },
   serviceName: { fontSize: 17, fontFamily: Fonts.bold, color: "#1A1A1A" },
   serviceDesc: { fontSize: 13, fontFamily: Fonts.regular, color: "#8E8E93", marginTop: 2 },
-  servicePrice: { fontSize: 15, fontFamily: Fonts.bold, color: "#FF6B35" },
+  servicePrice: { fontSize: 15, fontFamily: Fonts.bold, color: "#2E7D32" },
 
   // 캘린더
   calHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
@@ -827,8 +827,8 @@ const st = StyleSheet.create({
     width: `${100 / 7}%` as any, aspectRatio: 1, justifyContent: "center", alignItems: "center",
     borderRadius: 99, margin: 1,
   },
-  calCellSelected: { backgroundColor: "#FF6B35" },
-  calCellToday: { borderWidth: 2, borderColor: "#FF6B35" },
+  calCellSelected: { backgroundColor: "#2E7D32" },
+  calCellToday: { borderWidth: 2, borderColor: "#2E7D32" },
   calCellText: { fontSize: 16, fontFamily: Fonts.medium, color: "#1A1A1A" },
 
   // 시간
@@ -838,7 +838,7 @@ const st = StyleSheet.create({
     backgroundColor: "#F8F8F8", borderWidth: 1, borderColor: "#E8E8E8", alignItems: "center",
   },
   timeSlotUnavailable: { opacity: 0.4 },
-  timeSlotSelected: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
+  timeSlotSelected: { backgroundColor: "#2E7D32", borderColor: "#2E7D32" },
   timeSlotText: { fontSize: 14, fontFamily: Fonts.medium, color: "#1A1A1A" },
   timeSlotBusy: { fontSize: 10, fontFamily: Fonts.regular, color: "#8E8E93", marginTop: 2 },
 
@@ -857,7 +857,7 @@ const st = StyleSheet.create({
     paddingVertical: 12, marginTop: 4,
   },
   pricePreviewLabel: { fontSize: 15, fontFamily: Fonts.medium, color: "#8E8E93" },
-  pricePreviewValue: { fontSize: 20, fontFamily: Fonts.bold, color: "#FF6B35" },
+  pricePreviewValue: { fontSize: 20, fontFamily: Fonts.bold, color: "#2E7D32" },
 
   // 섹션
   section: { marginBottom: 24 },
@@ -866,7 +866,7 @@ const st = StyleSheet.create({
 
   // 칩
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "#F0F0F0" },
-  chipActive: { backgroundColor: "#FF6B35" },
+  chipActive: { backgroundColor: "#2E7D32" },
   chipText: { fontSize: 15, fontFamily: Fonts.medium, color: "#1A1A1A" },
   chipTextActive: { color: "#FFF", fontFamily: Fonts.bold },
 
@@ -884,14 +884,14 @@ const st = StyleSheet.create({
   divider: { height: 1, backgroundColor: "#E8E8E8", marginVertical: 10 },
 
   // 쿠폰
-  couponCount: { fontSize: 14, fontFamily: Fonts.medium, color: "#FF6B35" },
+  couponCount: { fontSize: 14, fontFamily: Fonts.medium, color: "#2E7D32" },
   selectedCouponCard: {
     flexDirection: "row", alignItems: "center", backgroundColor: "#FFF5F0",
     borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#FFD4C0",
   },
   selectedCouponName: { fontSize: 15, fontFamily: Fonts.bold, color: "#1A1A1A" },
-  selectedCouponDiscount: { fontSize: 14, fontFamily: Fonts.bold, color: "#FF6B35", marginTop: 2 },
-  couponRemoveBtn: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: "#FF6B35", borderRadius: 8 },
+  selectedCouponDiscount: { fontSize: 14, fontFamily: Fonts.bold, color: "#2E7D32", marginTop: 2 },
+  couponRemoveBtn: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: "#2E7D32", borderRadius: 8 },
   couponRemoveBtnText: { fontSize: 14, fontFamily: Fonts.bold, color: "#FFF" },
   couponSelectBtn: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
@@ -908,26 +908,26 @@ const st = StyleSheet.create({
   paymentCardHighlight: {
     backgroundColor: "#F0F4FF", borderColor: "#1B3A6B", borderWidth: 2,
   },
-  paymentCardSelected: { borderColor: "#FF6B35" },
+  paymentCardSelected: { borderColor: "#2E7D32" },
   paymentCardLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   paymentRadio: {
     width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: "#D1D1D6",
     justifyContent: "center", alignItems: "center",
   },
-  paymentRadioActive: { borderColor: "#FF6B35" },
-  paymentRadioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#FF6B35" },
+  paymentRadioActive: { borderColor: "#2E7D32" },
+  paymentRadioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#2E7D32" },
   paymentEmoji: { fontSize: 24 },
   paymentName: { fontSize: 16, fontFamily: Fonts.medium, color: "#1A1A1A" },
   paymentDesc: { fontSize: 13, fontFamily: Fonts.regular, color: "#8E8E93", marginTop: 2 },
   localBadge: { backgroundColor: "#1B3A6B", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   localBadgeText: { fontSize: 10, fontFamily: Fonts.bold, color: "#FFF" },
-  discountBadge: { backgroundColor: "#FF6B35", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  discountBadge: { backgroundColor: "#2E7D32", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   discountBadgeText: { fontSize: 10, fontFamily: Fonts.bold, color: "#FFF" },
 
   // 최종 금액
   finalPriceCard: { backgroundColor: "#F8F9FA", borderRadius: 14, padding: 18, marginBottom: 12 },
   cashbackRow: { backgroundColor: "#FFF5F0", borderRadius: 8, padding: 10, marginTop: 8 },
-  cashbackText: { fontSize: 14, fontFamily: Fonts.bold, color: "#FF6B35", textAlign: "center" },
+  cashbackText: { fontSize: 14, fontFamily: Fonts.bold, color: "#2E7D32", textAlign: "center" },
   escrowNotice: { backgroundColor: "#F0F4FF", borderRadius: 10, padding: 14, marginBottom: 16 },
   escrowNoticeText: { fontSize: 13, fontFamily: Fonts.regular, color: "#1B3A6B", lineHeight: 20 },
 
@@ -935,22 +935,22 @@ const st = StyleSheet.create({
   processingTitle: { fontSize: 22, fontFamily: Fonts.bold, color: "#1A1A1A", marginBottom: 8 },
   processingDesc: { fontSize: 15, fontFamily: Fonts.regular, color: "#8E8E93", marginBottom: 24 },
   processingDots: { flexDirection: "row", gap: 8 },
-  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#FF6B35" },
+  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#2E7D32" },
 
   // 확정
   confirmTitle: { fontSize: 26, fontFamily: Fonts.bold, color: "#1A1A1A", marginBottom: 8, textAlign: "center" },
   confirmSubtitle: { fontSize: 16, fontFamily: Fonts.regular, color: "#8E8E93", textAlign: "center", lineHeight: 24, marginBottom: 24 },
   confirmPriceCard: { backgroundColor: "#FFF5F0", borderRadius: 14, padding: 20, alignItems: "center", marginBottom: 20, width: "100%" },
   confirmPriceLabel: { fontSize: 14, fontFamily: Fonts.regular, color: "#8E8E93" },
-  confirmPriceValue: { fontSize: 32, fontFamily: Fonts.bold, color: "#FF6B35", marginTop: 4 },
-  confirmCashback: { backgroundColor: "#FF6B35", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginTop: 10 },
+  confirmPriceValue: { fontSize: 32, fontFamily: Fonts.bold, color: "#2E7D32", marginTop: 4 },
+  confirmCashback: { backgroundColor: "#2E7D32", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginTop: 10 },
   confirmCashbackText: { fontSize: 14, fontFamily: Fonts.bold, color: "#FFF" },
   confirmNotice: { backgroundColor: "#F0F4FF", borderRadius: 12, padding: 16, marginBottom: 24, width: "100%" },
   confirmNoticeTitle: { fontSize: 15, fontFamily: Fonts.bold, color: "#1B3A6B", marginBottom: 4 },
   confirmNoticeText: { fontSize: 13, fontFamily: Fonts.regular, color: "#8E8E93", lineHeight: 20 },
 
   // 버튼
-  primaryBtn: { backgroundColor: "#FF6B35", paddingVertical: 16, borderRadius: 12, alignItems: "center", marginTop: 16 },
+  primaryBtn: { backgroundColor: "#2E7D32", paddingVertical: 16, borderRadius: 12, alignItems: "center", marginTop: 16 },
   primaryBtnText: { color: "#FFF", fontSize: 17, fontFamily: Fonts.bold },
   secondaryBtn: { backgroundColor: "#F0F0F0", paddingVertical: 16, borderRadius: 12, alignItems: "center", flex: 0.5 },
   secondaryBtnText: { fontSize: 17, fontFamily: Fonts.bold, color: "#1A1A1A" },
@@ -974,5 +974,5 @@ const st = StyleSheet.create({
   couponItemDesc: { fontSize: 13, fontFamily: Fonts.regular, color: "#8E8E93", marginTop: 2 },
   couponItemValid: { fontSize: 12, fontFamily: Fonts.regular, color: "#C7C7CC", marginTop: 4 },
   couponItemRight: { alignItems: "flex-end" },
-  couponItemDiscount: { fontSize: 18, fontFamily: Fonts.bold, color: "#FF6B35" },
+  couponItemDiscount: { fontSize: 18, fontFamily: Fonts.bold, color: "#2E7D32" },
 });

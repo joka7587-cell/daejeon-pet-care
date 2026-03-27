@@ -484,9 +484,9 @@ export default function AdminDashboard() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold }]}>📊 오늘의 현황</Text>
           <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: "#FF6B3510" }]}>
+            <View style={[styles.statCard, { backgroundColor: "#2E7D3210" }]}>
               <Text style={[styles.statLabel, { fontFamily: Fonts.medium }]}>총 매출</Text>
-              <Text style={[styles.statValue, { color: "#FF6B35", fontFamily: Fonts.extraBold }]}>
+              <Text style={[styles.statValue, { color: "#2E7D32", fontFamily: Fonts.extraBold }]}>
                 {(TODAY_REVENUE.totalRevenue / 10000).toFixed(1)}만원
               </Text>
               <Text style={[styles.statChange, { color: "#4CAF82", fontFamily: Fonts.medium }]}>
@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, color: "#1A1A1A" },
   headerSubtitle: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
   adminBadge: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,

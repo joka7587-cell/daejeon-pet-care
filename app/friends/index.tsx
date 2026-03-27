@@ -446,7 +446,7 @@ export default function FriendsScreen() {
           onPress={() => { haptic(); setActiveTab(tab.key); }}
           style={({ pressed }) => [
             styles.tab,
-            activeTab === tab.key && { borderBottomColor: "#FF6B35", borderBottomWidth: 2 },
+            activeTab === tab.key && { borderBottomColor: "#2E7D32", borderBottomWidth: 2 },
             pressed && { opacity: 0.7 },
           ]}
         >
@@ -454,7 +454,7 @@ export default function FriendsScreen() {
             <Text
               style={[
                 styles.tabText,
-                { color: activeTab === tab.key ? "#FF6B35" : "#8E8E93" },
+                { color: activeTab === tab.key ? "#2E7D32" : "#8E8E93" },
                 activeTab === tab.key && { fontWeight: "700" },
               ]}
             >
@@ -558,14 +558,14 @@ export default function FriendsScreen() {
           onPress={() => { haptic(); router.back(); }}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={[styles.backBtnText, { color: "#FF6B35" }]}>‹</Text>
+          <Text style={[styles.backBtnText, { color: "#2E7D32" }]}>‹</Text>
         </Pressable>
         <Text style={[styles.headerTitle, { color: "#1A1A1A" }]}>친구</Text>
         <Pressable
           onPress={() => { haptic(); setShowCodeInput(!showCodeInput); }}
           style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={[styles.addBtnText, { color: "#FF6B35" }]}>+ 추가</Text>
+          <Text style={[styles.addBtnText, { color: "#2E7D32" }]}>+ 추가</Text>
         </Pressable>
       </View>
 
@@ -580,7 +580,7 @@ export default function FriendsScreen() {
           )}
         </View>
         <View style={styles.myCodeRow}>
-          <Text style={[styles.myCodeText, { color: "#FF6B35" }]}>{myCode}</Text>
+          <Text style={[styles.myCodeText, { color: "#2E7D32" }]}>{myCode}</Text>
           <Pressable
             onPress={handleCopyCode}
             style={({ pressed }) => [
@@ -625,7 +625,7 @@ export default function FriendsScreen() {
               onPress={handlePasteCode}
               style={({ pressed }) => [styles.pasteBtn, { borderColor: "#E8E8E8" }, pressed && { opacity: 0.7 }]}
             >
-              <Text style={[styles.pasteBtnText, { color: "#FF6B35" }]}>붙여넣기</Text>
+              <Text style={[styles.pasteBtnText, { color: "#2E7D32" }]}>붙여넣기</Text>
             </Pressable>
             <Pressable
               onPress={handleSearch}
@@ -714,7 +714,7 @@ export default function FriendsScreen() {
           ListHeaderComponent={
             isLoadingRequests ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#FF6B35" />
+                <ActivityIndicator size="small" color="#2E7D32" />
                 <Text style={[styles.loadingText, { color: "#8E8E93" }]}>요청 불러오는 중...</Text>
               </View>
             ) : null

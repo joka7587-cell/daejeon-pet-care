@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   optionChipActive: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
   },
   optionText: { fontSize: 14, fontWeight: "600" },
   optionTextActive: { color: "#FFFFFF" },
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   submitBtn: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     padding: 16,
     borderRadius: 16,
     alignItems: "center",
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   successDesc: { fontSize: 15, textAlign: "center", lineHeight: 22, marginBottom: 32 },
   doneBtn: {
     width: "100%",
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     padding: 16,
     borderRadius: 16,
     alignItems: "center",

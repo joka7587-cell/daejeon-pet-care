@@ -145,7 +145,7 @@ export default function WriteReviewScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 대상 정보 */}
-        <View style={[styles.targetCard, { backgroundColor: colorScheme === 'light' ? '#FFF3EE' : "#F8F8F8" }]}>
+        <View style={[styles.targetCard, { backgroundColor: colorScheme === 'light' ? '#E8F5E9' : "#F8F8F8" }]}>
           <Text style={styles.targetEmoji}>{reviewType === "owner" ? "🏠" : "🐕‍🦺"}</Text>
           <View style={{ flex: 1 }}>
             <Text style={[styles.targetName, { color: "#1A1A1A" }]}>{targetName}</Text>
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   },
   targetEmoji: { fontSize: 40 },
   targetName: { fontSize: 16, fontWeight: "700" },
-  targetService: { fontSize: 13, color: "#FF7043", marginTop: 2 },
+  targetService: { fontSize: 13, color: "#2E7D32", marginTop: 2 },
   section: { gap: 12 },
   sectionTitle: { fontSize: 16, fontWeight: "700" },
   starsRow: { flexDirection: "row", justifyContent: "center", gap: 12 },
@@ -281,11 +281,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
-  tagActive: { backgroundColor: "#FFF5F0", borderColor: "#FF6B35" },
+  tagActive: { backgroundColor: "#FFF5F0", borderColor: "#2E7D32" },
   tagText: { fontFamily: Fonts.medium, fontSize: 13 },
-  tagTextActive: { color: "#FF6B35" },
+  tagTextActive: { color: "#2E7D32" },
   submitBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   successTitle: { fontSize: 22, fontWeight: "800" },
   successDesc: { fontSize: 15, textAlign: "center" },
   doneBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingHorizontal: 40,
     paddingVertical: 14,

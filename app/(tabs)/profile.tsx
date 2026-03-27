@@ -393,7 +393,7 @@ export default function ProfileScreen() {
                         transition={200}
                       />
                     ) : (
-                      <View style={[styles.petEmojiContainer, { backgroundColor: isDark ? "#2C2C2C" : "#FFF3EE" }]}>
+                      <View style={[styles.petEmojiContainer, { backgroundColor: isDark ? "#2C2C2C" : "#E8F5E9" }]}>
                         <Text style={{ fontSize: 28 }}>{pet.emoji}</Text>
                       </View>
                     )}
@@ -444,7 +444,7 @@ export default function ProfileScreen() {
           {/* 역할 전환 */}
           <SectionCard title="역할 설정">
             <Text style={[styles.roleDesc, { color: "#8E8E93" }]}>
-              현재 역할: <Text style={{ fontWeight: "700", color: isCaretaker ? "#4CAF82" : "#FF7043" }}>
+              현재 역할: <Text style={{ fontWeight: "700", color: isCaretaker ? "#4CAF82" : "#2E7D32" }}>
                 {isCaretaker ? "돌보미" : "반려인"}
               </Text>
             </Text>
@@ -577,8 +577,8 @@ export default function ProfileScreen() {
                 <Text style={{ fontSize: 20 }}>📊</Text>
                 <Text style={[styles.menuLabel, { color: "#1A1A1A" }]}>관리자 대시보드</Text>
                 <View style={{ flex: 1 }} />
-                <View style={[styles.menuBadge, { backgroundColor: "#FF6B3520" }]}>
-                  <Text style={[styles.menuBadgeText, { color: "#FF6B35" }]}>ADMIN</Text>
+                <View style={[styles.menuBadge, { backgroundColor: "#2E7D3220" }]}>
+                  <Text style={[styles.menuBadgeText, { color: "#2E7D32" }]}>ADMIN</Text>
                 </View>
                 <Text style={[styles.menuArrow, { color: "#8E8E93" }]}>›</Text>
               </Pressable>
@@ -590,8 +590,8 @@ export default function ProfileScreen() {
                 <Text style={{ fontSize: 20 }}>🚶</Text>
                 <Text style={[styles.menuLabel, { color: "#1A1A1A" }]}>산책 시뮬레이션</Text>
                 <View style={{ flex: 1 }} />
-                <View style={[styles.menuBadge, { backgroundColor: "#FF6B3520" }]}>
-                  <Text style={[styles.menuBadgeText, { color: "#FF6B35" }]}>시연용</Text>
+                <View style={[styles.menuBadge, { backgroundColor: "#2E7D3220" }]}>
+                  <Text style={[styles.menuBadgeText, { color: "#2E7D32" }]}>시연용</Text>
                 </View>
                 <Text style={[styles.menuArrow, { color: "#8E8E93" }]}>›</Text>
               </Pressable>
@@ -782,7 +782,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
   },
-  profileHeaderOrange: { backgroundColor: "#FFF3EE" },
+  profileHeaderOrange: { backgroundColor: "#E8F5E9" },
   profileHeaderGreen: { backgroundColor: "#F0FFF4" },
   avatarCircle: {
     width: 80,
@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
   },
   profileName: { fontSize: 22, fontWeight: "800", color: "#1A1A1A" },
   roleBadge: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5 },
-  roleBadgeOrange: { backgroundColor: "#FF7043" },
+  roleBadgeOrange: { backgroundColor: "#2E7D32" },
   roleBadgeGreen: { backgroundColor: "#4CAF82" },
   roleBadgeText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   friendCode: { fontSize: 13, color: "#9E9E9E", fontWeight: "600", letterSpacing: 1 },
@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 14, color: "#8E8E93" },
   infoValue: { fontSize: 14, fontWeight: "600", color: "#1A1A1A" },
   editBtn: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: "#F8F8F8", borderRadius: 8 },
-  editBtnText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
+  editBtnText: { fontSize: 13, color: "#2E7D32", fontWeight: "600" },
   menuRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -860,8 +860,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F8F8F8",
   },
   menuLabel: { fontSize: 15, fontWeight: "600", color: "#1A1A1A" },
-  menuBadge: { backgroundColor: "#FF704320", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  menuBadgeText: { fontSize: 12, fontWeight: "700", color: "#FF7043" },
+  menuBadge: { backgroundColor: "#2E7D3220", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  menuBadgeText: { fontSize: 12, fontWeight: "700", color: "#2E7D32" },
   menuArrow: { fontSize: 20, color: "#C0C0C0" },
   neighborhoodPicker: {
     backgroundColor: "#FAFAFA",
@@ -878,9 +878,9 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     backgroundColor: "#FFFFFF",
   },
-  neighborhoodChipActive: { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
+  neighborhoodChipActive: { borderColor: "#2E7D32", backgroundColor: "#E8F5E9" },
   neighborhoodChipText: { fontSize: 13, color: "#8E8E93" },
-  neighborhoodChipTextActive: { color: "#FF7043", fontWeight: "700" },
+  neighborhoodChipTextActive: { color: "#2E7D32", fontWeight: "700" },
   emptyText: { fontSize: 13, color: "#9E9E9E", textAlign: "center", paddingVertical: 8 },
   petCard: {
     flexDirection: "row",
@@ -899,7 +899,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -907,13 +907,13 @@ const styles = StyleSheet.create({
   petInfo: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
   addPetBtn: {
     borderWidth: 1.5,
-    borderColor: "#FF7043",
+    borderColor: "#2E7D32",
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: "center",
     borderStyle: "dashed",
   },
-  addPetBtnText: { color: "#FF7043", fontSize: 14, fontWeight: "600" },
+  addPetBtnText: { color: "#2E7D32", fontSize: 14, fontWeight: "600" },
   serviceList: { gap: 10 },
   serviceItem: {
     flexDirection: "row",
@@ -942,7 +942,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
   },
-  roleSwitchBtnOrange: { backgroundColor: "#FF7043" },
+  roleSwitchBtnOrange: { backgroundColor: "#2E7D32" },
   roleSwitchBtnGreen: { backgroundColor: "#4CAF82" },
   roleSwitchBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   settingRow: {
@@ -1046,7 +1046,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
   },
   modalSaveText: {
     fontSize: 15,
@@ -1078,8 +1078,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emojiOptionActive: {
-    borderColor: "#FF7043",
-    backgroundColor: "#FFF3EE",
+    borderColor: "#2E7D32",
+    backgroundColor: "#E8F5E9",
   },
   emojiOptionText: {
     fontSize: 28,
@@ -1091,7 +1091,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -178,7 +178,7 @@ export default function MapScreen() {
         <View style={[styles.locationStatus, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
           <Text style={{ fontSize: 14 }}>📍</Text>
           <Text style={[styles.locationStatusText, { color: "#1A1A1A" }]}>
-            현재 위치 감지됨 · <Text style={{ color: "#FF7043", fontWeight: "700" }}>{selectedNeighborhood}</Text> 근처
+            현재 위치 감지됨 · <Text style={{ color: "#2E7D32", fontWeight: "700" }}>{selectedNeighborhood}</Text> 근처
           </Text>
           <Text style={[styles.locationCoords, { color: "#8E8E93" }]}>
             {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
@@ -187,9 +187,9 @@ export default function MapScreen() {
       )}
 
       {locationError && (
-        <View style={[styles.locationStatus, { backgroundColor: "#FFF3EE", borderColor: "#FFCCBC" }]}>
+        <View style={[styles.locationStatus, { backgroundColor: "#E8F5E9", borderColor: "#C8E6C9" }]}>
           <Text style={{ fontSize: 14 }}>⚠️</Text>
-          <Text style={[styles.locationStatusText, { color: "#FF7043" }]}>{locationError}</Text>
+          <Text style={[styles.locationStatusText, { color: "#2E7D32" }]}>{locationError}</Text>
         </View>
       )}
 
@@ -228,7 +228,7 @@ export default function MapScreen() {
                 {key}
               </Text>
               {distText && (
-                <Text style={[styles.chipDistance, isSelected && { color: "#FF7043" }]}>
+                <Text style={[styles.chipDistance, isSelected && { color: "#2E7D32" }]}>
                   {distText}
                 </Text>
               )}
@@ -305,7 +305,7 @@ export default function MapScreen() {
       {/* 로딩 */}
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#FF7043" />
+          <ActivityIndicator size="small" color="#2E7D32" />
           <Text style={[styles.loadingText, { color: "#8E8E93" }]}>돌보미를 찾고 있어요...</Text>
         </View>
       )}
@@ -337,8 +337,8 @@ export default function MapScreen() {
               <Text style={[styles.detailInfoText, { color: "#1A1A1A" }]}>{formatDistance(selectedMarker.distance)}</Text>
             </View>
             {selectedMarker.services.map((s, i) => (
-              <View key={i} style={[styles.detailInfoChip, { backgroundColor: "#FFF3EE" }]}>
-                <Text style={[styles.detailInfoText, { color: "#FF7043" }]}>{s}</Text>
+              <View key={i} style={[styles.detailInfoChip, { backgroundColor: "#E8F5E9" }]}>
+                <Text style={[styles.detailInfoText, { color: "#2E7D32" }]}>{s}</Text>
               </View>
             ))}
           </View>
@@ -386,7 +386,7 @@ export default function MapScreen() {
                 style={({ pressed }) => [styles.listItem, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.8 }]}
               >
                 <View style={styles.listItemLeft}>
-                  <View style={[styles.listItemAvatar, { backgroundColor: "#FFF3EE" }]}>
+                  <View style={[styles.listItemAvatar, { backgroundColor: "#E8F5E9" }]}>
                     <Text style={{ fontSize: 22 }}>{caretaker.emoji}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
@@ -395,7 +395,7 @@ export default function MapScreen() {
                       <Text style={[styles.listItemDistance, { color: "#8E8E93" }]}>
                         📍 {formatDistance(caretaker.distance)}
                       </Text>
-                      <Text style={[styles.listItemService, { color: "#FF7043" }]}>
+                      <Text style={[styles.listItemService, { color: "#2E7D32" }]}>
                         {caretaker.services[0]}
                       </Text>
                     </View>
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   },
   locationBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   refreshBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -473,9 +473,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
   },
-  neighborhoodChipActive: { borderColor: "#FF7043", backgroundColor: "#FFF3EE" },
+  neighborhoodChipActive: { borderColor: "#2E7D32", backgroundColor: "#E8F5E9" },
   neighborhoodChipText: { fontSize: 12, fontWeight: "600" },
-  neighborhoodChipTextActive: { color: "#FF7043" },
+  neighborhoodChipTextActive: { color: "#2E7D32" },
   chipDistance: { fontSize: 10, color: "#9E9E9E", marginTop: 1 },
   mapContainer: {
     height: 250,
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -576,12 +576,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     alignItems: "center",
     justifyContent: "center",
   },
   markerDetailName: { fontSize: 17, fontWeight: "800" },
-  markerDetailRating: { fontSize: 13, color: "#FF7043", fontWeight: "700", marginTop: 2 },
+  markerDetailRating: { fontSize: 13, color: "#2E7D32", fontWeight: "700", marginTop: 2 },
   closeBtn: {
     width: 28,
     height: 28,
@@ -610,9 +610,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
   },
-  profileBtnText: { fontSize: 14, fontWeight: "700", color: "#FF7043" },
+  profileBtnText: { fontSize: 14, fontWeight: "700", color: "#2E7D32" },
   requestBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: "center",
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   listItemDistance: { fontSize: 12 },
   listItemService: { fontSize: 11, fontWeight: "600" },
   listItemRight: { alignItems: "flex-end", gap: 4 },
-  listItemRating: { fontSize: 13, fontWeight: "700", color: "#FF7043" },
+  listItemRating: { fontSize: 13, fontWeight: "700", color: "#2E7D32" },
   listItemArrow: { fontSize: 18 },
   loadingContainer: {
     flexDirection: "row",

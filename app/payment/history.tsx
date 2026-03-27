@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   summaryLabel: { fontSize: 13 },
-  summaryAmount: { fontSize: 32, fontWeight: "800", color: "#FF7043" },
+  summaryAmount: { fontSize: 32, fontWeight: "800", color: "#2E7D32" },
   summaryCount: { fontSize: 13 },
   list: { padding: 16, gap: 12, paddingBottom: 40 },
   paymentCard: {

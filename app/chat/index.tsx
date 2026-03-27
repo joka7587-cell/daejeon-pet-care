@@ -120,7 +120,7 @@ export default function ChatListScreen() {
       {/* 채팅방 목록 */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF7043" />
+          <ActivityIndicator size="large" color="#2E7D32" />
         </View>
       ) : chatRooms.length > 0 ? (
         <FlatList
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    // backgroundColor: "#FFF3EE",
+    // backgroundColor: "#E8F5E9",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   badge: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 10,
     minWidth: 20,
     height: 20,

@@ -389,10 +389,10 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   backBtnText: { fontSize: 28, color: "#1A1A1A" },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
-  saveBtn: { backgroundColor: "#FF7043", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
+  saveBtn: { backgroundColor: "#2E7D32", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
   saveBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   editHeaderBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  editHeaderBtnText: { color: "#FF7043", fontSize: 14, fontWeight: "600" },
+  editHeaderBtnText: { color: "#2E7D32", fontSize: 14, fontWeight: "600" },
   photoSection: {
     alignItems: "center",
     paddingVertical: 24,
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     height: 140,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
   },
   cameraOverlay: {
     position: "absolute",
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
@@ -483,8 +483,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   sizeChipActive: {
-    borderColor: "#FF7043",
-    backgroundColor: "#FFF3EE",
+    borderColor: "#2E7D32",
+    backgroundColor: "#E8F5E9",
   },
   sizeChipText: {
     fontSize: 13,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   sizeChipTextActive: {
-    color: "#FF7043",
+    color: "#2E7D32",
     fontWeight: "700",
   },
   emojiOptions: {
@@ -511,8 +511,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   emojiChipActive: {
-    borderColor: "#FF7043",
-    backgroundColor: "#FFF3EE",
+    borderColor: "#2E7D32",
+    backgroundColor: "#E8F5E9",
     borderWidth: 2,
   },
   deleteBtn: {

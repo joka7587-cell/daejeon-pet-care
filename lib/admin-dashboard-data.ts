@@ -14,7 +14,7 @@ export interface DistrictStats {
 }
 
 export const DISTRICT_STATS: DistrictStats[] = [
-  { district: "서구", matchCount: 47, percentage: 32.2, color: "#FF6B35", activeWalkers: 12, totalBookings: 89 },
+  { district: "서구", matchCount: 47, percentage: 32.2, color: "#2E7D32", activeWalkers: 12, totalBookings: 89 },
   { district: "유성구", matchCount: 38, percentage: 26.0, color: "#4CAF82", activeWalkers: 9, totalBookings: 72 },
   { district: "중구", matchCount: 28, percentage: 19.2, color: "#3B82F6", activeWalkers: 7, totalBookings: 53 },
   { district: "동구", matchCount: 19, percentage: 13.0, color: "#A855F7", activeWalkers: 5, totalBookings: 36 },

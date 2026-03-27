@@ -561,6 +561,93 @@ export const WORKER_DETAILS: Record<string, WorkerDetail> = {
     introduction: "서구 도안동에서 3년간 대형견 산책을 전문으로 해왔습니다.",
     specialNotes: "- 도안동/둔산동 일대\n- 대형견 전문\n- 갑천 둔치 산책로 활용"
   },
+  c13: {
+    id: "c13",
+    nickname: "둔산동 은서",
+    profileEmoji: "👩\u200d\ud83e\uddb0",
+    bio: "둔산동 산책 10년차! 아이와 반려견 동시 돌봄 가능해요.",
+    rating: 4.9,
+    reviewCount: 63,
+    pricePerHour: 16000,
+    isVerified: true,
+    specialBadge: "둔산동 토박이",
+    experiences: [
+      { district: "서구", years: 10, completedWalks: 210, specialization: "소형견 전문" },
+      { district: "유성구", years: 3, completedWalks: 45, specialization: "다견종 돌봄" },
+    ],
+    certifications: [
+      { id: "cert_c13_1", name: "반려동물 관리사 자격증", issuer: "한국반려동물협회", issueDate: "2019-03-15", imageUri: "https://placehold.co/300x200/E8F5E9/2E7D32?text=관리사+자격증", verified: true },
+      { id: "cert_c13_2", name: "동물 응급처치 교육 수료", issuer: "대전시 동물보호센터", issueDate: "2022-06-20", imageUri: "https://placehold.co/300x200/FFF8E1/FFC107?text=응급처치+수료", verified: true },
+    ],
+    equipment: [
+      { id: "eq_c13_1", name: "리드줄", icon: "🪶", description: "소형견용 자동 리드줄", available: true },
+      { id: "eq_c13_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true },
+      { id: "eq_c13_3", name: "간식파우치", icon: "🍖", description: "훈련용 간식 파우치", available: true },
+    ],
+    services: ["대신 산책", "긴급 방문 돌봄"],
+    canHandleLargeDogs: false,
+    hasTrainerCert: false,
+    responseTime: "3분 이내",
+    introduction: "둔산동에서 10년간 산책 전문가로 활동하고 있습니다. 아이와 반려견을 동시에 돌볼 수 있는 경험이 있어요.",
+    specialNotes: "- 둔산동/월평동 일대\n- 소형견 전문\n- 아이+반려견 동시 돌봄 가능"
+  },
+  c14: {
+    id: "c14",
+    nickname: "궁동 정훈",
+    profileEmoji: "🧑\u200d\u2695\ufe0f",
+    bio: "KAIST 수의학과 졸업생. 반려동물 건강 체크도 해드려요!",
+    rating: 5.0,
+    reviewCount: 28,
+    pricePerHour: 22000,
+    isVerified: true,
+    specialBadge: "수의사 출신 워커",
+    experiences: [
+      { district: "유성구", years: 4, completedWalks: 75, specialization: "건강 체크 동반 산책" },
+    ],
+    certifications: [
+      { id: "cert_c14_1", name: "수의사 면허증", issuer: "농림축산식품부", issueDate: "2021-02-28", imageUri: "https://placehold.co/300x200/E8F5E9/2E7D32?text=수의사+면허", verified: true },
+      { id: "cert_c14_2", name: "반려견 훈련사 자격증", issuer: "한국애견협회", issueDate: "2022-11-15", imageUri: "https://placehold.co/300x200/FFF8E1/FFC107?text=훈련사+자격증", verified: true },
+    ],
+    equipment: [
+      { id: "eq_c14_1", name: "건강체크키트", icon: "🩺", description: "간단 건강 체크 도구", available: true },
+      { id: "eq_c14_2", name: "리드줄", icon: "🪶", description: "대형견용 튼튼한 리드줄", available: true },
+      { id: "eq_c14_3", name: "물통", icon: "💧", description: "휴대용 물통", available: true },
+      { id: "eq_c14_4", name: "응급처치키트", icon: "🩹", description: "수의사급 응급처치 키트", available: true },
+    ],
+    services: ["대신 산책", "긴급 방문 돌봄"],
+    canHandleLargeDogs: true,
+    hasTrainerCert: true,
+    responseTime: "5분 이내",
+    introduction: "KAIST 수의학과 졸업 후 반려동물 돌봄 전문가로 활동 중입니다. 산책 중 간단한 건강 체크도 함께 해드립니다.",
+    specialNotes: "- 유성구 궁동/관평동 일대\n- 수의사 출신\n- 건강 체크 동반 산책"
+  },
+  c15: {
+    id: "c15",
+    nickname: "월평동 승재",
+    profileEmoji: "👨\u200d\ud83e\uddb1",
+    bio: "월평공원 산책 전문가! 대형견도 자신 있어요.",
+    rating: 4.7,
+    reviewCount: 39,
+    pricePerHour: 14000,
+    isVerified: true,
+    experiences: [
+      { district: "서구", years: 5, completedWalks: 88, specialization: "대형견 산책 전문" },
+    ],
+    certifications: [
+      { id: "cert_c15_1", name: "반려동물 돌봄 1급", issuer: "한국반려동물협회", issueDate: "2023-01-20", imageUri: "https://placehold.co/300x200/E8F5E9/2E7D32?text=돌봄+1급", verified: true },
+    ],
+    equipment: [
+      { id: "eq_c15_1", name: "리드줄", icon: "🪶", description: "대형견용 리드줄", available: true },
+      { id: "eq_c15_2", name: "배변봉투", icon: "📦", description: "친환경 배변봉투", available: true },
+      { id: "eq_c15_3", name: "물통", icon: "💧", description: "대용량 물통", available: true },
+    ],
+    services: ["대신 산책"],
+    canHandleLargeDogs: true,
+    hasTrainerCert: false,
+    responseTime: "10분 이내",
+    introduction: "월평공원 근처에서 5년간 대형견 산책을 전문으로 해왔습니다.",
+    specialNotes: "- 서구 월평동 일대\n- 대형견 전문\n- 월평공원 산책로 활용"
+  },
 };
 
 // 시드 워커 상세 자동 병합 (시연용)

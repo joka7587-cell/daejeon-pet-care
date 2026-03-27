@@ -231,6 +231,29 @@ export default function WorkerDetailScreen() {
                 </View>
               )}
             </View>
+
+            {/* 지역 기반 해시태그 */}
+            <Text style={[s.sectionTitle, { marginTop: 20 }]}>활동 지역 태그</Text>
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {(workerDetail.experiences || []).map((exp) => (
+                <View key={exp.district} style={s.hashTag}>
+                  <Text style={s.hashTagText}>#{exp.district}전문</Text>
+                </View>
+              ))}
+              {workerDetail.canHandleLargeDogs && (
+                <View style={s.hashTag}>
+                  <Text style={s.hashTagText}>#대형견전문</Text>
+                </View>
+              )}
+              <View style={s.hashTag}>
+                <Text style={s.hashTagText}>#온통대전가능</Text>
+              </View>
+              {workerDetail.rating >= 4.8 && (
+                <View style={s.hashTag}>
+                  <Text style={s.hashTagText}>#프리미엄워커</Text>
+                </View>
+              )}
+            </View>
           </View>
         )}
 
@@ -358,7 +381,7 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 20,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#E8F5E9",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -395,7 +418,7 @@ const s = StyleSheet.create({
     color: "#2E7D32",
   },
   specialBadge: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -437,7 +460,7 @@ const s = StyleSheet.create({
   statValue: {
     fontFamily: Fonts.bold,
     fontSize: 14,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
   statSubtext: {
     fontFamily: Fonts.regular,
@@ -499,7 +522,7 @@ const s = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   tabButtonActive: {
-    borderBottomColor: "#FF6B35",
+    borderBottomColor: "#2E7D32",
   },
   tabText: {
     fontFamily: Fonts.medium,
@@ -507,7 +530,7 @@ const s = StyleSheet.create({
     color: "#999",
   },
   tabTextActive: {
-    color: "#FF6B35",
+    color: "#2E7D32",
     fontFamily: Fonts.bold,
   },
 
@@ -589,7 +612,7 @@ const s = StyleSheet.create({
     backgroundColor: "#F9F9F9",
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: "#FF6B35",
+    borderLeftColor: "#2E7D32",
   },
   expHeader: {
     flexDirection: "row",
@@ -605,7 +628,7 @@ const s = StyleSheet.create({
   expYears: {
     fontFamily: Fonts.medium,
     fontSize: 12,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
   expSpec: {
     fontFamily: Fonts.regular,
@@ -628,7 +651,7 @@ const s = StyleSheet.create({
   expStatValue: {
     fontFamily: Fonts.bold,
     fontSize: 13,
-    color: "#FF6B35",
+    color: "#2E7D32",
     marginTop: 2,
   },
 
@@ -678,7 +701,7 @@ const s = StyleSheet.create({
     borderTopColor: "#F0F0F0",
   },
   chatButton: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -717,5 +740,19 @@ const s = StyleSheet.create({
     height: 32,
     alignItems: "center",
     justifyContent: "center",
+  },
+  // 지역 기반 해시태그
+  hashTag: {
+    backgroundColor: "#E8F5E9",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+  },
+  hashTagText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: "#2E7D32",
   },
 });

@@ -269,7 +269,7 @@ function WalkStatusBubble({ data }: { data: ChatMessage["walkStatusData"] }) {
     started: { emoji: "🚶", text: "산책을 시작했습니다", color: "#4CAF82" },
     paused: { emoji: "⏸️", text: "산책을 일시 정지했습니다", color: "#F59E0B" },
     resumed: { emoji: "▶️", text: "산책을 재개했습니다", color: "#4CAF82" },
-    completed: { emoji: "🎉", text: "산책이 완료되었습니다", color: "#FF6B35" },
+    completed: { emoji: "🎉", text: "산책이 완료되었습니다", color: "#2E7D32" },
   };
   const info = statusMap[data.status] || statusMap.started;
   return (
@@ -909,6 +909,49 @@ export default function ChatScreen() {
         />
       )}
 
+      {/* 산책 상태 스테퍼 */}
+      {walkStatus !== "idle" && (
+        <View style={styles.stepperContainer}>
+          {(["ready", "walking", "returning", "completed"] as const).map((step, idx) => {
+            const stepLabels = { ready: "준비 중", walking: "산책 중", returning: "복귀 중", completed: "완료" };
+            const stepEmojis = { ready: "📦", walking: "🚶", returning: "🏠", completed: "🎉" };
+            const currentStepIdx = walkStatus === "walking" ? 1 : walkStatus === "paused" ? 1 : walkStatus === "completed" ? 3 : 0;
+            const isActive = idx <= currentStepIdx;
+            const isCurrent = idx === currentStepIdx;
+            return (
+              <View key={step} style={{ flex: 1, alignItems: "center" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
+                  {idx > 0 && (
+                    <View style={[
+                      styles.stepperLine,
+                      isActive && styles.stepperLineActive,
+                    ]} />
+                  )}
+                  <View style={[
+                    styles.stepperDot,
+                    isActive && styles.stepperDotActive,
+                    isCurrent && styles.stepperDotCurrent,
+                  ]}>
+                    <Text style={{ fontSize: isCurrent ? 14 : 11 }}>{stepEmojis[step]}</Text>
+                  </View>
+                  {idx < 3 && (
+                    <View style={[
+                      styles.stepperLine,
+                      idx < currentStepIdx && styles.stepperLineActive,
+                    ]} />
+                  )}
+                </View>
+                <Text style={[
+                  styles.stepperLabel,
+                  isActive && styles.stepperLabelActive,
+                  isCurrent && styles.stepperLabelCurrent,
+                ]}>{stepLabels[step]}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
       {/* 실시간 산책 지도 버튼 */}
       {(walkStatus === "walking" || walkStatus === "completed") && (
         <Pressable
@@ -1106,18 +1149,18 @@ const styles = StyleSheet.create({
     borderColor: "#FFE0D0",
   },
   friendBadge: {
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderWidth: 1,
-    borderColor: "#FFCCBC",
+    borderColor: "#C8E6C9",
   },
-  friendBadgeText: { fontSize: 10, color: "#FF7043", fontWeight: "700" },
+  friendBadgeText: { fontSize: 10, color: "#2E7D32", fontWeight: "700" },
   liveMapBanner: {
     marginHorizontal: 12,
     marginTop: 8,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -1180,7 +1223,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F8F8",
   },
   messageBubbleOther: { backgroundColor: "#F8F8F8", borderBottomLeftRadius: 4 },
-  messageBubbleOwn: { backgroundColor: "#FF7043", borderBottomRightRadius: 4 },
+  messageBubbleOwn: { backgroundColor: "#2E7D32", borderBottomRightRadius: 4 },
   imageBubble: { padding: 4, overflow: "hidden" },
   senderName: { fontSize: 11, fontWeight: "700", color: "#8E8E93", marginBottom: 2, marginHorizontal: 4 },
   messageText: { fontSize: 14, color: "#1A1A1A", lineHeight: 20 },
@@ -1191,13 +1234,13 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH * 0.55,
     height: SCREEN_WIDTH * 0.4,
     borderRadius: 12,
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   demoImageEmoji: { fontSize: 48 },
-  demoImageText: { fontSize: 13, color: "#FF7043", fontWeight: "600" },
+  demoImageText: { fontSize: 13, color: "#2E7D32", fontWeight: "600" },
   emptyChat: {
     flex: 1,
     alignItems: "center",
@@ -1213,7 +1256,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     borderTopWidth: 1,
     borderTopColor: "#FFE0D0",
     gap: 10,
@@ -1222,7 +1265,7 @@ const styles = StyleSheet.create({
   selectedImageText: { flex: 1, fontSize: 13, color: "#8E8E93" },
   cancelImageBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: "#F8F8F8" },
   cancelImageBtnText: { fontSize: 13, color: "#8E8E93", fontWeight: "600" },
-  sendImageBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: "#FF7043" },
+  sendImageBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: "#2E7D32" },
   sendImageBtnText: { fontSize: 13, color: "#FFFFFF", fontWeight: "600" },
   inputContainer: {
     borderTopWidth: 1,
@@ -1258,7 +1301,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -1285,6 +1328,56 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   previewCloseBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  // 산책 상태 스테퍼
+  stepperContainer: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#F8FFF8",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8F5E9",
+  },
+  stepperDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#E8E8E8",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  stepperDotActive: {
+    backgroundColor: "#E8F5E9",
+  },
+  stepperDotCurrent: {
+    backgroundColor: "#2E7D32",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  stepperLine: {
+    flex: 1,
+    height: 3,
+    backgroundColor: "#E8E8E8",
+    borderRadius: 1.5,
+  },
+  stepperLineActive: {
+    backgroundColor: "#2E7D32",
+  },
+  stepperLabel: {
+    fontFamily: Fonts.medium,
+    fontSize: 10,
+    color: "#8E8E93",
+    marginTop: 4,
+    textAlign: "center" as const,
+  },
+  stepperLabelActive: {
+    color: "#2E7D32",
+  },
+  stepperLabelCurrent: {
+    fontFamily: Fonts.bold,
+    color: "#2E7D32",
+  },
 });
 
 // ─── 산책 명소 선택 모달 스타일 ───
@@ -1322,7 +1415,7 @@ const ms = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E8E8E8",
   },
-  districtChipActive: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
+  districtChipActive: { backgroundColor: "#2E7D32", borderColor: "#2E7D32" },
   districtChipText: { fontFamily: Fonts.semiBold, fontSize: 12, color: "#8E8E93" },
   districtChipTextActive: { color: "#FFFFFF", fontFamily: Fonts.bold },
   spotCard: {
@@ -1349,7 +1442,7 @@ const ms = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1359,7 +1452,7 @@ const ms = StyleSheet.create({
 // ─── 위치 버블 스타일 ───
 const lb = StyleSheet.create({
   container: { borderRadius: 16, padding: 12, width: SCREEN_WIDTH * 0.65 },
-  containerOwn: { backgroundColor: "#FF7043" },
+  containerOwn: { backgroundColor: "#2E7D32" },
   containerOther: { backgroundColor: "#F8F8F8" },
   header: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   emojiWrap: {

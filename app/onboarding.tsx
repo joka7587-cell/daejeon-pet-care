@@ -27,7 +27,7 @@ const SLIDES = [
     title: "반려이음",
     subtitle: "대전 동네 반려동물\n돌봄 매칭 서비스",
     description: "가까운 이웃과 함께\n반려동물을 돌봐요",
-    bg: "#FFF3EE", // This will be handled dynamically
+    bg: "#E8F5E9", // This will be handled dynamically
   },
   {
     emoji: "🚶",
@@ -253,7 +253,7 @@ export default function OnboardingScreen() {
               key={i}
               style={[
                 styles.dot,
-                { backgroundColor: i === currentSlide ? "#FF7043" : "#FFCCBC" },
+                { backgroundColor: i === currentSlide ? "#2E7D32" : "#C8E6C9" },
               ]}
             />
           ))}
@@ -308,16 +308,16 @@ export default function OnboardingScreen() {
               onPress={() => handleRoleSelect("owner")}
               style={({ pressed }) => [
                 styles.roleCard,
-                { borderColor: "#FF7043", backgroundColor: "#F8F8F8" },
+                { borderColor: "#2E7D32", backgroundColor: "#F8F8F8" },
                 pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
               ]}
             >
               <Text style={styles.roleEmoji}>🐶</Text>
-              <Text style={[styles.roleTitle, { color: "#FF7043" }]}>반려인</Text>
+              <Text style={[styles.roleTitle, { color: "#2E7D32" }]}>반려인</Text>
               <Text style={[styles.roleDesc, { color: "#8E8E93" }]}>
                 산책 친구 찾기{"\n"}돌보미 찾기{"\n"}산책 부탁하기{"\n"}단기 돌봄 교환
               </Text>
-              <View style={[styles.roleBadge, { backgroundColor: "#FF7043" }]}>
+              <View style={[styles.roleBadge, { backgroundColor: "#2E7D32" }]}>
                 <Text style={styles.roleBadgeText}>모든 서비스 이용 가능</Text>
               </View>
             </Pressable>
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
   slideSubtitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#FF7043",
+    color: "#2E7D32",
     marginBottom: 12,
     textAlign: "center",
   },
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   nextBtn: {
     marginHorizontal: 24,
     marginBottom: 40,
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
@@ -729,10 +729,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   neighborhoodBtnSelected: {
-    borderColor: "#FF7043",
+    borderColor: "#2E7D32",
   },
   neighborhoodText: { fontSize: 14, fontWeight: "600" },
-  neighborhoodTextSelected: { color: "#FF7043" },
+  neighborhoodTextSelected: { color: "#2E7D32" },
 
   avatarSection: { marginBottom: 24 },
   sectionLabel: {
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: "#FF7043",
+    borderColor: "#2E7D32",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   avatarBtnSelected: {
-    borderColor: "#FF7043",
+    borderColor: "#2E7D32",
   },
   avatarEmoji: { fontSize: 24 },
 
@@ -821,15 +821,15 @@ const styles = StyleSheet.create({
   quickNicknames: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   quickNick: {
     borderWidth: 1,
-    borderColor: "#FF7043",
+    borderColor: "#2E7D32",
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   quickNickSelected: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
   },
-  quickNickText: { color: "#FF7043", fontSize: 13, fontWeight: "500" },
+  quickNickText: { color: "#2E7D32", fontSize: 13, fontWeight: "500" },
   quickNickTextSelected: { color: "#FFFFFF" },
 
   summaryCard: {
@@ -848,7 +848,7 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 14, fontWeight: "600" },
 
   completeBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
@@ -869,7 +869,7 @@ const styles = StyleSheet.create({
   completeTitle: {
     fontSize: 32,
     fontWeight: "800",
-    color: "#FF7043",
+    color: "#2E7D32",
   },
   completeSubtitle: {
     fontSize: 18,

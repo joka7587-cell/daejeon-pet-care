@@ -463,7 +463,7 @@ export default function RegisterProfileScreen() {
 
                 {locationLoading && (
                   <View style={styles.locationLoadingBox}>
-                    <ActivityIndicator size="large" color="#FF6B35" />
+                    <ActivityIndicator size="large" color="#2E7D32" />
                     <Text style={styles.locationLoadingText}>
                       카카오맵 API로 위치를 확인하고 있어요...
                     </Text>
@@ -986,7 +986,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 2,
   },
   progressText: {
@@ -1023,10 +1023,10 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     position: "relative",
   },
-  roleCardSelected: { borderColor: "#FF6B35", backgroundColor: "#FFF8F5" },
+  roleCardSelected: { borderColor: "#2E7D32", backgroundColor: "#E8F5E9" },
   roleEmoji: { fontSize: 40, marginBottom: 12 },
   roleTitle: { ...Typography.h3, color: "#1A1A1A", marginBottom: 6 },
-  roleTitleSelected: { color: "#FF6B35" },
+  roleTitleSelected: { color: "#2E7D32" },
   roleDesc: { ...Typography.body, color: "#8E8E93", lineHeight: 20 },
   checkBadge: {
     position: "absolute",
@@ -1035,7 +1035,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1047,12 +1047,12 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
     borderWidth: 3,
-    borderColor: "#FF6B35",
+    borderColor: "#2E7D32",
   },
   avatarList: { gap: 8, paddingHorizontal: 4 },
   avatarItem: {
@@ -1063,7 +1063,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarItemSelected: { backgroundColor: "#FFF3EE", borderWidth: 2, borderColor: "#FF6B35" },
+  avatarItemSelected: { backgroundColor: "#E8F5E9", borderWidth: 2, borderColor: "#2E7D32" },
   inputGroup: { marginBottom: 20 },
   inputLabel: {
     ...Typography.captionMedium,
@@ -1102,7 +1102,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   locationButton: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
@@ -1132,14 +1132,14 @@ const styles = StyleSheet.create({
   },
   retryButtonText: { fontFamily: Fonts.semiBold, fontSize: 14, color: "#E65100" },
   manualSelectNotice: {
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#E8F5E9",
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: "#FFE0D0",
   },
-  manualSelectText: { ...Typography.caption, color: "#FF6B35", textAlign: "center" },
+  manualSelectText: { ...Typography.caption, color: "#2E7D32", textAlign: "center" },
   detectedBadge: {
     backgroundColor: "#E8F5E9",
     paddingHorizontal: 8,
@@ -1160,10 +1160,10 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     position: "relative",
   },
-  districtCardSelected: { borderColor: "#FF6B35", backgroundColor: "#FFF8F5" },
+  districtCardSelected: { borderColor: "#2E7D32", backgroundColor: "#E8F5E9" },
   districtEmoji: { fontSize: 32, marginRight: 16 },
   districtName: { ...Typography.subtitle, color: "#1A1A1A", marginRight: 8 },
-  districtNameSelected: { color: "#FF6B35" },
+  districtNameSelected: { color: "#2E7D32" },
   districtDesc: { ...Typography.caption, color: "#8E8E93" },
   checkBadgeSmall: {
     position: "absolute",
@@ -1172,7 +1172,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1188,23 +1188,23 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#E8E8E8",
   },
-  dongChipSelected: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
+  dongChipSelected: { backgroundColor: "#2E7D32", borderColor: "#2E7D32" },
   dongText: { ...Typography.bodyMedium, color: "#1A1A1A" },
   dongTextSelected: { color: "#FFFFFF" },
   addressPreview: {
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#E8F5E9",
     borderRadius: 14,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: "#FFE0D0",
   },
-  addressLabel: { ...Typography.captionMedium, color: "#FF6B35", marginBottom: 4 },
+  addressLabel: { ...Typography.captionMedium, color: "#2E7D32", marginBottom: 4 },
   addressText: { ...Typography.subtitle, color: "#1A1A1A" },
 
   // ─── 활동 동네 선택 ───
   selectedAreasBox: {
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#E8F5E9",
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -1214,14 +1214,14 @@ const styles = StyleSheet.create({
   selectedAreasTitle: {
     fontFamily: Fonts.semiBold,
     fontSize: 13,
-    color: "#FF6B35",
+    color: "#2E7D32",
     marginBottom: 10,
   },
   selectedAreaChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   selectedAreaChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1238,9 +1238,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "transparent",
   },
-  areaDistrictTabSelected: { backgroundColor: "#FFF8F5", borderColor: "#FF6B35" },
+  areaDistrictTabSelected: { backgroundColor: "#E8F5E9", borderColor: "#2E7D32" },
   areaDistrictTabText: { fontFamily: Fonts.medium, fontSize: 13, color: "#8E8E93" },
-  areaDistrictTabTextSelected: { color: "#FF6B35" },
+  areaDistrictTabTextSelected: { color: "#2E7D32" },
   areaDongGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 },
   areaDongChip: {
     paddingHorizontal: 16,
@@ -1253,7 +1253,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  areaDongChipActive: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
+  areaDongChipActive: { backgroundColor: "#2E7D32", borderColor: "#2E7D32" },
   areaDongChipDisabled: { opacity: 0.4 },
   areaDongText: { fontFamily: Fonts.medium, fontSize: 14, color: "#1A1A1A" },
   areaDongTextActive: { color: "#FFFFFF" },
@@ -1298,18 +1298,18 @@ const styles = StyleSheet.create({
   verifiedBadgeText: { fontFamily: Fonts.semiBold, fontSize: 10, color: "#2E7D32" },
   summaryActiveAreas: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
   summaryAreaChip: {
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#FFE0D0",
   },
-  summaryAreaChipText: { fontFamily: Fonts.medium, fontSize: 12, color: "#FF6B35" },
+  summaryAreaChipText: { fontFamily: Fonts.medium, fontSize: 12, color: "#2E7D32" },
 
   // ─── 버튼 ───
   nextButton: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
@@ -1328,7 +1328,7 @@ const styles = StyleSheet.create({
   backButtonText: { ...Typography.button, color: "#8E8E93" },
   completeButton: {
     flex: 1,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",

@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   cancelBtnText: { fontSize: 15 },
   headerTitle: { fontSize: 17, fontWeight: "700" },
   submitBtn: {
-    backgroundColor: "#FF7043",
+    backgroundColor: "#2E7D32",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 6,
@@ -158,9 +158,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
-  categoryChipActive: { borderColor: "#FF7043" },
+  categoryChipActive: { borderColor: "#2E7D32" },
   categoryChipText: { fontSize: 13 },
-  categoryChipTextActive: { color: "#FF7043", fontWeight: "700" },
+  categoryChipTextActive: { color: "#2E7D32", fontWeight: "700" },
   titleInput: {
     fontSize: 18,
     fontWeight: "700",

@@ -141,12 +141,12 @@ describe("Phase 6 - 버그 수정 및 기능 추가", () => {
   describe("다크 모드", () => {
     it("테마 색상이 light/dark 모두 정의됨", () => {
       const themeColors = {
-        primary: { light: "#FF7043", dark: "#FF8A65" },
+        primary: { light: "#2E7D32", dark: "#FF8A65" },
         background: { light: "#FAFAFA", dark: "#121212" },
         foreground: { light: "#1A1A1A", dark: "#F0F0F0" },
       };
 
-      expect(themeColors.primary.light).toBe("#FF7043");
+      expect(themeColors.primary.light).toBe("#2E7D32");
       expect(themeColors.primary.dark).toBe("#FF8A65");
       expect(themeColors.background.light).not.toBe(themeColors.background.dark);
     });

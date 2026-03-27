@@ -703,7 +703,7 @@ export default function CommunityScreen() {
 function getCategoryColor(cat: string): string {
   switch (cat) {
     case "자유": return "#9C27B0";
-    case "산책": return "#FF7043";
+    case "산책": return "#2E7D32";
     case "돌봄": return "#4CAF82";
     case "정보": return "#2196F3";
     default: return "#8E8E93";
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   headerTitle: { fontSize: 24, fontWeight: "800", color: "#1A1A1A" },
-  writeBtn: { backgroundColor: "#FF7043", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  writeBtn: { backgroundColor: "#2E7D32", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
   writeBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   categoryRow: { paddingVertical: 8 },
   categoryChip: {
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     backgroundColor: "#FFFFFF",
   },
-  categoryChipActive: { borderColor: "#FF7043", backgroundColor: "#FF7043" },
+  categoryChipActive: { borderColor: "#2E7D32", backgroundColor: "#2E7D32" },
   categoryChipText: { fontSize: 13, color: "#8E8E93", fontWeight: "500" },
   categoryChipTextActive: { color: "#FFFFFF", fontWeight: "700" },
   postList: { padding: 16, gap: 14, paddingBottom: 40 },
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
   commentItemReply: {
     marginLeft: 16,
     borderLeftWidth: 2,
-    borderLeftColor: "#FF704330",
+    borderLeftColor: "#2E7D3230",
   },
   commentHeader: {
     flexDirection: "row",
@@ -795,22 +795,22 @@ const styles = StyleSheet.create({
   commentAuthor: { fontSize: 12, fontWeight: "700", color: "#1A1A1A" },
   commentContent: { fontSize: 13, color: "#8E8E93", lineHeight: 18 },
   commentTime: { fontSize: 10, color: "#9E9E9E" },
-  mentionText: { color: "#FF7043", fontWeight: "700" },
+  mentionText: { color: "#2E7D32", fontWeight: "700" },
   noCommentsText: { fontSize: 13, color: "#BDBDBD", textAlign: "center", paddingVertical: 8 },
   replyBtn: { alignSelf: "flex-start", paddingVertical: 2 },
-  replyBtnText: { fontSize: 11, color: "#FF7043", fontWeight: "600" },
+  replyBtnText: { fontSize: 11, color: "#2E7D32", fontWeight: "600" },
   replyToBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#FFF3EE",
+    backgroundColor: "#E8F5E9",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "#FFCCBC",
+    borderColor: "#C8E6C9",
   },
-  replyToText: { fontSize: 12, color: "#FF7043", fontWeight: "600" },
+  replyToText: { fontSize: 12, color: "#2E7D32", fontWeight: "600" },
   replyToCancelText: { fontSize: 14, color: "#9E9E9E", fontWeight: "700" },
   commentInputRow: { flexDirection: "row", gap: 8, marginTop: 4 },
   commentInput: {
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#1A1A1A",
   },
-  commentSendBtn: { backgroundColor: "#FF7043", borderRadius: 10, paddingHorizontal: 14, justifyContent: "center" },
+  commentSendBtn: { backgroundColor: "#2E7D32", borderRadius: 10, paddingHorizontal: 14, justifyContent: "center" },
   commentSendBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   emptyContainer: { alignItems: "center", paddingVertical: 60, gap: 8 },
   emptyEmoji: { fontSize: 48 },
@@ -841,7 +841,7 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   modalCancel: { fontSize: 15, color: "#8E8E93" },
   modalTitle: { fontSize: 17, fontWeight: "700", color: "#1A1A1A" },
-  modalSubmitBtn: { backgroundColor: "#FF7043", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
+  modalSubmitBtn: { backgroundColor: "#2E7D32", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
   modalSubmitText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   modalCategoryRow: { flexDirection: "row", gap: 8 },
   modalCategoryChip: {

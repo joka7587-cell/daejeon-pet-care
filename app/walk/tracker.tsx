@@ -456,7 +456,7 @@ export default function WalkTrackerScreen() {
 
           {/* 타이머 */}
           <View style={st.timerSection}>
-            <Animated.View style={[st.timerCircle, isActive && st.timerCircleActive, pulseAnimStyle, { borderColor: isActive ? '#FF6B35' : "#E8E8E8" }]}>
+            <Animated.View style={[st.timerCircle, isActive && st.timerCircleActive, pulseAnimStyle, { borderColor: isActive ? '#2E7D32' : "#E8E8E8" }]}>
               <Text style={[st.timerLabel, { color: "#8E8E93" }]}>시간</Text>
               <Text style={[st.timerText, { color: "#1A1A1A" }]}>{formatTime(elapsedSec)}</Text>
               {pausedSec > 0 && (
@@ -500,7 +500,7 @@ export default function WalkTrackerScreen() {
                   onPress={() => toggleCheckItem(item.id)}
                   style={[st.checkItem, item.checked && st.checkItemChecked, { borderBottomColor: "#E8E8E8" }]}
                 >
-                  <View style={[st.checkBox, item.checked && st.checkBoxChecked, { borderColor: item.checked ? '#FF6B35' : "#E8E8E8" }]}>
+                  <View style={[st.checkBox, item.checked && st.checkBoxChecked, { borderColor: item.checked ? '#2E7D32' : "#E8E8E8" }]}>
                     {item.checked && <Text style={st.checkMark}>✓</Text>}
                   </View>
                   <Text style={{ fontSize: 18 }}>{item.emoji}</Text>
@@ -646,7 +646,7 @@ const st = StyleSheet.create({
     borderBottomWidth: 1,
     // borderBottomColor: "#F0F0F0",
   },
-  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#FF6B35" },
+  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#2E7D32" },
   headerTitle: { fontFamily: Fonts.bold, fontSize: 17, /* color: "#1A1A1A" */ },
   checklistToggle: {
     // backgroundColor: "#FFF5F0",
@@ -656,7 +656,7 @@ const st = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FFD9C7",
   },
-  checklistToggleText: { fontFamily: Fonts.semiBold, fontSize: 12, color: "#FF6B35" },
+  checklistToggleText: { fontFamily: Fonts.semiBold, fontSize: 12, color: "#2E7D32" },
 
   content: { padding: 16, gap: 16 },
 
@@ -723,7 +723,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  timerCircleActive: { borderColor: "#FF6B35" },
+  timerCircleActive: { borderColor: "#2E7D32" },
   timerLabel: { fontFamily: Fonts.medium, fontSize: 12, /* color: "#8E8E93" */ marginBottom: 4 },
   timerText: { fontFamily: Fonts.extraBold, fontSize: 34, /* color: "#1A1A1A" */ fontVariant: ["tabular-nums"] },
   pausedLabel: { fontFamily: Fonts.medium, fontSize: 11, color: "#FF9500", marginTop: 4 },
@@ -772,7 +772,7 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  checkBoxChecked: { backgroundColor: "#FF6B35", /* borderColor: "#FF6B35" */ },
+  checkBoxChecked: { backgroundColor: "#2E7D32", /* borderColor: "#2E7D32" */ },
   checkMark: { color: "white", fontSize: 14, fontWeight: "bold" },
   checkLabel: { fontFamily: Fonts.medium, fontSize: 14, /* color: "#1A1A1A" */ flexShrink: 1 },
   checkLabelChecked: { /* color: "#8E8E93" */ textDecorationLine: "line-through" },
@@ -820,7 +820,7 @@ const st = StyleSheet.create({
   // Controls
   controls: { paddingVertical: 12, gap: 12 },
   startBtn: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
@@ -836,5 +836,5 @@ const st = StyleSheet.create({
   ctrlBtnText: { fontFamily: Fonts.bold, fontSize: 15, color: "white" },
   pauseBtn: { backgroundColor: "#FF9500" },
   resumeBtn: { backgroundColor: "#34C759" },
-  completeBtn: { backgroundColor: "#FF6B35" },
+  completeBtn: { backgroundColor: "#2E7D32" },
 });

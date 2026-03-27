@@ -111,8 +111,14 @@ function WalkerCard({ item, onPress }: { item: MockUser; onPress: () => void }) 
               <View style={s.trainerBadge}><Text style={s.trainerText}>훈련사</Text></View>
             )}
           </View>
+          <Text style={s.walkerLocation}>📍 대전 {item.district || ""} {item.neighborhood}</Text>
           <Text style={s.walkerBio} numberOfLines={1}>{item.bio}</Text>
         </View>
+        {item.isVerified && (
+          <View style={s.certifiedBadge}>
+            <Text style={s.certifiedBadgeText}>대전시 인증</Text>
+          </View>
+        )}
       </View>
 
       <View style={s.walkerStats}>
@@ -588,7 +594,7 @@ const s = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   tabActive: {
-    borderColor: "#FF6B35",
+    borderColor: "#2E7D32",
     backgroundColor: "#FFF5F0",
   },
   tabEmoji: { fontSize: 14 },
@@ -597,7 +603,7 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: "#8E8E93",
   },
-  tabLabelActive: { color: "#FF6B35" },
+  tabLabelActive: { color: "#2E7D32" },
   caretakerTab: {
     flex: 1,
     flexDirection: "row",
@@ -621,7 +627,7 @@ const s = StyleSheet.create({
     borderColor: "#E5E5EA",
   },
   neighborhoodChipActive: {
-    borderColor: "#FF6B35",
+    borderColor: "#2E7D32",
     backgroundColor: "#FFF5F0",
   },
   neighborhoodChipText: {
@@ -631,7 +637,7 @@ const s = StyleSheet.create({
   },
   neighborhoodChipTextActive: {
     fontFamily: Fonts.bold,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
 
   // Filter Panel
@@ -648,7 +654,7 @@ const s = StyleSheet.create({
     backgroundColor: "#F8F8F8",
   },
   sortChipActive: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
   },
   sortChipText: {
     fontFamily: Fonts.medium,
@@ -675,7 +681,7 @@ const s = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   filterChipActive: {
-    borderColor: "#FF6B35",
+    borderColor: "#2E7D32",
     backgroundColor: "#FFF5F0",
   },
   filterChipText: {
@@ -685,7 +691,7 @@ const s = StyleSheet.create({
   },
   filterChipTextActive: {
     fontFamily: Fonts.semiBold,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
 
   // Result Count
@@ -702,15 +708,15 @@ const s = StyleSheet.create({
   // Walker Card
   walkerCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: "#E8E8E8",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   walkerCardTop: {
     flexDirection: "row",
@@ -854,7 +860,7 @@ const s = StyleSheet.create({
   petTagText: {
     fontFamily: Fonts.medium,
     fontSize: 10,
-    color: "#FF6B35",
+    color: "#2E7D32",
   },
   ratingText: {
     fontFamily: Fonts.bold,
@@ -908,7 +914,7 @@ const s = StyleSheet.create({
     color: "#FFFFFF",
   },
   createBtn: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#2E7D32",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
@@ -949,5 +955,27 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: "#34C759",
     lineHeight: 18,
+  },
+  // 구/동 위치 표시
+  walkerLocation: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: "#2E7D32",
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  // 대전시 인증 전문가 뱃지
+  certifiedBadge: {
+    backgroundColor: "#FFC107",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: "flex-start",
+  },
+  certifiedBadgeText: {
+    fontFamily: Fonts.bold,
+    fontSize: 10,
+    color: "#1A1A1A",
+    letterSpacing: 0.3,
   },
 });
