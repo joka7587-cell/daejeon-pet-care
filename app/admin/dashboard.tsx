@@ -1,0 +1,947 @@
+/**
+ * 관리자 전용 대시보드
+ * Phase 26: 대전 5개 구별 매칭 통계, 관제 지도, 워커 승인, 시스템 리셋
+ */
+import { useState, useCallback, useRef, useEffect } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  StyleSheet,
+  Alert,
+  Dimensions,
+  Platform,
+  Modal,
+  FlatList,
+} from "react-native";
+import { Image } from "expo-image";
+import Svg, { Circle, G, Text as SvgText, Rect, Line } from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
+import { ScreenContainer } from "@/components/screen-container";
+import { useRouter } from "expo-router";
+import { useApp } from "@/lib/app-context";
+import { Fonts, Typography } from "@/hooks/use-fonts";
+import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  DISTRICT_STATS,
+  TODAY_REVENUE,
+  ACTIVE_WALKERS,
+  PENDING_WALKERS,
+  DASHBOARD_SUMMARY,
+  WALKER_STATUS_MAP,
+  APPROVAL_STATUS_MAP,
+  type DistrictStats,
+  type ActiveWalkerLocation,
+  type PendingWalker,
+} from "@/lib/admin-dashboard-data";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const haptic = () => {
+  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+};
+
+// ─── SVG 원형 차트 컴포넌트 ───
+function PieChart({ data, size = 200 }: { data: DistrictStats[]; size?: number }) {
+  const total = data.reduce((sum, d) => sum + d.matchCount, 0);
+  const radius = size / 2 - 10;
+  const center = size / 2;
+  let cumulativeAngle = -90; // 12시 방향부터 시작
+
+  const slices = data.map((d) => {
+    const angle = (d.matchCount / total) * 360;
+    const startAngle = cumulativeAngle;
+    const endAngle = cumulativeAngle + angle;
+    cumulativeAngle = endAngle;
+
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+
+    const x1 = center + radius * Math.cos(startRad);
+    const y1 = center + radius * Math.sin(startRad);
+    const x2 = center + radius * Math.cos(endRad);
+    const y2 = center + radius * Math.sin(endRad);
+
+    const largeArc = angle > 180 ? 1 : 0;
+    const path = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+    // 라벨 위치 (호의 중간)
+    const midAngle = ((startAngle + endAngle) / 2 * Math.PI) / 180;
+    const labelR = radius * 0.65;
+    const lx = center + labelR * Math.cos(midAngle);
+    const ly = center + labelR * Math.sin(midAngle);
+
+    return { ...d, path, lx, ly, angle };
+  });
+
+  return (
+    <View style={{ alignItems: "center" }}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {slices.map((s, i) => (
+          <G key={i}>
+            <Circle r={0} /> {/* placeholder */}
+            <Rect x={0} y={0} width={0} height={0} fill="transparent" />
+            {/* Pie slice via path workaround using lines and arcs */}
+          </G>
+        ))}
+        {/* Draw slices manually using Circle stroke-dasharray technique */}
+        {(() => {
+          const strokeWidth = 40;
+          const r = radius - strokeWidth / 2;
+          const circumference = 2 * Math.PI * r;
+          let offset = circumference * 0.25; // start from top
+
+          return data.map((d, i) => {
+            const sliceLen = (d.matchCount / total) * circumference;
+            const dashArray = `${sliceLen} ${circumference - sliceLen}`;
+            const currentOffset = offset;
+            offset -= sliceLen;
+
+            return (
+              <Circle
+                key={i}
+                cx={center}
+                cy={center}
+                r={r}
+                fill="none"
+                stroke={d.color}
+                strokeWidth={strokeWidth}
+                strokeDasharray={dashArray}
+                strokeDashoffset={currentOffset}
+                strokeLinecap="butt"
+              />
+            );
+          });
+        })()}
+        {/* Center white circle */}
+        <Circle cx={center} cy={center} r={radius - 50} fill="white" />
+        <SvgText
+          x={center}
+          y={center - 8}
+          textAnchor="middle"
+          fontSize={12}
+          fill="#8E8E93"
+          fontFamily={Fonts.medium}
+        >
+          총 매칭
+        </SvgText>
+        <SvgText
+          x={center}
+          y={center + 14}
+          textAnchor="middle"
+          fontSize={20}
+          fontWeight="bold"
+          fill="#1A1A1A"
+          fontFamily={Fonts.bold}
+        >
+          {total}건
+        </SvgText>
+      </Svg>
+
+      {/* 범례 */}
+      <View style={styles.legendContainer}>
+        {data.map((d, i) => (
+          <View key={i} style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: d.color }]} />
+            <Text style={[styles.legendText, { fontFamily: Fonts.medium }]}>
+              {d.district}
+            </Text>
+            <Text style={[styles.legendValue, { fontFamily: Fonts.bold }]}>
+              {d.percentage}%
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ─── 관제 지도 컴포넌트 ───
+function ControlMap({ walkers }: { walkers: ActiveWalkerLocation[] }) {
+  const mapWidth = SCREEN_WIDTH - 48;
+  const mapHeight = mapWidth * 0.75;
+
+  // 대전 좌표 범위
+  const bounds = { minLat: 36.28, maxLat: 36.45, minLng: 127.33, maxLng: 127.48 };
+
+  const toXY = (lat: number, lng: number) => {
+    const x = ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * mapWidth;
+    const y = ((bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)) * mapHeight;
+    return { x, y };
+  };
+
+  return (
+    <View style={[styles.mapContainer, { width: mapWidth, height: mapHeight }]}>
+      {/* 배경 그리드 */}
+      <Svg width={mapWidth} height={mapHeight} style={StyleSheet.absoluteFill}>
+        {/* 그리드 라인 */}
+        {[0.2, 0.4, 0.6, 0.8].map((p, i) => (
+          <G key={i}>
+            <Line x1={p * mapWidth} y1={0} x2={p * mapWidth} y2={mapHeight} stroke="#E8E8E8" strokeWidth={0.5} />
+            <Line x1={0} y1={p * mapHeight} x2={mapWidth} y2={p * mapHeight} stroke="#E8E8E8" strokeWidth={0.5} />
+          </G>
+        ))}
+        {/* 구 라벨 */}
+        {[
+          { name: "서구", lat: 36.355, lng: 127.38 },
+          { name: "유성구", lat: 36.385, lng: 127.37 },
+          { name: "중구", lat: 36.33, lng: 127.42 },
+          { name: "동구", lat: 36.32, lng: 127.45 },
+          { name: "대덕구", lat: 36.43, lng: 127.42 },
+        ].map((d, i) => {
+          const { x, y } = toXY(d.lat, d.lng);
+          return (
+            <SvgText
+              key={i}
+              x={x}
+              y={y}
+              textAnchor="middle"
+              fontSize={10}
+              fill="#C0C0C0"
+              fontFamily={Fonts.medium}
+            >
+              {d.name}
+            </SvgText>
+          );
+        })}
+      </Svg>
+
+      {/* 워커 마커 */}
+      {walkers.map((w) => {
+        const { x, y } = toXY(w.latitude, w.longitude);
+        const statusInfo = WALKER_STATUS_MAP[w.status];
+        return (
+          <View key={w.id} style={[styles.walkerMarker, { left: x - 16, top: y - 16 }]}>
+            <PulsingDot color={statusInfo.color} />
+            <Text style={styles.markerEmoji}>{w.profileEmoji}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+// ─── 맥동 점 애니메이션 ───
+function PulsingDot({ color }: { color: string }) {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.6);
+
+  useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(2, { duration: 1500, easing: Easing.out(Easing.ease) }),
+      -1,
+      false
+    );
+    opacity.value = withRepeat(
+      withTiming(0, { duration: 1500, easing: Easing.out(Easing.ease) }),
+      -1,
+      false
+    );
+  }, [scale, opacity]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <View style={styles.pulsingContainer}>
+      <Animated.View style={[styles.pulsingRing, { borderColor: color }, animStyle]} />
+      <View style={[styles.pulsingCore, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
+// ─── 워커 승인 카드 ───
+function ApprovalCard({
+  walker,
+  onApprove,
+  onReject,
+}: {
+  walker: PendingWalker;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}) {
+  const [showCert, setShowCert] = useState(false);
+  const statusInfo = APPROVAL_STATUS_MAP[walker.status];
+
+  return (
+    <View style={styles.approvalCard}>
+      {/* 헤더 */}
+      <View style={styles.approvalHeader}>
+        <View style={styles.approvalProfile}>
+          <Text style={styles.approvalEmoji}>{walker.profileEmoji}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.approvalName, { fontFamily: Fonts.bold }]}>{walker.realName}</Text>
+            <Text style={[styles.approvalNickname, { fontFamily: Fonts.regular }]}>
+              @{walker.nickname} · {walker.age}세
+            </Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
+            <Text style={[styles.statusBadgeText, { color: statusInfo.color, fontFamily: Fonts.semiBold }]}>
+              {statusInfo.label}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* 정보 */}
+      <View style={styles.approvalInfo}>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { fontFamily: Fonts.medium }]}>지역</Text>
+          <Text style={[styles.infoValue, { fontFamily: Fonts.regular }]}>{walker.district} {walker.neighborhood}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { fontFamily: Fonts.medium }]}>자격증</Text>
+          <Text style={[styles.infoValue, { fontFamily: Fonts.regular }]}>{walker.certType}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { fontFamily: Fonts.medium }]}>경력</Text>
+          <Text style={[styles.infoValue, { fontFamily: Fonts.regular }]}>{walker.experience}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { fontFamily: Fonts.medium }]}>대형견</Text>
+          <Text style={[styles.infoValue, { fontFamily: Fonts.regular }]}>
+            {walker.canHandleLargeDogs ? "가능 ✅" : "불가 ❌"}
+          </Text>
+        </View>
+      </View>
+
+      {/* 자기소개 */}
+      <Text style={[styles.approvalBio, { fontFamily: Fonts.regular }]}>{walker.bio}</Text>
+
+      {/* 자격증 사진 보기 */}
+      <Pressable
+        onPress={() => { haptic(); setShowCert(true); }}
+        style={({ pressed }) => [styles.certButton, pressed && { opacity: 0.7 }]}
+      >
+        <Text style={[styles.certButtonText, { fontFamily: Fonts.semiBold }]}>📋 자격증 사진 확인</Text>
+      </Pressable>
+
+      {/* 승인/거절 버튼 */}
+      {walker.status === "pending" && (
+        <View style={styles.approvalActions}>
+          <Pressable
+            onPress={() => { haptic(); onApprove(walker.id); }}
+            style={({ pressed }) => [styles.approveBtn, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
+          >
+            <Text style={[styles.approveBtnText, { fontFamily: Fonts.bold }]}>✅ 승인</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { haptic(); onReject(walker.id); }}
+            style={({ pressed }) => [styles.rejectBtn, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
+          >
+            <Text style={[styles.rejectBtnText, { fontFamily: Fonts.bold }]}>❌ 거절</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* 자격증 모달 */}
+      <Modal visible={showCert} transparent animationType="fade" onRequestClose={() => setShowCert(false)}>
+        <Pressable style={styles.certModalOverlay} onPress={() => setShowCert(false)}>
+          <View style={styles.certModalContent}>
+            <Text style={[styles.certModalTitle, { fontFamily: Fonts.bold }]}>
+              {walker.realName}님의 자격증
+            </Text>
+            <Image
+              source={{ uri: walker.certPhotoUrl }}
+              style={styles.certImage}
+              contentFit="cover"
+            />
+            <Text style={[styles.certModalType, { fontFamily: Fonts.medium }]}>{walker.certType}</Text>
+            <Pressable
+              onPress={() => setShowCert(false)}
+              style={({ pressed }) => [styles.certCloseBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={[styles.certCloseBtnText, { fontFamily: Fonts.semiBold }]}>닫기</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+// ─── 메인 대시보드 ───
+export default function AdminDashboard() {
+  const router = useRouter();
+  const { state, dispatch, resetApp } = useApp();
+  const [pendingWalkers, setPendingWalkers] = useState<PendingWalker[]>(PENDING_WALKERS);
+  const [isResetting, setIsResetting] = useState(false);
+  const [selectedWalker, setSelectedWalker] = useState<ActiveWalkerLocation | null>(null);
+
+  const handleApprove = useCallback((id: string) => {
+    Alert.alert(
+      "워커 승인",
+      "이 워커를 승인하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "승인",
+          onPress: () => {
+            haptic();
+            setPendingWalkers((prev) =>
+              prev.map((w) => (w.id === id ? { ...w, status: "approved" as const } : w))
+            );
+          },
+        },
+      ]
+    );
+  }, []);
+
+  const handleReject = useCallback((id: string) => {
+    Alert.alert(
+      "워커 거절",
+      "이 워커를 거절하시겠습니까? 사유를 입력해주세요.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "거절",
+          style: "destructive",
+          onPress: () => {
+            haptic();
+            setPendingWalkers((prev) =>
+              prev.map((w) => (w.id === id ? { ...w, status: "rejected" as const } : w))
+            );
+          },
+        },
+      ]
+    );
+  }, []);
+
+  const handleSystemReset = useCallback(() => {
+    Alert.alert(
+      "⚠️ System Reset",
+      "모든 채팅 내역, 위치 데이터, 예약 데이터가 초기화됩니다.\n\n시연용 시드 데이터는 유지됩니다.\n\n계속하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "초기화",
+          style: "destructive",
+          onPress: async () => {
+            haptic();
+            setIsResetting(true);
+            try {
+              // 채팅 관련 키 삭제
+              const allKeys = await AsyncStorage.getAllKeys();
+              const chatKeys = allKeys.filter(
+                (k) => k.includes("chat") || k.includes("message") || k.includes("location") || k.includes("walk_session")
+              );
+              if (chatKeys.length > 0) {
+                await AsyncStorage.multiRemove(chatKeys);
+              }
+              // 앱 상태 리셋
+              await resetApp();
+              Alert.alert("초기화 완료", "모든 데이터가 초기화되었습니다.\n앱이 다시 시작됩니다.");
+            } catch (e) {
+              Alert.alert("오류", "초기화 중 오류가 발생했습니다.");
+            } finally {
+              setIsResetting(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [resetApp]);
+
+  const pendingCount = pendingWalkers.filter((w) => w.status === "pending").length;
+
+  return (
+    <ScreenContainer edges={["top", "left", "right"]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <Pressable
+            onPress={() => { haptic(); router.back(); }}
+            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.backBtnText}>‹</Text>
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerTitle, { fontFamily: Fonts.bold }]}>관리자 대시보드</Text>
+            <Text style={[styles.headerSubtitle, { fontFamily: Fonts.regular }]}>
+              반려이음 · 대전 지역 관리
+            </Text>
+          </View>
+          <View style={styles.adminBadge}>
+            <Text style={[styles.adminBadgeText, { fontFamily: Fonts.semiBold }]}>ADMIN</Text>
+          </View>
+        </View>
+
+        {/* ─── 섹션 1: 오늘 매출 요약 ─── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold }]}>📊 오늘의 현황</Text>
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, { backgroundColor: "#FF6B3510" }]}>
+              <Text style={[styles.statLabel, { fontFamily: Fonts.medium }]}>총 매출</Text>
+              <Text style={[styles.statValue, { color: "#FF6B35", fontFamily: Fonts.extraBold }]}>
+                {(TODAY_REVENUE.totalRevenue / 10000).toFixed(1)}만원
+              </Text>
+              <Text style={[styles.statChange, { color: "#4CAF82", fontFamily: Fonts.medium }]}>
+                ▲ {TODAY_REVENUE.comparedYesterday}%
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: "#4CAF8210" }]}>
+              <Text style={[styles.statLabel, { fontFamily: Fonts.medium }]}>완료 산책</Text>
+              <Text style={[styles.statValue, { color: "#4CAF82", fontFamily: Fonts.extraBold }]}>
+                {TODAY_REVENUE.completedWalks}건
+              </Text>
+              <Text style={[styles.statSub, { fontFamily: Fonts.regular }]}>
+                평균 {(TODAY_REVENUE.averagePerWalk / 10000).toFixed(1)}만원
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: "#3B82F610" }]}>
+              <Text style={[styles.statLabel, { fontFamily: Fonts.medium }]}>총 예약</Text>
+              <Text style={[styles.statValue, { color: "#3B82F6", fontFamily: Fonts.extraBold }]}>
+                {TODAY_REVENUE.totalBookings}건
+              </Text>
+              <Text style={[styles.statSub, { fontFamily: Fonts.regular }]}>
+                오늘 신규 {DASHBOARD_SUMMARY.todayNewUsers}명
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: "#A855F710" }]}>
+              <Text style={[styles.statLabel, { fontFamily: Fonts.medium }]}>활성 유저</Text>
+              <Text style={[styles.statValue, { color: "#A855F7", fontFamily: Fonts.extraBold }]}>
+                {DASHBOARD_SUMMARY.totalUsers.toLocaleString()}명
+              </Text>
+              <Text style={[styles.statChange, { color: "#4CAF82", fontFamily: Fonts.medium }]}>
+                ▲ {DASHBOARD_SUMMARY.monthlyGrowth}%
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ─── 섹션 2: 구별 매칭 점유율 원형 차트 ─── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold }]}>🥧 구별 매칭 점유율</Text>
+          <View style={styles.chartCard}>
+            <PieChart data={DISTRICT_STATS} size={220} />
+            {/* 구별 상세 */}
+            <View style={styles.districtDetails}>
+              {DISTRICT_STATS.map((d, i) => (
+                <View key={i} style={styles.districtRow}>
+                  <View style={[styles.districtDot, { backgroundColor: d.color }]} />
+                  <Text style={[styles.districtName, { fontFamily: Fonts.semiBold }]}>{d.district}</Text>
+                  <View style={{ flex: 1 }} />
+                  <Text style={[styles.districtCount, { fontFamily: Fonts.medium }]}>
+                    {d.matchCount}건
+                  </Text>
+                  <Text style={[styles.districtWalkers, { fontFamily: Fonts.regular }]}>
+                    워커 {d.activeWalkers}명
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* ─── 섹션 3: 관제 지도 ─── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold }]}>🗺️ 실시간 관제 지도</Text>
+            <View style={styles.liveIndicator}>
+              <View style={styles.liveDot} />
+              <Text style={[styles.liveText, { fontFamily: Fonts.semiBold }]}>LIVE</Text>
+            </View>
+          </View>
+          <View style={styles.mapCard}>
+            <ControlMap walkers={ACTIVE_WALKERS} />
+            {/* 워커 목록 */}
+            <View style={styles.walkerList}>
+              {ACTIVE_WALKERS.map((w) => {
+                const statusInfo = WALKER_STATUS_MAP[w.status];
+                return (
+                  <Pressable
+                    key={w.id}
+                    onPress={() => { haptic(); setSelectedWalker(w); }}
+                    style={({ pressed }) => [styles.walkerRow, pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={styles.walkerEmoji}>{w.profileEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.walkerName, { fontFamily: Fonts.semiBold }]}>{w.nickname}</Text>
+                      <Text style={[styles.walkerInfo, { fontFamily: Fonts.regular }]}>
+                        {w.petName}({w.petBreed}) · {w.district}
+                      </Text>
+                    </View>
+                    <View style={[styles.walkerStatusBadge, { backgroundColor: statusInfo.bgColor }]}>
+                      <Text style={[styles.walkerStatusText, { color: statusInfo.color, fontFamily: Fonts.semiBold }]}>
+                        {statusInfo.label}
+                      </Text>
+                    </View>
+                    <Text style={[styles.walkerTime, { fontFamily: Fonts.medium }]}>{w.elapsedMinutes}분</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
+        {/* ─── 섹션 4: 워커 승인 시스템 ─── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold }]}>👤 워커 승인 관리</Text>
+            {pendingCount > 0 && (
+              <View style={styles.pendingBadge}>
+                <Text style={[styles.pendingBadgeText, { fontFamily: Fonts.bold }]}>{pendingCount}</Text>
+              </View>
+            )}
+          </View>
+          {pendingWalkers.map((w) => (
+            <ApprovalCard
+              key={w.id}
+              walker={w}
+              onApprove={handleApprove}
+              onReject={handleReject}
+            />
+          ))}
+        </View>
+
+        {/* ─── 섹션 5: System Reset ─── */}
+        <View style={[styles.section, styles.resetSection]}>
+          <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold, color: "#EF4444" }]}>
+            ⚠️ 시스템 관리
+          </Text>
+          <Text style={[styles.resetDescription, { fontFamily: Fonts.regular }]}>
+            시연용 데이터 초기화: 모든 채팅 내역, 위치 데이터, 예약 데이터를 삭제하고 앱을 초기 상태로 되돌립니다.
+            시드 데이터(워커 5명, 예약 3건)는 앱 재시작 시 자동으로 다시 로드됩니다.
+          </Text>
+          <Pressable
+            onPress={handleSystemReset}
+            disabled={isResetting}
+            style={({ pressed }) => [
+              styles.resetButton,
+              pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+              isResetting && { opacity: 0.5 },
+            ]}
+          >
+            <Text style={[styles.resetButtonText, { fontFamily: Fonts.bold }]}>
+              {isResetting ? "초기화 중..." : "🔄 System Reset"}
+            </Text>
+          </Pressable>
+          <Text style={[styles.resetWarning, { fontFamily: Fonts.medium }]}>
+            이 작업은 되돌릴 수 없습니다
+          </Text>
+        </View>
+
+        {/* 하단 여백 */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* 워커 상세 모달 */}
+      <Modal
+        visible={!!selectedWalker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedWalker(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedWalker(null)}>
+          <View style={styles.modalContent}>
+            {selectedWalker && (() => {
+              const w = selectedWalker;
+              const statusInfo = WALKER_STATUS_MAP[w.status];
+              return (
+                <>
+                  <View style={styles.modalHandle} />
+                  <View style={styles.modalHeader}>
+                    <Text style={{ fontSize: 36 }}>{w.profileEmoji}</Text>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={[styles.modalName, { fontFamily: Fonts.bold }]}>{w.nickname}</Text>
+                      <Text style={[styles.modalSub, { fontFamily: Fonts.regular }]}>
+                        {w.district} {w.neighborhood}
+                      </Text>
+                    </View>
+                    <View style={[styles.walkerStatusBadge, { backgroundColor: statusInfo.bgColor }]}>
+                      <Text style={[styles.walkerStatusText, { color: statusInfo.color, fontFamily: Fonts.bold }]}>
+                        {statusInfo.label}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.modalDetails}>
+                    <View style={styles.modalDetailRow}>
+                      <Text style={[styles.modalDetailLabel, { fontFamily: Fonts.medium }]}>반려견</Text>
+                      <Text style={[styles.modalDetailValue, { fontFamily: Fonts.regular }]}>
+                        {w.petName} ({w.petBreed})
+                      </Text>
+                    </View>
+                    <View style={styles.modalDetailRow}>
+                      <Text style={[styles.modalDetailLabel, { fontFamily: Fonts.medium }]}>보호자</Text>
+                      <Text style={[styles.modalDetailValue, { fontFamily: Fonts.regular }]}>{w.ownerName}</Text>
+                    </View>
+                    <View style={styles.modalDetailRow}>
+                      <Text style={[styles.modalDetailLabel, { fontFamily: Fonts.medium }]}>산책 시간</Text>
+                      <Text style={[styles.modalDetailValue, { fontFamily: Fonts.regular }]}>{w.elapsedMinutes}분</Text>
+                    </View>
+                    <View style={styles.modalDetailRow}>
+                      <Text style={[styles.modalDetailLabel, { fontFamily: Fonts.medium }]}>이동 거리</Text>
+                      <Text style={[styles.modalDetailValue, { fontFamily: Fonts.regular }]}>{w.distanceCovered}km</Text>
+                    </View>
+                  </View>
+                  <Pressable
+                    onPress={() => { haptic(); setSelectedWalker(null); }}
+                    style={({ pressed }) => [styles.modalCloseBtn, pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={[styles.modalCloseBtnText, { fontFamily: Fonts.semiBold }]}>닫기</Text>
+                  </Pressable>
+                </>
+              );
+            })()}
+          </View>
+        </Pressable>
+      </Modal>
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  contentContainer: { paddingBottom: 40 },
+
+  // 헤더
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8E8",
+  },
+  backBtn: { width: 36, height: 36, justifyContent: "center", alignItems: "center", marginRight: 8 },
+  backBtnText: { fontSize: 28, color: "#1A1A1A", lineHeight: 32 },
+  headerTitle: { fontSize: 20, color: "#1A1A1A" },
+  headerSubtitle: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
+  adminBadge: {
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  adminBadgeText: { fontSize: 11, color: "#FFFFFF" },
+
+  // 섹션
+  section: { marginTop: 16, paddingHorizontal: 16 },
+  sectionTitle: { fontSize: 18, color: "#1A1A1A", marginBottom: 12 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+
+  // 통계 그리드
+  statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  statCard: {
+    width: (SCREEN_WIDTH - 42) / 2,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E8E8E820",
+  },
+  statLabel: { fontSize: 12, color: "#8E8E93", marginBottom: 4 },
+  statValue: { fontSize: 24, marginBottom: 2 },
+  statChange: { fontSize: 11 },
+  statSub: { fontSize: 11, color: "#8E8E93" },
+
+  // 원형 차트
+  chartCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+  },
+  legendContainer: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", marginTop: 16, gap: 12 },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 12, color: "#1A1A1A" },
+  legendValue: { fontSize: 12, color: "#8E8E93" },
+  districtDetails: { marginTop: 16, gap: 8 },
+  districtRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  districtDot: { width: 10, height: 10, borderRadius: 5 },
+  districtName: { fontSize: 14, color: "#1A1A1A", width: 50 },
+  districtCount: { fontSize: 13, color: "#1A1A1A", width: 45, textAlign: "right" },
+  districtWalkers: { fontSize: 12, color: "#8E8E93", width: 65, textAlign: "right" },
+
+  // 관제 지도
+  mapCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+  },
+  mapContainer: {
+    backgroundColor: "#FAFAFA",
+    borderRadius: 12,
+    overflow: "hidden",
+    position: "relative",
+  },
+  walkerMarker: { position: "absolute", width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  markerEmoji: { fontSize: 18, position: "absolute" },
+  pulsingContainer: { position: "absolute", width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  pulsingRing: { position: "absolute", width: 28, height: 28, borderRadius: 14, borderWidth: 2 },
+  pulsingCore: { width: 8, height: 8, borderRadius: 4 },
+  walkerList: { marginTop: 12, gap: 8 },
+  walkerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: "#F8F8F8",
+    gap: 10,
+  },
+  walkerEmoji: { fontSize: 24 },
+  walkerName: { fontSize: 13, color: "#1A1A1A" },
+  walkerInfo: { fontSize: 11, color: "#8E8E93", marginTop: 1 },
+  walkerStatusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  walkerStatusText: { fontSize: 11 },
+  walkerTime: { fontSize: 12, color: "#8E8E93" },
+  liveIndicator: { flexDirection: "row", alignItems: "center", gap: 4 },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#EF4444" },
+  liveText: { fontSize: 12, color: "#EF4444" },
+
+  // 워커 승인
+  approvalCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+  },
+  approvalHeader: { marginBottom: 12 },
+  approvalProfile: { flexDirection: "row", alignItems: "center", gap: 10 },
+  approvalEmoji: { fontSize: 36 },
+  approvalName: { fontSize: 16, color: "#1A1A1A" },
+  approvalNickname: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  statusBadgeText: { fontSize: 11 },
+  approvalInfo: { gap: 6, marginBottom: 10 },
+  infoRow: { flexDirection: "row", alignItems: "center" },
+  infoLabel: { fontSize: 12, color: "#8E8E93", width: 55 },
+  infoValue: { fontSize: 13, color: "#1A1A1A", flex: 1 },
+  approvalBio: { fontSize: 13, color: "#555", lineHeight: 18, marginBottom: 12 },
+  certButton: {
+    backgroundColor: "#F0F0F0",
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  certButtonText: { fontSize: 13, color: "#1A1A1A" },
+  approvalActions: { flexDirection: "row", gap: 10 },
+  approveBtn: {
+    flex: 1,
+    backgroundColor: "#4CAF82",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  approveBtnText: { fontSize: 14, color: "#FFFFFF" },
+  rejectBtn: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#EF4444",
+  },
+  rejectBtnText: { fontSize: 14, color: "#EF4444" },
+
+  // 자격증 모달
+  certModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  certModalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    width: SCREEN_WIDTH - 48,
+    alignItems: "center",
+  },
+  certModalTitle: { fontSize: 16, color: "#1A1A1A", marginBottom: 16 },
+  certImage: { width: SCREEN_WIDTH - 96, height: (SCREEN_WIDTH - 96) * 0.75, borderRadius: 12, marginBottom: 12 },
+  certModalType: { fontSize: 14, color: "#8E8E93", marginBottom: 16 },
+  certCloseBtn: { backgroundColor: "#F0F0F0", paddingVertical: 10, paddingHorizontal: 32, borderRadius: 10 },
+  certCloseBtnText: { fontSize: 14, color: "#1A1A1A" },
+
+  // System Reset
+  resetSection: {
+    marginTop: 24,
+    backgroundColor: "#FEF2F2",
+    marginHorizontal: 16,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  resetDescription: { fontSize: 13, color: "#555", lineHeight: 20, marginBottom: 16 },
+  resetButton: {
+    backgroundColor: "#EF4444",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  resetButtonText: { fontSize: 16, color: "#FFFFFF" },
+  resetWarning: { fontSize: 11, color: "#EF4444", textAlign: "center" },
+
+  // 워커 상세 모달
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#D1D5DB",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  modalHeader: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+  modalName: { fontSize: 18, color: "#1A1A1A" },
+  modalSub: { fontSize: 13, color: "#8E8E93", marginTop: 2 },
+  modalDetails: { gap: 12, marginBottom: 20 },
+  modalDetailRow: { flexDirection: "row", alignItems: "center" },
+  modalDetailLabel: { fontSize: 13, color: "#8E8E93", width: 70 },
+  modalDetailValue: { fontSize: 14, color: "#1A1A1A", flex: 1 },
+  modalCloseBtn: {
+    backgroundColor: "#F0F0F0",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  modalCloseBtnText: { fontSize: 14, color: "#1A1A1A" },
+
+  // 승인 뱃지
+  pendingBadge: {
+    backgroundColor: "#EF4444",
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pendingBadgeText: { fontSize: 12, color: "#FFFFFF" },
+});

@@ -529,6 +529,19 @@ export default function ProfileScreen() {
           {showAdminMenu && (
             <SectionCard title="🔧 관리자 전용">
               <Pressable
+                onPress={() => { haptic(); router.push("/admin/dashboard" as never); }}
+                style={({ pressed }) => [styles.menuRow, { borderBottomColor: "#E8E8E8" }, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={{ fontSize: 20 }}>📊</Text>
+                <Text style={[styles.menuLabel, { color: "#1A1A1A" }]}>관리자 대시보드</Text>
+                <View style={{ flex: 1 }} />
+                <View style={[styles.menuBadge, { backgroundColor: "#FF6B3520" }]}>
+                  <Text style={[styles.menuBadgeText, { color: "#FF6B35" }]}>ADMIN</Text>
+                </View>
+                <Text style={[styles.menuArrow, { color: "#8E8E93" }]}>›</Text>
+              </Pressable>
+              <View style={[styles.settingDivider, { backgroundColor: "#E8E8E8" }]} />
+              <Pressable
                 onPress={() => { haptic(); router.push("/admin/simulation" as never); }}
                 style={({ pressed }) => [styles.menuRow, { borderBottomColor: "#E8E8E8" }, pressed && { opacity: 0.7 }]}
               >
