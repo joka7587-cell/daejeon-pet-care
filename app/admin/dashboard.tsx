@@ -85,14 +85,6 @@ function PieChart({ data, size = 200 }: { data: DistrictStats[]; size?: number }
   return (
     <View style={{ alignItems: "center" }}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {slices.map((s, i) => (
-          <G key={i}>
-            <Circle r={0} /> {/* placeholder */}
-            <Rect x={0} y={0} width={0} height={0} fill="transparent" />
-            {/* Pie slice via path workaround using lines and arcs */}
-          </G>
-        ))}
-        {/* Draw slices manually using Circle stroke-dasharray technique */}
         {(() => {
           const strokeWidth = 40;
           const r = radius - strokeWidth / 2;
@@ -121,7 +113,6 @@ function PieChart({ data, size = 200 }: { data: DistrictStats[]; size?: number }
             );
           });
         })()}
-        {/* Center white circle */}
         <Circle cx={center} cy={center} r={radius - 50} fill="white" />
         <SvgText
           x={center}
@@ -182,14 +173,12 @@ function ControlMap({ walkers }: { walkers: ActiveWalkerLocation[] }) {
     <View style={[styles.mapContainer, { width: mapWidth, height: mapHeight }]}>
       {/* 배경 그리드 */}
       <Svg width={mapWidth} height={mapHeight} style={StyleSheet.absoluteFill}>
-        {/* 그리드 라인 */}
         {[0.2, 0.4, 0.6, 0.8].map((p, i) => (
           <G key={i}>
             <Line x1={p * mapWidth} y1={0} x2={p * mapWidth} y2={mapHeight} stroke="#E8E8E8" strokeWidth={0.5} />
             <Line x1={0} y1={p * mapHeight} x2={mapWidth} y2={p * mapHeight} stroke="#E8E8E8" strokeWidth={0.5} />
           </G>
         ))}
-        {/* 구 라벨 */}
         {[
           { name: "서구", lat: 36.355, lng: 127.38 },
           { name: "유성구", lat: 36.385, lng: 127.37 },

@@ -630,3 +630,7 @@
 - [x] 채팅창 상단 산책 상태 스테퍼 UI (준비 중→산책 중→복귀 중→완료)
 - [x] 대전 서구/유성구 기반 추가 도그워커 3명 (c13 둔산동 은서, c14 궁동 정훈, c15 월평동 승재)
 - [x] 테스트 작성 및 실행 (17개 추가, 총 566개 통과)
+
+## 버그 수정 (Phase 29)
+- [x] BUG: dashboard.tsx SVG 내부 'Text strings must be rendered within a Text component' 에러 수정 (placeholder G/Circle/Rect 제거, SVG 내 JSX 주석 정리)
+- [x] BUG: dashboard.tsx 지도 컨테이너 width/height 보정 (기존 mapContainer 정상 확인, SVG 에러가 JS 실행 차단 원인이었음)
