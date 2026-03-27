@@ -647,3 +647,7 @@
 - [x] WebView에 domStorageEnabled={true} 속성 확인 (기존 적용됨)
 - [x] WebView에 mixedContentMode="always" 속성 추가 (dashboard + kakao-map-webview)
 - [x] 카카오맵 WebView 전체 설정 보완 (allowFileAccess, allowUniversalAccessFromFileURLs 추가)
+
+## 카카오맵 최소 샘플 (Phase 32)
+- [x] 관제 지도 HTML을 가장 단순한 카카오맵 샘플로 교체 (generateSimpleMapHTML 추가)
+- [x] 단순 지도 로드 성공 후 0.5초 후 풀 버전(워커 마커 포함)으로 자동 전환

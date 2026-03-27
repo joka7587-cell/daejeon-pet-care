@@ -121,7 +121,12 @@ function PieChart({ data, size = 200 }: { data: DistrictStats[]; size?: number }
   );
 }
 
-// ─── 관제 지도 HTML 생성 ───
+// ─── 가장 단순한 카카오맵 샘플 HTML ───
+function generateSimpleMapHTML(apiKey: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"><style>*{margin:0;padding:0}html,body,#map{width:100%;height:100%}</style></head><body><div id="map"></div><script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false"></script><script>kakao.maps.load(function(){var c=document.getElementById('map');var map=new kakao.maps.Map(c,{center:new kakao.maps.LatLng(36.3504,127.3845),level:7});if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage(JSON.stringify({type:'ready'}))}});</script></body></html>`;
+}
+
+// ─── 관제 지도 HTML 생성 (워커 마커 포함) ───
 function generateControlMapHTML(
   apiKey: string,
   walkers: ActiveWalkerLocation[],
@@ -150,217 +155,14 @@ function generateControlMapHTML(
     returning: "#3B82F6",
   };
   const statusLabels: Record<string, string> = {
-    walking: "산책 중",
-    resting: "휴식 중",
-    returning: "복귀 중",
+    walking: "\uC0B0\uCC45 \uC911",
+    resting: "\uD734\uC2DD \uC911",
+    returning: "\uBCF5\uADC0 \uC911",
   };
   const statusColorsJSON = JSON.stringify(statusColors);
   const statusLabelsJSON = JSON.stringify(statusLabels);
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    #map { width: 100%; height: 100%; }
-    .walker-marker {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 3px solid #FFFFFF;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      font-size: 20px;
-      cursor: pointer;
-      position: relative;
-      transition: transform 0.15s;
-    }
-    .walker-marker:hover { transform: scale(1.15); }
-    .walker-marker .pulse-ring {
-      position: absolute;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 2px solid;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.6; }
-      100% { transform: scale(2.2); opacity: 0; }
-    }
-    .info-window {
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: #FFFFFF;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-      min-width: 200px;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    .info-window .walker-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: #1A1A1A;
-      margin-bottom: 4px;
-    }
-    .info-window .walker-detail {
-      font-size: 11px;
-      color: #8E8E93;
-      margin-bottom: 3px;
-    }
-    .info-window .walker-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 10px;
-      font-weight: 600;
-      color: #FFFFFF;
-      margin-top: 4px;
-    }
-    .district-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: #2E7D32;
-      background: rgba(255,255,255,0.85);
-      padding: 3px 8px;
-      border-radius: 8px;
-      border: 1px solid rgba(46,125,50,0.2);
-    }
-    .loading-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #F8FBF5;
-      z-index: 9999;
-      transition: opacity 0.3s;
-    }
-    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-    .loading-text {
-      font-size: 14px;
-      color: #8E8E93;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-  </style>
-</head>
-<body>
-  <div id="loading" class="loading-overlay">
-    <div class="loading-text">🗺️ 대전 관제 지도 로딩 중...</div>
-  </div>
-  <div id="map"></div>
-
-  <script>
-    var script = document.createElement('script');
-    script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + '${apiKey}' + '&autoload=false';
-    script.onload = function() {
-      kakao.maps.load(initMap);
-    };
-    script.onerror = function() {
-      document.getElementById('loading').innerHTML =
-        '<div class="loading-text">카카오맵 로드 실패</div>';
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'SDK load failed' }));
-      }
-    };
-    document.head.appendChild(script);
-
-    var map;
-    var openInfoWindow = null;
-    var statusColors = ${statusColorsJSON};
-    var statusLabels = ${statusLabelsJSON};
-
-    function initMap() {
-      var container = document.getElementById('map');
-      var options = {
-        center: new kakao.maps.LatLng(36.3504, 127.3845),
-        level: 8
-      };
-      map = new kakao.maps.Map(container, options);
-      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
-
-      var districts = [
-        { name: '서구', lat: 36.355, lng: 127.38 },
-        { name: '유성구', lat: 36.385, lng: 127.33 },
-        { name: '중구', lat: 36.33, lng: 127.42 },
-        { name: '동구', lat: 36.32, lng: 127.455 },
-        { name: '대덕구', lat: 36.43, lng: 127.42 }
-      ];
-      districts.forEach(function(d) {
-        var el = document.createElement('div');
-        el.className = 'district-label';
-        el.textContent = d.name;
-        new kakao.maps.CustomOverlay({
-          position: new kakao.maps.LatLng(d.lat, d.lng),
-          content: el,
-          map: map,
-          yAnchor: 0.5
-        });
-      });
-
-      var walkers = ${walkersJSON};
-      walkers.forEach(function(w) {
-        addWalkerMarker(w);
-      });
-
-      document.getElementById('loading').classList.add('hidden');
-      setTimeout(function() {
-        document.getElementById('loading').style.display = 'none';
-      }, 400);
-
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
-      }
-    }
-
-    function addWalkerMarker(w) {
-      var position = new kakao.maps.LatLng(w.lat, w.lng);
-      var color = statusColors[w.status] || '#8E8E93';
-      var label = statusLabels[w.status] || w.status;
-
-      var content = document.createElement('div');
-      content.className = 'walker-marker';
-      content.style.background = color;
-      content.innerHTML = '<div class="pulse-ring" style="border-color:' + color + '"></div>' + w.emoji;
-
-      var overlay = new kakao.maps.CustomOverlay({
-        position: position,
-        content: content,
-        map: map,
-        yAnchor: 0.5
-      });
-
-      var infoContent =
-        '<div class="info-window">' +
-          '<div class="walker-name">' + w.emoji + ' ' + w.nickname + '</div>' +
-          '<div class="walker-detail">📍 ' + w.district + ' ' + w.neighborhood + '</div>' +
-          '<div class="walker-detail">🐾 ' + w.petName + '(' + w.petBreed + ') · 보호자: ' + w.ownerName + '</div>' +
-          '<div class="walker-detail">🚶 ' + w.distance + 'km · ' + w.elapsed + '분 경과</div>' +
-          '<div class="walker-badge" style="background:' + color + '">' + label + '</div>' +
-        '</div>';
-
-      var infoWindow = new kakao.maps.InfoWindow({
-        content: infoContent,
-        removable: true
-      });
-
-      content.addEventListener('click', function() {
-        if (openInfoWindow) openInfoWindow.close();
-        infoWindow.open(map, new kakao.maps.Marker({ position: position, map: null }));
-        openInfoWindow = infoWindow;
-        if (window.ReactNativeWebView) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'markerClick', id: w.id }));
-        }
-      });
-    }
-  </script>
-</body>
-</html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden}#map{width:100%;height:100%}.wm{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:3px solid #FFF;box-shadow:0 2px 10px rgba(0,0,0,.3);font-size:20px;cursor:pointer;position:relative}.wm:hover{transform:scale(1.15)}.wm .pr{position:absolute;width:44px;height:44px;border-radius:50%;border:2px solid;animation:p 1.5s ease-in-out infinite}@keyframes p{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}.iw{padding:12px 14px;border-radius:12px;background:#FFF;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:200px;font-family:-apple-system,sans-serif}.iw .wn{font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:4px}.iw .wd{font-size:11px;color:#8E8E93;margin-bottom:3px}.iw .wb{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;color:#FFF;margin-top:4px}.dl{font-size:13px;font-weight:600;color:#2E7D32;background:rgba(255,255,255,.85);padding:3px 8px;border-radius:8px;border:1px solid rgba(46,125,50,.2)}</style></head><body><div id="map"></div><script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false"></script><script>kakao.maps.load(function(){var c=document.getElementById('map');var map=new kakao.maps.Map(c,{center:new kakao.maps.LatLng(36.3504,127.3845),level:8});map.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);var ds=[{n:'\uC11C\uAD6C',la:36.355,lo:127.38},{n:'\uC720\uC131\uAD6C',la:36.385,lo:127.33},{n:'\uC911\uAD6C',la:36.33,lo:127.42},{n:'\uB3D9\uAD6C',la:36.32,lo:127.455},{n:'\uB300\uB355\uAD6C',la:36.43,lo:127.42}];ds.forEach(function(d){var e=document.createElement('div');e.className='dl';e.textContent=d.n;new kakao.maps.CustomOverlay({position:new kakao.maps.LatLng(d.la,d.lo),content:e,map:map,yAnchor:0.5})});var sc=${statusColorsJSON};var sl=${statusLabelsJSON};var ws=${walkersJSON};var oiw=null;ws.forEach(function(w){var pos=new kakao.maps.LatLng(w.lat,w.lng);var co=sc[w.status]||'#8E8E93';var la=sl[w.status]||w.status;var el=document.createElement('div');el.className='wm';el.style.background=co;el.innerHTML='<div class="pr" style="border-color:'+co+'"></div>'+w.emoji;new kakao.maps.CustomOverlay({position:pos,content:el,map:map,yAnchor:0.5});var ic='<div class="iw"><div class="wn">'+w.emoji+' '+w.nickname+'</div><div class="wd">\uD83D\uDCCD '+w.district+' '+w.neighborhood+'</div><div class="wd">\uD83D\uDC3E '+w.petName+'('+w.petBreed+') \u00B7 \uBCF4\uD638\uC790: '+w.ownerName+'</div><div class="wd">\uD83D\uDEB6 '+w.distance+'km \u00B7 '+w.elapsed+'\uBD84 \uACBD\uACFC</div><div class="wb" style="background:'+co+'">'+la+'</div></div>';var iw=new kakao.maps.InfoWindow({content:ic,removable:true});el.addEventListener('click',function(){if(oiw)oiw.close();iw.open(map,new kakao.maps.Marker({position:pos,map:null}));oiw=iw;if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({type:'markerClick',id:w.id}))})});if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({type:'ready'}))});</script></body></html>`;
 }
 
 // ─── 관제 지도 컴포넌트 (카카오맵 WebView) ───
@@ -394,12 +196,19 @@ function ControlMap({ walkers }: { walkers: ActiveWalkerLocation[] }) {
     fetchKey();
   }, []);
 
+  const [useFullMap, setUseFullMap] = useState(false);
+
   const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "ready") {
-        setMapReady(true);
         setLoading(false);
+        if (!useFullMap) {
+          // 단순 지도 로드 성공 → 풀 버전으로 전환
+          setTimeout(() => setUseFullMap(true), 500);
+        } else {
+          setMapReady(true);
+        }
       } else if (data.type === "error") {
         setError(data.message);
         setLoading(false);
@@ -409,9 +218,12 @@ function ControlMap({ walkers }: { walkers: ActiveWalkerLocation[] }) {
     } catch {
       // ignore
     }
-  }, []);
+  }, [useFullMap]);
 
-  const mapHTML = apiKey ? generateControlMapHTML(apiKey, walkers) : "";
+  // 단순 지도 → 풀 버전 전환
+  const currentHTML = apiKey
+    ? (useFullMap ? generateControlMapHTML(apiKey, walkers) : generateSimpleMapHTML(apiKey))
+    : "";
 
   return (
     <View style={[styles.mapContainer, { width: mapWidth, height: mapHeight }]}>
@@ -427,7 +239,7 @@ function ControlMap({ walkers }: { walkers: ActiveWalkerLocation[] }) {
         <>
           {Platform.OS === "web" ? (
             <iframe
-              srcDoc={mapHTML}
+              srcDoc={currentHTML}
               style={{
                 width: "100%",
                 height: "100%",
@@ -439,7 +251,7 @@ function ControlMap({ walkers }: { walkers: ActiveWalkerLocation[] }) {
           ) : (
             <WebView
               ref={webViewRef}
-              source={{ html: mapHTML }}
+              source={{ html: currentHTML }}
               style={{ flex: 1, borderRadius: 12 }}
               onMessage={handleMessage}
               javaScriptEnabled={true}
