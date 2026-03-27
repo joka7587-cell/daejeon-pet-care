@@ -141,7 +141,7 @@ export default function MapScreen() {
   return (
     <ScreenContainer className="pt-2">
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { flexGrow: 0, flexShrink: 0 }]}>
         <Text style={[styles.title, { color: "#1A1A1A" }]}>🗺️ 근처 돌보미</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Pressable
@@ -175,7 +175,7 @@ export default function MapScreen() {
 
       {/* 위치 상태 표시 */}
       {userLocation && (
-        <View style={[styles.locationStatus, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+        <View style={[styles.locationStatus, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", flexGrow: 0, flexShrink: 0 }]}>
           <Text style={{ fontSize: 14 }}>📍</Text>
           <Text style={[styles.locationStatusText, { color: "#1A1A1A" }]}>
             현재 위치 감지됨 · <Text style={{ color: "#2E7D32", fontWeight: "700" }}>{selectedNeighborhood}</Text> 근처
@@ -187,7 +187,7 @@ export default function MapScreen() {
       )}
 
       {locationError && (
-        <View style={[styles.locationStatus, { backgroundColor: "#E8F5E9", borderColor: "#C8E6C9" }]}>
+        <View style={[styles.locationStatus, { backgroundColor: "#E8F5E9", borderColor: "#C8E6C9", flexGrow: 0, flexShrink: 0 }]}>
           <Text style={{ fontSize: 14 }}>⚠️</Text>
           <Text style={[styles.locationStatusText, { color: "#2E7D32" }]}>{locationError}</Text>
         </View>
@@ -198,6 +198,7 @@ export default function MapScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.neighborhoodList}
+        style={{ flexGrow: 0, flexShrink: 0 }}
       >
         {Object.entries(DAEJEON_NEIGHBORHOODS).map(([key]) => {
           const isSelected = selectedNeighborhood === key;
@@ -239,7 +240,7 @@ export default function MapScreen() {
 
       {/* 지도 또는 플레이스홀더 */}
       {Platform.OS !== "web" && MapView ? (
-        <View style={[styles.mapContainer, { borderColor: "#E8E8E8" }]}>
+        <View style={[styles.mapContainer, { borderColor: "#E8E8E8", flexGrow: 0, flexShrink: 0 }]}>
           <MapView
             provider={PROVIDER_GOOGLE}
             style={styles.map}
@@ -269,7 +270,7 @@ export default function MapScreen() {
           </MapView>
         </View>
       ) : (
-        <View style={[styles.mapPlaceholder, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+        <View style={[styles.mapPlaceholder, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", flexGrow: 0, flexShrink: 0 }]}>
           <View style={styles.webMapGrid}>
             {/* 간이 지도 표시 (웹용) */}
             <View style={styles.webMapCenter}>
@@ -304,7 +305,7 @@ export default function MapScreen() {
 
       {/* 로딩 */}
       {loading && (
-        <View style={styles.loadingContainer}>
+        <View style={[styles.loadingContainer, { flexGrow: 0, flexShrink: 0 }]}>
           <ActivityIndicator size="small" color="#2E7D32" />
           <Text style={[styles.loadingText, { color: "#8E8E93" }]}>돌보미를 찾고 있어요...</Text>
         </View>
@@ -312,7 +313,7 @@ export default function MapScreen() {
 
       {/* 선택된 마커 상세 정보 */}
       {selectedMarker && (
-        <View style={[styles.markerDetailCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+        <View style={[styles.markerDetailCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", flexGrow: 0, flexShrink: 0 }]}>
           <View style={styles.markerDetailHeader}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={styles.detailAvatar}>
@@ -370,7 +371,7 @@ export default function MapScreen() {
 
       {/* 돌보미 목록 */}
       {!loading && caretakers.length > 0 && !selectedMarker && (
-        <View style={[styles.listContainer, { backgroundColor: "#F8F8F8", borderTopColor: "#E8E8E8" }]}>
+        <View style={[styles.listContainer, { backgroundColor: "#F8F8F8", borderTopColor: "#E8E8E8", flex: 1 }]}>
           <Text style={[styles.listTitle, { color: "#1A1A1A" }]}>
             근처 돌보미 ({caretakers.length}명)
             {userLocation && <Text style={{ fontSize: 12, color: "#8E8E93", fontWeight: "400" }}> · 거리순</Text>}
@@ -412,7 +413,7 @@ export default function MapScreen() {
       )}
 
       {!loading && caretakers.length === 0 && (
-        <View style={styles.emptyCard}>
+        <View style={[styles.emptyCard, { flexGrow: 0, flexShrink: 0 }]}>
           <Text style={styles.emptyEmoji}>🌙</Text>
           <Text style={[styles.emptyTitle, { color: "#1A1A1A" }]}>근처에 활동 중인 돌보미가 없어요</Text>
           <Text style={[styles.emptyDesc, { color: "#8E8E93" }]}>다른 동네를 선택하거나 위치를 새로고침 해보세요</Text>

@@ -654,3 +654,12 @@
 
 ## 버그 수정 (Phase 33)
 - [x] BUG: 찾기(explore) 메뉴 UI 레이아웃 불안정 수정 (FlatList flex:1, 헤더 영역 flexGrow:0/flexShrink:0 고정, FlatList 성능 최적화)
+
+## 버그 수정 (Phase 34)
+- [x] BUG: 근처돌보미 메뉴 UI 레이아웃 불안정 문제 수정 (찾기 메뉴와 동일 방식 적용)
+
+## 카카오맵 API 키 설정 (Phase 35)
+- [x] KAKAO_MAP_API_KEY 환경변수 등록 (bacaa8f1...)
+- [x] dashboard.tsx WebView originWhitelist 및 보안 설정 점검
+- [x] kakao-map-webview.tsx WebView originWhitelist 및 보안 설정 점검
+- [x] 카카오 개발자 센터 도메인 등록 가이드 제공
