@@ -590,3 +590,6 @@
 - [x] isOnboarded: true로 로그인 건너뛰기
 - [x] app/index.tsx에 isLoaded 대기 로직 추가
 - [x] 테스트 작성 및 실행 (35개 통과)
+
+## 버그 수정 (Phase 24)
+- [x] BUG: Metro 번들러 lightningcss/react-native-css-interop Unexpected token Semicolon 에러 수정

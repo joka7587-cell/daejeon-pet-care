@@ -316,7 +316,7 @@ export function calculateFinalPrice(
  */
 export function generateBookingId(): string {
   const now = new Date();
-  const dateStr = now.toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
+  const dateStr = now.toISOString().replace(/[\-:T.Z]/g, "").slice(0, 14);
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `BK${dateStr}${random}`;
 }
