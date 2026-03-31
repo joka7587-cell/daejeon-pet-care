@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   FlatList,
+  Image,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
@@ -305,6 +306,7 @@ function OwnerHome() {
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
       {/* 헤더 */}
       <View style={s.header}>
+        <Image source={require("@/assets/images/header-logo.png")} style={s.headerLogo} />
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
             <Text style={s.headerGreeting}>안녕하세요,</Text>
@@ -608,6 +610,7 @@ function CaretakerHome() {
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
       {/* 헤더 */}
       <View style={s.header}>
+        <Image source={require("@/assets/images/header-logo.png")} style={s.headerLogo} />
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
             <Text style={s.headerGreeting}>안녕하세요,</Text>
@@ -1579,5 +1582,11 @@ const s = StyleSheet.create({
     fontSize: 10,
     color: "#1A1A1A",
     letterSpacing: 0.5,
+  },
+  headerLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    marginRight: 10,
   },
 });

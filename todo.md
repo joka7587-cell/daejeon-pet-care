@@ -663,3 +663,10 @@
 - [x] dashboard.tsx WebView originWhitelist 및 보안 설정 점검
 - [x] kakao-map-webview.tsx WebView originWhitelist 및 보안 설정 점검
 - [x] 카카오 개발자 센터 도메인 등록 가이드 제공
+
+## 앱 로고 이미지 교체 (Phase 36)
+- [x] 사용자 제공 로고를 icon.png, splash-icon.png, favicon.png, android-icon-foreground.png에 복사
+- [x] app.config.ts의 logoUrl 업데이트 (S3 업로드)
+- [x] 스플래시 화면 배경색을 로고 배경(#2E7D32 뒩그린)에 맞쳐 보정
+- [x] 홈 화면 상단 바(헤더)에 로고 이미지 표시
+- [x] 프로필 화면 상단 로고 이미지 교체

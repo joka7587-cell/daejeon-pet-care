@@ -201,6 +201,7 @@ export default function ProfileScreen() {
             onPress={handleLogoTap}
             style={({ pressed }) => [pressed && { opacity: 0.9 }]}
           >
+            <Image source={require("@/assets/images/header-logo.png")} style={styles.headerLogoImage} />
             <Text style={styles.headerLogoText}>반려이음</Text>
           </Pressable>
 
@@ -1095,6 +1096,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // 반려이음 로고 이미지
+  headerLogoImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    marginBottom: 6,
+  } as any,
   // 반려이음 로고 텍스트
   headerLogoText: {
     fontSize: 14,
@@ -1102,6 +1110,7 @@ const styles = StyleSheet.create({
     color: "#C0C0C0",
     letterSpacing: 1,
     marginBottom: 4,
+    textAlign: "center" as const,
   },
   // 관리자 비밀번호 모달
   adminPwModal: {
