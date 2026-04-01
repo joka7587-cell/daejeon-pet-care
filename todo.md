@@ -665,8 +665,15 @@
 - [x] 카카오 개발자 센터 도메인 등록 가이드 제공
 
 ## 앱 로고 이미지 교체 (Phase 36)
-- [x] 사용자 제공 로고를 icon.png, splash-icon.png, favicon.png, android-icon-foreground.png에 복사
-- [x] app.config.ts의 logoUrl 업데이트 (S3 업로드)
-- [x] 스플래시 화면 배경색을 로고 배경(#2E7D32 뒩그린)에 맞쳐 보정
-- [x] 홈 화면 상단 바(헤더)에 로고 이미지 표시
-- [x] 프로필 화면 상단 로고 이미지 교체
+- [ ] 사용자 제공 로고를 icon.png, splash-icon.png, favicon.png, android-icon-foreground.png에 복사
+- [ ] app.config.ts의 logoUrl 업데이트 (S3 업로드)
+- [ ] 스플래시 화면 배경색을 로고 배경(#2E7D32 딥그린)에 맞춰 보정
+- [ ] 홈 화면 상단 바(헤더)에 로고 이미지 표시
+- [ ] 프로필 화면 상단 로고 이미지 교체
+
+## 실시간 지도 및 GPS 마커 수정 (Phase 37)
+- [x] 관리자 대시보드 WebView 설정 분석 및 보호자/워커 지도 컴포넌트에 동일 적용
+- [x] Socket.IO 실시간 위치 수신 구현 (워커 → 보호자)
+- [x] WebView postMessage를 통한 카카오맵 마커 실시간 업데이트
+- [x] 딥 그린 테마 통일 및 상태 표시 UI 개선 (지도 컨테이너 테두리, 헤더, 통계 영역 등)
+- [x] 5초마다 GPS 마커 움직임 확인 (산책 시뮬레이션 타이머 3초 → 5초 변경)

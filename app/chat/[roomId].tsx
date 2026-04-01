@@ -409,7 +409,7 @@ export default function ChatScreen() {
           setWalkRoutePoints((pts) => [...pts, DEMO_WALK_ROUTE[next]]);
           return next;
         });
-      }, 3000);
+      }, 5000);
     }
     return () => {
       if (walkTimerRef.current) clearInterval(walkTimerRef.current);
