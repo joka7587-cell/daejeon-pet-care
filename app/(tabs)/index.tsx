@@ -370,7 +370,7 @@ function OwnerHome() {
           nearbyWalkers={nearbyWalkers}
           onPress={() => {
             haptic();
-            router.push("/(tabs)/map" as never);
+            router.push({ pathname: "/walk/trail-detail", params: { spotId: todaySpot.id } } as never);
           }}
         />
 
@@ -389,7 +389,7 @@ function OwnerHome() {
                   key={sp.id}
                   onPress={() => {
                     haptic();
-                    router.push("/(tabs)/map" as never);
+                    router.push({ pathname: "/walk/trail-detail", params: { spotId: sp.id } } as never);
                   }}
                   style={({ pressed }) => [s.miniSpotCard, pressed && { opacity: 0.85 }]}
                 >
