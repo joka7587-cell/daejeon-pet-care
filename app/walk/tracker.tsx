@@ -10,6 +10,7 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
+import { WebView } from "react-native-webview";
 import { ScreenContainer } from "@/components/screen-container";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useApp, WalkSession, WalkRoutePoint } from "@/lib/app-context";
@@ -18,6 +19,7 @@ import * as Location from "expo-location";
 import { useKeepAwake } from "expo-keep-awake";
 import { calculateDistance } from "@/lib/location-service";
 import { Fonts } from "@/hooks/use-fonts";
+import { getApiBaseUrl } from "@/constants/oauth";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -49,6 +51,114 @@ function formatDist(km: number): string {
 
 function formatSpeed(kmh: number): string {
   return `${kmh.toFixed(1)} km/h`;
+}
+
+// ─── 엑스포과학공원 시뮬레이션 경로 ───
+const EXPO_WALK_ROUTE = [
+  { lat: 36.3742, lng: 127.3918 }, // 1. 엑스포과학공원 정문
+  { lat: 36.3750, lng: 127.3925 }, // 2. 과학공원 내부 산책로
+  { lat: 36.3758, lng: 127.3935 }, // 3. 한빛탑 광장
+  { lat: 36.3765, lng: 127.3928 }, // 4. 한빛탑 북쪽
+  { lat: 36.3772, lng: 127.3915 }, // 5. 엑스포 다리 입구
+  { lat: 36.3780, lng: 127.3900 }, // 6. 엑스포 다리 중간
+  { lat: 36.3788, lng: 127.3885 }, // 7. 엑스포 다리 건너편
+  { lat: 36.3785, lng: 127.3868 }, // 8. 갑천변 산책로 진입
+  { lat: 36.3778, lng: 127.3855 }, // 9. 갑천변 산책로 중간
+  { lat: 36.3770, lng: 127.3845 }, // 10. 갑천변 산책로 남쪽
+  { lat: 36.3762, lng: 127.3858 }, // 11. 엑스포 시민광장 방면
+  { lat: 36.3755, lng: 127.3870 }, // 12. 엑스포 시민광장
+];
+
+// ─── 카카오맵 HTML 생성 (실시간 마커 이동 지원) ───
+function generateTrackerMapHTML(apiKey: string): string {
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden}
+#map{width:100%;height:100%}
+</style>
+</head><body>
+<div id="map"></div>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false"></script>
+<script>
+var map, marker, polyline, routePath = [];
+kakao.maps.load(function(){
+  var center = new kakao.maps.LatLng(36.376, 127.387);
+  map = new kakao.maps.Map(document.getElementById('map'), {
+    center: center,
+    level: 3
+  });
+
+  // 마커 생성 - 산책 중인 위치
+  var markerImage = new kakao.maps.MarkerImage(
+    'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+    new kakao.maps.Size(24, 35)
+  );
+  marker = new kakao.maps.Marker({
+    position: center,
+    map: map,
+    image: markerImage
+  });
+
+  // 경로 폴리라인 - 딥 그린
+  polyline = new kakao.maps.Polyline({
+    map: map,
+    path: [],
+    strokeWeight: 5,
+    strokeColor: '#2E7D32',
+    strokeOpacity: 0.9,
+    strokeStyle: 'solid'
+  });
+
+  // 시작 마커 (출발점)
+  var startOverlay = new kakao.maps.CustomOverlay({
+    position: center,
+    content: '<div style="background:#2E7D32;color:white;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.3)">출발</div>',
+    yAnchor: 2.5
+  });
+  startOverlay.setMap(map);
+
+  // 준비 완료 알림
+  try {
+    window.ReactNativeWebView.postMessage(JSON.stringify({type:'ready'}));
+  } catch(e) {}
+});
+
+// RN에서 호출하는 위치 업데이트 함수
+window.updatePosition = function(lat, lng, index) {
+  if (!map || !marker) return;
+  var pos = new kakao.maps.LatLng(lat, lng);
+  marker.setPosition(pos);
+  map.panTo(pos);
+
+  routePath.push(pos);
+  polyline.setPath(routePath);
+
+  // 경유지 번호 오버레이
+  if (index > 0) {
+    var overlay = new kakao.maps.CustomOverlay({
+      position: pos,
+      content: '<div style="background:#2E7D32;color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;box-shadow:0 1px 4px rgba(0,0,0,0.3)">' + (index+1) + '</div>',
+      yAnchor: 2.0
+    });
+    overlay.setMap(map);
+  }
+};
+
+// 산책 완료 시 전체 경로 보기
+window.fitRoute = function() {
+  if (!map || routePath.length < 2) return;
+  var bounds = new kakao.maps.LatLngBounds();
+  for (var i = 0; i < routePath.length; i++) {
+    bounds.extend(routePath[i]);
+  }
+  map.setBounds(bounds);
+};
+</script>
+</body></html>`;
 }
 
 // 체크리스트 아이템 타입
@@ -94,6 +204,15 @@ export default function WalkTrackerScreen() {
   const [isGpsReady, setIsGpsReady] = useState(false);
   const [pointCount, setPointCount] = useState(0);
 
+  // 카카오맵 WebView
+  const webViewRef = useRef<WebView>(null);
+  const [apiKey, setApiKey] = useState<string>("");
+  const [mapReady, setMapReady] = useState(false);
+
+  // 시뮬레이션 인덱스
+  const simIndexRef = useRef(0);
+  const simTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // 라이브 체크리스트
   const [checklist, setChecklist] = useState<CheckItem[]>(
     DEFAULT_CHECKLIST.map((c) => ({ ...c, checked: false }))
@@ -127,6 +246,23 @@ export default function WalkTrackerScreen() {
     }
   }, [status]);
 
+  // 카카오맵 API 키 가져오기
+  useEffect(() => {
+    const fetchKey = async () => {
+      try {
+        const baseUrl = getApiBaseUrl();
+        const res = await fetch(`${baseUrl}/api/kakao-map-key`);
+        const data = await res.json();
+        if (data.key) {
+          setApiKey(data.key);
+        }
+      } catch (e) {
+        console.warn("API key fetch error:", e);
+      }
+    };
+    fetchKey();
+  }, []);
+
   // 타이머
   useEffect(() => {
     if (status === "active") {
@@ -146,7 +282,6 @@ export default function WalkTrackerScreen() {
       const elapsed = Math.floor((Date.now() - lastMovementRef.current) / 1000);
       setStationaryTimer(elapsed);
       if (elapsed >= 300 && !sosTriggered) {
-        // 5분 이상 정지 - 자동 SOS 알림
         triggerSOS("auto");
       }
     }, 10000);
@@ -157,7 +292,7 @@ export default function WalkTrackerScreen() {
   useEffect(() => {
     (async () => {
       if (Platform.OS === "web") {
-        if (navigator.geolocation) setIsGpsReady(true);
+        setIsGpsReady(true);
         return;
       }
       try {
@@ -174,60 +309,89 @@ export default function WalkTrackerScreen() {
     return () => { if (locationSubRef.current) locationSubRef.current.remove(); };
   }, []);
 
-  const startLocationTracking = useCallback(async () => {
-    if (Platform.OS === "web") {
-      const watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          const point: WalkRoutePoint = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            timestamp: new Date().toISOString(),
-          };
-          handleNewPoint(point, position.coords.speed);
-        },
-        (error) => console.warn("Geolocation error:", error),
-        { enableHighAccuracy: true, maximumAge: 5000 }
-      );
-      locationSubRef.current = { remove: () => navigator.geolocation.clearWatch(watchId) } as any;
-      return;
-    }
-    try {
-      const sub = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 },
-        (location) => {
-          const point: WalkRoutePoint = {
-            lat: location.coords.latitude,
-            lng: location.coords.longitude,
-            timestamp: new Date().toISOString(),
-          };
-          handleNewPoint(point, location.coords.speed);
-        }
-      );
-      locationSubRef.current = sub;
-    } catch (e) {
-      console.warn("Location tracking error:", e);
-    }
-  }, []);
+  // ─── 5초마다 GPS 시뮬레이션 + WebView 마커 이동 ───
+  useEffect(() => {
+    if (status === "active" && mapReady) {
+      // 첫 번째 포인트 즉시 전송
+      const firstPt = EXPO_WALK_ROUTE[0];
+      sendPositionToMap(firstPt.lat, firstPt.lng, 0);
+      addSimulatedPoint(firstPt.lat, firstPt.lng);
+      simIndexRef.current = 1;
 
-  const handleNewPoint = useCallback((point: WalkRoutePoint, speedMs: number | null) => {
+      simTimerRef.current = setInterval(() => {
+        const idx = simIndexRef.current;
+        if (idx >= EXPO_WALK_ROUTE.length) {
+          // 경로 끝나면 처음부터 반복
+          simIndexRef.current = 0;
+          return;
+        }
+        const pt = EXPO_WALK_ROUTE[idx];
+        sendPositionToMap(pt.lat, pt.lng, idx);
+        addSimulatedPoint(pt.lat, pt.lng);
+        simIndexRef.current = idx + 1;
+      }, 5000);
+    } else {
+      if (simTimerRef.current) {
+        clearInterval(simTimerRef.current);
+        simTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (simTimerRef.current) {
+        clearInterval(simTimerRef.current);
+        simTimerRef.current = null;
+      }
+    };
+  }, [status, mapReady]);
+
+  const sendPositionToMap = (lat: number, lng: number, index: number) => {
+    if (webViewRef.current) {
+      const js = `window.updatePosition(${lat}, ${lng}, ${index}); true;`;
+      if (Platform.OS === "web") {
+        // iframe에서는 postMessage 사용
+        try {
+          (webViewRef.current as any).injectJavaScript?.(js);
+        } catch {}
+      } else {
+        webViewRef.current.injectJavaScript(js);
+      }
+    }
+  };
+
+  const addSimulatedPoint = (lat: number, lng: number) => {
+    const point: WalkRoutePoint = {
+      lat,
+      lng,
+      timestamp: new Date().toISOString(),
+    };
     setRoutePoints((prev) => {
       const newPoints = [...prev, point];
       if (prev.length > 0) {
         const lastPt = prev[prev.length - 1];
-        const segDist = calculateDistance(lastPt.lat, lastPt.lng, point.lat, point.lng);
-        if (segDist < 0.1) {
+        const segDist = calculateDistance(lastPt.lat, lastPt.lng, lat, lng);
+        if (segDist < 5) {
           setDistance((d) => d + segDist);
-          if (segDist > 0.003) {
-            lastMovementRef.current = Date.now();
-          }
+          lastMovementRef.current = Date.now();
         }
       }
       return newPoints;
     });
-    const speedKmh = speedMs != null && speedMs >= 0 ? speedMs * 3.6 : 0;
-    setCurrentSpeed(speedKmh);
-    setMaxSpeed((prev) => Math.max(prev, speedKmh));
     setPointCount((c) => c + 1);
+    // 시뮬레이션 속도: 약 3~5 km/h
+    const simSpeed = 3.5 + Math.random() * 1.5;
+    setCurrentSpeed(simSpeed);
+    setMaxSpeed((prev) => Math.max(prev, simSpeed));
+  };
+
+  const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "ready") {
+        setMapReady(true);
+      } else if (data.type === "error") {
+        console.error("KakaoMap error:", data.message);
+      }
+    } catch {}
   }, []);
 
   // SOS 트리거
@@ -280,7 +444,6 @@ export default function WalkTrackerScreen() {
       )
     );
 
-    // 체크 시 보호자에게 실시간 알림
     const item = checklist.find((c) => c.id === id);
     if (item && !item.checked) {
       dispatch({
@@ -311,6 +474,7 @@ export default function WalkTrackerScreen() {
     setMaxSpeed(0);
     setRoutePoints([]);
     setPointCount(0);
+    simIndexRef.current = 0;
     lastMovementRef.current = Date.now();
     setSosTriggered(false);
 
@@ -330,8 +494,6 @@ export default function WalkTrackerScreen() {
       neighborhood: "",
     };
     dispatch({ type: "START_WALK_SESSION", payload: session });
-
-    startLocationTracking();
   };
 
   // 산책 일시정지
@@ -339,7 +501,6 @@ export default function WalkTrackerScreen() {
     haptic();
     setStatus("paused");
     pauseStartRef.current = Date.now();
-    if (locationSubRef.current) locationSubRef.current.remove();
   };
 
   // 산책 재개
@@ -350,7 +511,6 @@ export default function WalkTrackerScreen() {
       setPausedSec((prev) => prev + Math.floor((Date.now() - (pauseStartRef.current || 0)) / 1000));
       pauseStartRef.current = null;
     }
-    startLocationTracking();
   };
 
   // 산책 완료
@@ -366,7 +526,12 @@ export default function WalkTrackerScreen() {
           onPress: () => {
             haptic("success");
             setStatus("completed");
-            if (locationSubRef.current) locationSubRef.current.remove();
+
+            // 전체 경로 보기
+            if (webViewRef.current) {
+              const js = `window.fitRoute(); true;`;
+              webViewRef.current.injectJavaScript(js);
+            }
 
             dispatch({
               type: "UPDATE_WALK_SESSION",
@@ -394,48 +559,102 @@ export default function WalkTrackerScreen() {
   const isPaused = status === "paused";
   const isCompleted = status === "completed";
 
-  const avgSpeed = (distance / (elapsedSec / 3600)) || 0;
+  const avgSpeed = elapsedSec > 0 ? (distance / (elapsedSec / 3600)) || 0 : 0;
   const checkedCount = checklist.filter((c) => c.checked).length;
 
   const getStatusInfo = () => {
-    if (isActive) return { text: "산책 중", color: "#34C759", dot: true };
+    if (isActive) return { text: "산책 중", color: "#2E7D32", dot: true };
     if (isPaused) return { text: "일시정지", color: "#FF9500", dot: true };
     if (isCompleted) return { text: "산책 완료", color: "#8E8E93", dot: false };
     return { text: "대기 중", color: "#8E8E93", dot: false };
   };
   const statusInfo = getStatusInfo();
 
+  const mapHTML = apiKey ? generateTrackerMapHTML(apiKey) : "";
+
   return (
     <ScreenContainer>
-      <View style={[st.header, { borderBottomColor: "#E8E8E8" }]}>
+      {/* 헤더 - 딥 그린 테마 */}
+      <View style={st.header}>
         <Pressable onPress={() => router.back()} style={{ padding: 8 }}>
           <Text style={st.headerBack}>취소</Text>
         </Pressable>
-        <Text style={[st.headerTitle, { color: "#1A1A1A" }]}>{petName}</Text>
+        <View style={{ alignItems: "center" }}>
+          <Text style={st.headerTitle}>{petEmoji} {petName}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+            <View style={[st.statusDotSmall, { backgroundColor: statusInfo.color }]} />
+            <Text style={[st.statusTextSmall, { color: statusInfo.color }]}>{statusInfo.text}</Text>
+          </View>
+        </View>
         {(isActive || isPaused) ? (
-          <Pressable onPress={() => setShowChecklist(!showChecklist)} style={[st.checklistToggle, { backgroundColor: "#F8F8F8" }]}>
-            <Text style={st.checklistToggleText}>{showChecklist ? "숨기기" : "체크"}</Text>
+          <Pressable onPress={() => setShowChecklist(!showChecklist)} style={st.checklistToggle}>
+            <Text style={st.checklistToggleText}>{showChecklist ? "지도" : "체크"}</Text>
           </Pressable>
         ) : <View style={{ width: 50 }} />}
       </View>
 
-      <ScrollView>
-        <View style={st.content}>
-          {/* 반려동물 정보 */}
-          <View style={[st.petCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
-            <View style={[st.petAvatar, { backgroundColor: "#F8F8F8" }]}>
-              <Text style={{ fontSize: 32 }}>{petEmoji}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[st.petName, { color: "#1A1A1A" }]}>{petName}</Text>
-              {ownerName && <Text style={[st.ownerLabel, { color: "#8E8E93" }]}>보호자: {ownerName}</Text>}
-            </View>
-            <View style={[st.statusBadge, { backgroundColor: statusInfo.color + "20" }]}>
-              {statusInfo.dot && <View style={[st.statusDot, { backgroundColor: statusInfo.color }]} />}
-              <Text style={[st.statusText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
-            </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* ─── 카카오맵 WebView (무조건 렌더링) ─── */}
+        {!showChecklist && (
+          <View style={st.mapContainer}>
+            {apiKey ? (
+              <>
+                {Platform.OS === "web" ? (
+                  <iframe
+                    srcDoc={mapHTML}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      border: "none",
+                      borderRadius: 12,
+                    }}
+                    title="카카오맵 산책 추적"
+                  />
+                ) : (
+                  <WebView
+                    ref={webViewRef}
+                    source={{ html: mapHTML }}
+                    style={{ flex: 1, borderRadius: 12 }}
+                    onMessage={handleWebViewMessage}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    mixedContentMode="always"
+                    allowsInlineMediaPlayback={true}
+                    originWhitelist={["*"]}
+                    scrollEnabled={false}
+                    bounces={false}
+                    showsHorizontalScrollIndicator={false}
+                    showsVerticalScrollIndicator={false}
+                    allowFileAccess={true}
+                    allowUniversalAccessFromFileURLs={true}
+                    onError={(e) => console.error("WebView Error:", e.nativeEvent)}
+                    onHttpError={(e) => console.error("WebView HTTP Error:", e.nativeEvent)}
+                  />
+                )}
+                {/* 지도 위 상태 배지 */}
+                <View style={st.mapOverlayBadge}>
+                  <View style={[st.mapStatusDot, { backgroundColor: statusInfo.color }]} />
+                  <Text style={st.mapOverlayText}>
+                    {isActive ? "실시간 추적 중" : isReady ? "대기 중" : isPaused ? "일시 정지" : "완료"}
+                  </Text>
+                </View>
+                {/* 경유지 카운터 */}
+                {pointCount > 0 && (
+                  <View style={st.mapPointBadge}>
+                    <Text style={st.mapPointText}>경유지 {pointCount}</Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={st.mapLoading}>
+                <ActivityIndicator size="large" color="#2E7D32" />
+                <Text style={st.mapLoadingText}>카카오맵 로딩 중...</Text>
+              </View>
+            )}
           </View>
+        )}
 
+        <View style={st.content}>
           {/* SOS 버튼 */}
           {(isActive || isPaused) && (
             <Pressable onPress={() => triggerSOS("manual")} style={({ pressed }) => [st.sosBtn, pressed && { opacity: 0.8 }]}>
@@ -454,62 +673,51 @@ export default function WalkTrackerScreen() {
             </View>
           )}
 
-          {/* 타이머 */}
-          <View style={st.timerSection}>
-            <Animated.View style={[st.timerCircle, isActive && st.timerCircleActive, pulseAnimStyle, { borderColor: isActive ? '#2E7D32' : "#E8E8E8" }]}>
-              <Text style={[st.timerLabel, { color: "#8E8E93" }]}>시간</Text>
-              <Text style={[st.timerText, { color: "#1A1A1A" }]}>{formatTime(elapsedSec)}</Text>
-              {pausedSec > 0 && (
-                <Text style={st.pausedLabel}>정지 {formatTime(pausedSec)}</Text>
-              )}
-            </Animated.View>
-          </View>
-
-          {/* 통계 그리드 */}
+          {/* 실시간 통계 그리드 */}
           <View style={st.statsGrid}>
-            <View style={[st.statCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+            <View style={st.statCard}>
+              <Text style={{ fontSize: 18 }}>⏱️</Text>
+              <Text style={st.statValue}>{formatTime(elapsedSec)}</Text>
+              <Text style={st.statLabel}>경과 시간</Text>
+            </View>
+            <View style={st.statCard}>
               <Text style={{ fontSize: 18 }}>📏</Text>
-              <Text style={[st.statValue, { color: "#1A1A1A" }]}>{formatDist(distance)}</Text>
-              <Text style={[st.statLabel, { color: "#8E8E93" }]}>총 거리</Text>
+              <Text style={st.statValue}>{formatDist(distance)}</Text>
+              <Text style={st.statLabel}>이동 거리</Text>
             </View>
-            <View style={[st.statCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
-              <Text style={{ fontSize: 18 }}>⚡</Text>
-              <Text style={[st.statValue, { color: "#1A1A1A" }]}>{formatSpeed(currentSpeed)}</Text>
-              <Text style={[st.statLabel, { color: "#8E8E93" }]}>현재 속도</Text>
-            </View>
-            <View style={[st.statCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
-              <Text style={{ fontSize: 18 }}>📊</Text>
-              <Text style={[st.statValue, { color: "#1A1A1A" }]}>{formatSpeed(avgSpeed)}</Text>
-              <Text style={[st.statLabel, { color: "#8E8E93" }]}>평균 속도</Text>
-            </View>
-            <View style={[st.statCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
+            <View style={st.statCard}>
               <Text style={{ fontSize: 18 }}>📍</Text>
-              <Text style={[st.statValue, { color: "#1A1A1A" }]}>{pointCount}</Text>
-              <Text style={[st.statLabel, { color: "#8E8E93" }]}>GPS 포인트</Text>
+              <Text style={st.statValue}>{pointCount}</Text>
+              <Text style={st.statLabel}>경유지</Text>
+            </View>
+            <View style={st.statCard}>
+              <Text style={{ fontSize: 18 }}>⚡</Text>
+              <Text style={st.statValue}>{formatSpeed(currentSpeed)}</Text>
+              <Text style={st.statLabel}>현재 속도</Text>
             </View>
           </View>
 
           {/* 라이브 체크리스트 (토글) */}
           {showChecklist && (isActive || isPaused) && (
-            <View style={[st.checklistSection, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" }]}>
-              <Text style={[st.checklistTitle, { color: "#1A1A1A" }]}>📋 산책 체크리스트</Text>
-              <Text style={[st.checklistSub, { color: "#8E8E93" }]}>체크 시 보호자에게 실시간 알림이 전송됩니다</Text>
+            <View style={st.checklistSection}>
+              <Text style={st.checklistTitle}>📋 산책 체크리스트</Text>
+              <Text style={st.checklistSub}>체크 시 보호자에게 실시간 알림이 전송됩니다</Text>
               {checklist.map((item) => (
                 <Pressable
                   key={item.id}
                   onPress={() => toggleCheckItem(item.id)}
-                  style={[st.checkItem, item.checked && st.checkItemChecked, { borderBottomColor: "#E8E8E8" }]}
+                  style={[st.checkItem, item.checked && st.checkItemChecked]}
                 >
-                  <View style={[st.checkBox, item.checked && st.checkBoxChecked, { borderColor: item.checked ? '#2E7D32' : "#E8E8E8" }]}>
+                  <View style={[st.checkBox, item.checked && st.checkBoxChecked]}>
                     {item.checked && <Text style={st.checkMark}>✓</Text>}
                   </View>
                   <Text style={{ fontSize: 18 }}>{item.emoji}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[st.checkLabel, item.checked && st.checkLabelChecked, { color: item.checked ? "#8E8E93" : "#1A1A1A" }]}>
+                    <Text style={[st.checkLabel, item.checked && st.checkLabelChecked]}>
                       {item.label}
                     </Text>
                     {item.checked && item.checkedAt && (
-                      <Text style={[st.checkTime, { color: "#8E8E93" }]}>
+                      <Text style={st.checkTime}>
                         {new Date(item.checkedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
                       </Text>
                     )}
@@ -519,11 +727,11 @@ export default function WalkTrackerScreen() {
 
               {/* 특이사항 메모 */}
               <View style={st.issueSection}>
-                <Text style={[st.issueLabel, { color: "#1A1A1A" }]}>📝 특이사항 메모</Text>
+                <Text style={st.issueLabel}>📝 특이사항 메모</Text>
                 <TextInput
-                  style={[st.issueInput, { backgroundColor: "#FFFFFF", color: "#1A1A1A", borderColor: "#E8E8E8" }]}
+                  style={st.issueInput}
                   placeholder="산책 중 특이사항을 기록하세요"
-                  placeholderTextColor={"#8E8E93"}
+                  placeholderTextColor="#8E8E93"
                   value={issueNote}
                   onChangeText={setIssueNote}
                   multiline
@@ -544,17 +752,20 @@ export default function WalkTrackerScreen() {
 
           {/* 완료 요약 */}
           {isCompleted && (
-            <View style={[st.completeSummary, { backgroundColor: "#F8F8F8" }]}>
+            <View style={st.completeSummary}>
               <Text style={{ fontSize: 40 }}>🎉</Text>
-              <Text style={[st.completeTitle, { color: "#1A1A1A" }]}>산책 완료!</Text>
-              <Text style={[st.completeStat, { color: "#8E8E93" }]}>
+              <Text style={st.completeTitle}>산책 완료!</Text>
+              <Text style={st.completeStat}>
                 {formatDist(distance)} · {formatTime(elapsedSec)} · 평균 {formatSpeed(avgSpeed)}
+              </Text>
+              <Text style={st.completeRoute}>
+                경유지 {pointCount}곳 · 최고속도 {formatSpeed(maxSpeed)}
               </Text>
               {checkedCount > 0 && (
                 <View style={st.completeChecklist}>
-                  <Text style={[st.completeCheckTitle, { color: "#1A1A1A" }]}>체크리스트 ({checkedCount}/{checklist.length})</Text>
+                  <Text style={st.completeCheckTitle}>체크리스트 ({checkedCount}/{checklist.length})</Text>
                   {checklist.filter((c) => c.checked).map((item) => (
-                    <Text key={item.id} style={[st.completeCheckItem, { color: "#8E8E93" }]}>
+                    <Text key={item.id} style={st.completeCheckItem}>
                       {item.emoji} {item.label}
                     </Text>
                   ))}
@@ -568,10 +779,8 @@ export default function WalkTrackerScreen() {
             {isReady && (
               <Pressable
                 onPress={handleStart}
-                disabled={!isGpsReady}
                 style={({ pressed }) => [
                   st.startBtn,
-                  !isGpsReady && { backgroundColor: "#E8E8E8" },
                   pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
                 ]}
               >
@@ -623,7 +832,7 @@ export default function WalkTrackerScreen() {
                 </Pressable>
                 <Pressable
                   onPress={() => router.back()}
-                  style={({ pressed }) => [st.ctrlBtn, { backgroundColor: "#F8F8F8" }, pressed && { opacity: 0.8 }]}
+                  style={({ pressed }) => [st.ctrlBtn, { backgroundColor: "#F0F0F0" }, pressed && { opacity: 0.8 }]}
                 >
                   <Text style={[st.ctrlBtnText, { color: "#8E8E93" }]}>홈으로</Text>
                 </Pressable>
@@ -644,53 +853,71 @@ const st = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    // borderBottomColor: "#F0F0F0",
+    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#2E7D32",
   },
-  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#2E7D32" },
-  headerTitle: { fontFamily: Fonts.bold, fontSize: 17, /* color: "#1A1A1A" */ },
+  headerBack: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#FFFFFF" },
+  headerTitle: { fontFamily: Fonts.bold, fontSize: 17, color: "#FFFFFF" },
+  statusDotSmall: { width: 6, height: 6, borderRadius: 3 },
+  statusTextSmall: { fontFamily: Fonts.medium, fontSize: 11 },
   checklistToggle: {
-    // backgroundColor: "#FFF5F0",
+    backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#FFD9C7",
   },
-  checklistToggleText: { fontFamily: Fonts.semiBold, fontSize: 12, color: "#2E7D32" },
+  checklistToggleText: { fontFamily: Fonts.semiBold, fontSize: 12, color: "#FFFFFF" },
 
-  content: { padding: 16, gap: 16 },
-
-  // Pet Card
-  petCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    // backgroundColor: "#FFFFFF",
+  // ─── 카카오맵 컨테이너 ───
+  mapContainer: {
+    flex: 1,
+    minHeight: 300,
+    height: 350,
+    margin: 12,
     borderRadius: 16,
-    padding: 14,
-    gap: 12,
-    borderWidth: 1,
-    // borderColor: "#F0F0F0",
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#2E7D32",
+    backgroundColor: "#F5F5F5",
   },
-  petAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    // backgroundColor: "#FFF5F0",
+  mapLoading: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: 12,
   },
-  petName: { fontFamily: Fonts.bold, fontSize: 16, /* color: "#1A1A1A" */ },
-  ownerLabel: { fontFamily: Fonts.regular, fontSize: 12, /* color: "#8E8E93" */ marginTop: 2 },
-  statusBadge: {
+  mapLoadingText: { fontFamily: Fonts.medium, fontSize: 14, color: "#2E7D32" },
+  mapOverlayBadge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapStatusDot: { width: 8, height: 8, borderRadius: 4 },
+  mapOverlayText: { fontFamily: Fonts.semiBold, fontSize: 12, color: "#2E7D32" },
+  mapPointBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: "#2E7D32",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
-    gap: 5,
   },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontFamily: Fonts.semiBold, fontSize: 11 },
+  mapPointText: { fontFamily: Fonts.bold, fontSize: 11, color: "#FFFFFF" },
+
+  content: { padding: 16, gap: 14 },
 
   // SOS
   sosBtn: {
@@ -712,55 +939,39 @@ const st = StyleSheet.create({
   },
   stationaryWarnText: { fontFamily: Fonts.medium, fontSize: 13, color: "#F57F17" },
 
-  // Timer
-  timerSection: { alignItems: "center", paddingVertical: 4 },
-  timerCircle: {
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    borderWidth: 4,
-    // borderColor: "#E5E5EA",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timerCircleActive: { borderColor: "#2E7D32" },
-  timerLabel: { fontFamily: Fonts.medium, fontSize: 12, /* color: "#8E8E93" */ marginBottom: 4 },
-  timerText: { fontFamily: Fonts.extraBold, fontSize: 34, /* color: "#1A1A1A" */ fontVariant: ["tabular-nums"] },
-  pausedLabel: { fontFamily: Fonts.medium, fontSize: 11, color: "#FF9500", marginTop: 4 },
-
   // Stats
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   statCard: {
     flex: 1,
     minWidth: "46%" as any,
     alignItems: "center",
-    // backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F8F8",
     padding: 12,
     borderRadius: 14,
     borderWidth: 1,
-    // borderColor: "#F0F0F0",
+    borderColor: "#E8E8E8",
     gap: 3,
   },
-  statValue: { fontFamily: Fonts.bold, fontSize: 16, /* color: "#1A1A1A" */ fontVariant: ["tabular-nums"] },
-  statLabel: { fontFamily: Fonts.regular, fontSize: 10, /* color: "#8E8E93" */ },
+  statValue: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A", fontVariant: ["tabular-nums"] },
+  statLabel: { fontFamily: Fonts.regular, fontSize: 10, color: "#8E8E93" },
 
   // Checklist
   checklistSection: {
-    // backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F8F8",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    // borderColor: "#F0F0F0",
+    borderColor: "#E8E8E8",
   },
-  checklistTitle: { fontFamily: Fonts.bold, fontSize: 16, /* color: "#1A1A1A" */ marginBottom: 4 },
-  checklistSub: { fontFamily: Fonts.regular, fontSize: 11, /* color: "#8E8E93" */ marginBottom: 12 },
+  checklistTitle: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A", marginBottom: 4 },
+  checklistSub: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93", marginBottom: 12 },
   checkItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    // borderBottomColor: "#F8F8F8",
+    borderBottomColor: "#E8E8E8",
   },
   checkItemChecked: { opacity: 0.7 },
   checkBox: {
@@ -768,24 +979,24 @@ const st = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    // borderColor: "#E8E8E8",
+    borderColor: "#E8E8E8",
     alignItems: "center",
     justifyContent: "center",
   },
-  checkBoxChecked: { backgroundColor: "#2E7D32", /* borderColor: "#2E7D32" */ },
+  checkBoxChecked: { backgroundColor: "#2E7D32", borderColor: "#2E7D32" },
   checkMark: { color: "white", fontSize: 14, fontWeight: "bold" },
-  checkLabel: { fontFamily: Fonts.medium, fontSize: 14, /* color: "#1A1A1A" */ flexShrink: 1 },
-  checkLabelChecked: { /* color: "#8E8E93" */ textDecorationLine: "line-through" },
-  checkTime: { fontFamily: Fonts.regular, fontSize: 11, /* color: "#8E8E93" */ marginTop: 2 },
+  checkLabel: { fontFamily: Fonts.medium, fontSize: 14, color: "#1A1A1A", flexShrink: 1 },
+  checkLabelChecked: { color: "#8E8E93", textDecorationLine: "line-through" },
+  checkTime: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93", marginTop: 2 },
 
   // Issue Memo
   issueSection: { marginTop: 16 },
-  issueLabel: { fontFamily: Fonts.semiBold, fontSize: 14, /* color: "#1A1A1A" */ marginBottom: 8 },
+  issueLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: "#1A1A1A", marginBottom: 8 },
   issueInput: {
-    // backgroundColor: "#F8F8F8",
-    // color: "#1A1A1A",
+    backgroundColor: "#FFFFFF",
+    color: "#1A1A1A",
     borderWidth: 1,
-    // borderColor: "#E8E8E8",
+    borderColor: "#E8E8E8",
     borderRadius: 10,
     padding: 12,
     fontSize: 13,
@@ -805,17 +1016,20 @@ const st = StyleSheet.create({
 
   // Complete Summary
   completeSummary: {
-    // backgroundColor: "#F8F8F8",
+    backgroundColor: "#F0FFF0",
     borderRadius: 16,
     padding: 20,
     alignItems: "center",
     gap: 8,
+    borderWidth: 1,
+    borderColor: "#2E7D32",
   },
-  completeTitle: { fontFamily: Fonts.bold, fontSize: 22, /* color: "#1A1A1A" */ },
-  completeStat: { fontFamily: Fonts.regular, fontSize: 14, /* color: "#8E8E93" */ },
-  completeChecklist: { marginTop: 12, alignSelf: "stretch", paddingTop: 12, borderTopWidth: 1, /* borderTopColor: "#E5E5EA" */ },
-  completeCheckTitle: { fontFamily: Fonts.semiBold, fontSize: 13, /* color: "#1A1A1A" */ marginBottom: 6, textAlign: "center" },
-  completeCheckItem: { fontFamily: Fonts.regular, fontSize: 13, /* color: "#8E8E93" */ textAlign: "center", paddingVertical: 2 },
+  completeTitle: { fontFamily: Fonts.bold, fontSize: 22, color: "#2E7D32" },
+  completeStat: { fontFamily: Fonts.regular, fontSize: 14, color: "#666" },
+  completeRoute: { fontFamily: Fonts.medium, fontSize: 13, color: "#2E7D32" },
+  completeChecklist: { marginTop: 12, alignSelf: "stretch", paddingTop: 12, borderTopWidth: 1, borderTopColor: "#E5E5EA" },
+  completeCheckTitle: { fontFamily: Fonts.semiBold, fontSize: 13, color: "#1A1A1A", marginBottom: 6, textAlign: "center" },
+  completeCheckItem: { fontFamily: Fonts.regular, fontSize: 13, color: "#8E8E93", textAlign: "center", paddingVertical: 2 },
 
   // Controls
   controls: { paddingVertical: 12, gap: 12 },
