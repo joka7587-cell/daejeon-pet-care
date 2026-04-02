@@ -251,17 +251,27 @@ export default function WalkTrackerScreen() {
     const fetchKey = async () => {
       try {
         const baseUrl = getApiBaseUrl();
+        if (!baseUrl) {
+          console.warn("API base URL not available");
+          return;
+        }
         const res = await fetch(`${baseUrl}/api/kakao-map-key`);
+        if (!res.ok) {
+          console.warn("API key fetch failed:", res.status);
+          return;
+        }
         const data = await res.json();
         if (data.key) {
           setApiKey(data.key);
+        } else {
+          console.warn("No API key in response");
         }
       } catch (e) {
         console.warn("API key fetch error:", e);
       }
     };
     fetchKey();
-  }, []);
+  }, [])
 
   // 타이머
   useEffect(() => {
@@ -311,7 +321,7 @@ export default function WalkTrackerScreen() {
 
   // ─── 5초마다 GPS 시뮬레이션 + WebView 마커 이동 ───
   useEffect(() => {
-    if (status === "active" && mapReady) {
+    if (status === "active" && mapReady && apiKey) {
       // 첫 번째 포인트 즉시 전송
       const firstPt = EXPO_WALK_ROUTE[0];
       sendPositionToMap(firstPt.lat, firstPt.lng, 0);
@@ -342,7 +352,7 @@ export default function WalkTrackerScreen() {
         simTimerRef.current = null;
       }
     };
-  }, [status, mapReady]);
+  }, [status, mapReady, apiKey]);
 
   const sendPositionToMap = (lat: number, lng: number, index: number) => {
     if (webViewRef.current) {
@@ -571,6 +581,14 @@ export default function WalkTrackerScreen() {
   const statusInfo = getStatusInfo();
 
   const mapHTML = apiKey ? generateTrackerMapHTML(apiKey) : "";
+  
+  // 디버깅용 로그
+  useEffect(() => {
+    console.log("[Tracker] apiKey:", apiKey ? "✓ loaded" : "✗ not loaded");
+    console.log("[Tracker] mapReady:", mapReady);
+    console.log("[Tracker] status:", status);
+    console.log("[Tracker] pointCount:", pointCount);
+  }, [apiKey, mapReady, status, pointCount]);
 
   return (
     <ScreenContainer>

@@ -213,12 +213,16 @@ export default function LiveTrackerScreen() {
   // 경과 시간 타이머
   useEffect(() => {
     if (simStatus === "running" && walkSimulation.startedAt) {
+      console.log("[LiveTracker] Timer started");
       timerRef.current = setInterval(() => {
         const elapsed = (Date.now() - new Date(walkSimulation.startedAt!).getTime()) / 1000;
         setElapsedSec(Math.floor(elapsed));
       }, 1000);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        console.log("[LiveTracker] Timer cleared");
+        clearInterval(timerRef.current);
+      }
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -228,12 +232,16 @@ export default function LiveTrackerScreen() {
   // 이동 거리 계산
   let distanceSoFar = 0;
   for (let i = 1; i <= currentIndex && i < EXPO_PARK_ROUTE.length; i++) {
-    distanceSoFar += haversineDistance(
+    const segmentDist = haversineDistance(
       EXPO_PARK_ROUTE[i - 1].latitude,
       EXPO_PARK_ROUTE[i - 1].longitude,
       EXPO_PARK_ROUTE[i].latitude,
       EXPO_PARK_ROUTE[i].longitude
     );
+    distanceSoFar += segmentDist;
+  }
+  if (distanceSoFar === 0 && currentIndex > 0) {
+    console.warn("[LiveTracker] Distance calculation issue - currentIndex:", currentIndex);
   }
 
   const totalDistance = calculateRouteDistance(EXPO_PARK_ROUTE);
@@ -244,6 +252,14 @@ export default function LiveTrackerScreen() {
     const s = sec % 60;
     return m > 0 ? `${m}분 ${s}초` : `${s}초`;
   };
+
+  // 디버깅용 로그
+  useEffect(() => {
+    console.log("[LiveTracker] simStatus:", simStatus);
+    console.log("[LiveTracker] currentIndex:", currentIndex);
+    console.log("[LiveTracker] elapsedSec:", elapsedSec);
+    console.log("[LiveTracker] walkSimulation:", walkSimulation);
+  }, [simStatus, currentIndex, elapsedSec, walkSimulation]);
 
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} className="p-0">
