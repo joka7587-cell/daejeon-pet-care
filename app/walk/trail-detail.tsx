@@ -207,15 +207,30 @@ function generateTrailMapHTML(apiKey: string, spot: WalkSpot): string {
 
 export default function TrailDetailScreen() {
   const router = useRouter();
-  const { spotId } = useLocalSearchParams<{ spotId: string }>();
+  const { spotId, lat, lng } = useLocalSearchParams<{ spotId: string; lat?: string; lng?: string }>();
   const webViewRef = useRef<WebView>(null);
   const [apiKey, setApiKey] = useState("");
   const [mapReady, setMapReady] = useState(false);
+  const [apiKeyFailed, setApiKeyFailed] = useState(false);
 
-  // 산책로 데이터 찾기
+  // 산책로 데이터 찾기 - route params의 좌표도 반영
   const spot = useMemo(() => {
-    return DAEJEON_WALK_SPOTS.find((s) => s.id === spotId) || DAEJEON_WALK_SPOTS[0];
-  }, [spotId]);
+    const found = DAEJEON_WALK_SPOTS.find((s) => s.id === spotId);
+    if (found) {
+      // route params로 전달된 좌표가 있으면 우선 사용
+      if (lat && lng) {
+        return { ...found, latitude: parseFloat(lat), longitude: parseFloat(lng) };
+      }
+      return found;
+    }
+    // spotId로 찾지 못한 경우 기본값 (엑스포과학공원)
+    const defaultSpot = DAEJEON_WALK_SPOTS[0];
+    return {
+      ...defaultSpot,
+      latitude: lat ? parseFloat(lat) : 36.376,
+      longitude: lng ? parseFloat(lng) : 127.387,
+    };
+  }, [spotId, lat, lng]);
 
   // 리뷰 데이터
   const reviews = useMemo(() => {
@@ -233,26 +248,34 @@ export default function TrailDetailScreen() {
     return (sum / reviews.length).toFixed(1);
   }, [reviews]);
 
-  // API 키 가져오기
+  // API 키 가져오기 - 무한 로딩 방지 (3초 타임아웃 + 폴백)
   useEffect(() => {
     let cancelled = false;
+    const fallbackTimer = setTimeout(() => {
+      if (!cancelled && !apiKey) {
+        setApiKey("bacaa8f1d9ab392f51dce2e886e5e15b");
+        setApiKeyFailed(true);
+      }
+    }, 3000);
+
     const fetchKey = async () => {
       try {
         const base = getApiBaseUrl();
-        const res = await fetch(`${base}/api/kakao-map-key`);
+        const res = await fetch(`${base}/api/kakao-map-key`, { signal: AbortSignal.timeout(2500) });
         const data = await res.json();
-        if (!cancelled && data.apiKey) setApiKey(data.apiKey);
+        if (!cancelled && data.apiKey) {
+          setApiKey(data.apiKey);
+          clearTimeout(fallbackTimer);
+        }
       } catch {
-        // 폴백: 환경변수에서 직접 로드 시도
-        if (!cancelled) {
-          setTimeout(() => {
-            if (!cancelled) setApiKey("bacaa8f1d9ab392f51dce2e886e5e15b");
-          }, 2000);
+        if (!cancelled && !apiKey) {
+          setApiKey("bacaa8f1d9ab392f51dce2e886e5e15b");
+          setApiKeyFailed(true);
         }
       }
     };
     fetchKey();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(fallbackTimer); };
   }, []);
 
   // 난이도 색상
@@ -346,32 +369,26 @@ export default function TrailDetailScreen() {
         <View style={st.section}>
           <Text style={st.sectionTitle}>📍 위치</Text>
           <View style={st.mapContainer}>
-            {apiKey ? (
-              <WebView
-                ref={webViewRef}
-                source={{ html: generateTrailMapHTML(apiKey, spot) }}
-                style={{ flex: 1, minHeight: 250 }}
-                originWhitelist={["*"]}
-                javaScriptEnabled
-                domStorageEnabled
-                mixedContentMode="always"
-                allowFileAccess
-                allowUniversalAccessFromFileURLs
-                scrollEnabled={false}
-                onMessage={(event) => {
-                  try {
-                    const data = JSON.parse(event.nativeEvent.data);
-                    if (data.type === "ready") setMapReady(true);
-                  } catch {}
-                }}
-                onError={(e) => console.error("TrailMap WebView Error:", e.nativeEvent)}
-              />
-            ) : (
-              <View style={st.mapLoading}>
-                <ActivityIndicator size="small" color="#2E7D32" />
-                <Text style={st.mapLoadingText}>지도를 불러오는 중...</Text>
-              </View>
-            )}
+            <WebView
+              ref={webViewRef}
+              source={{ html: generateTrailMapHTML(apiKey || "bacaa8f1d9ab392f51dce2e886e5e15b", spot) }}
+              style={{ flex: 1, minHeight: 300 }}
+              originWhitelist={["*"]}
+              javaScriptEnabled
+              domStorageEnabled
+              mixedContentMode="always"
+              allowFileAccess
+              allowUniversalAccessFromFileURLs
+              scrollEnabled={false}
+              onMessage={(event) => {
+                try {
+                  const data = JSON.parse(event.nativeEvent.data);
+                  if (data.type === "ready") setMapReady(true);
+                } catch {}
+              }}
+              onError={(syntheticEvent) => console.error("TrailMap WebView Error:", syntheticEvent.nativeEvent)}
+              onHttpError={(syntheticEvent) => console.error("TrailMap HTTP Error:", syntheticEvent.nativeEvent)}
+            />
           </View>
         </View>
 
@@ -603,7 +620,7 @@ const st = StyleSheet.create({
     lineHeight: 24,
   },
   mapContainer: {
-    height: 250,
+    height: 300,
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 2,
