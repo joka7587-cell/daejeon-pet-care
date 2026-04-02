@@ -677,3 +677,8 @@
 - [x] KakaoMapWebViewNearby 컴포넌트 구현 - 무조건 실제 카카오맵 WebView 렌더링
 - [x] WebView 컨테이너 스타일: flex:1, minHeight:300, 딥 그린 테두리, 그림자 효과
 - [x] 돌보미 마커 클릭 시 정보 윈도우 표시 (emoji, 닉네임, 평점, 거리, 서비스)
+
+## 무한 로딩 버그 수정 (Phase 40)
+- [x] BUG: 근처돌보미 지도 무한 로딩 스피너 강제 제거 (getApiBaseUrl import 수정 + 3초 폴백 타이머)
+- [x] BUG: useEffect 무한 루프 방지 (userLocation 객체 → 원시값 userLat/userLng 분리)
+- [x] WebView onError/onHttpError/onMessage 에러 로그 추적 속성 추가

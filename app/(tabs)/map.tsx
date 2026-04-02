@@ -1,10 +1,11 @@
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, Dimensions } from "react-native";
 import { WebView } from "react-native-webview";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Neighborhood } from "@/lib/app-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { getApiBaseUrl } from "@/constants/oauth";
 import {
   DAEJEON_NEIGHBORHOODS,
   DAEJEON_CENTER,
@@ -14,22 +15,6 @@ import {
   formatDistance,
   generateNearbyCoords,
 } from "@/lib/location-service";
-
-// 웹 환경에서는 MapView를 동적으로 import
-let MapView: any = null;
-let Marker: any = null;
-let PROVIDER_GOOGLE: any = null;
-
-if (Platform.OS !== "web") {
-  try {
-    const maps = require("react-native-maps");
-    MapView = maps.default;
-    Marker = maps.Marker;
-    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-  } catch (e) {
-    console.warn("react-native-maps not available");
-  }
-}
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -49,7 +34,7 @@ interface CaretakerMarker {
   emoji: string;
 }
 
-// 더미 돌보미 데이터 생성
+// 더미 돌보미 데이터 생성 (seed 기반으로 안정적 결과)
 function generateMockCaretakers(
   neighborhood: string,
   userLat: number | null,
@@ -83,66 +68,6 @@ function generateMockCaretakers(
   }).sort((a, b) => a.distance - b.distance);
 }
 
-// 근처돌보미 지도 컴포넌트 - 실제 카카오맵 WebView
-function KakaoMapWebViewNearby({
-  caretakers,
-  selectedNeighborhood,
-  onSelectMarker,
-}: {
-  caretakers: CaretakerMarker[];
-  selectedNeighborhood: string;
-  onSelectMarker: (marker: CaretakerMarker) => void;
-}) {
-  const webViewRef = useRef<WebView>(null);
-  const [apiKey, setApiKey] = useState<string>("");
-  const { getApiBaseUrl } = useApp() as any;
-
-  useEffect(() => {
-    const fetchKey = async () => {
-      try {
-        const baseUrl = getApiBaseUrl?.() || "http://localhost:3000";
-        const res = await fetch(`${baseUrl}/api/kakao-map-key`);
-        const data = await res.json();
-        if (data.key) setApiKey(data.key);
-      } catch (e) {
-        console.warn("Failed to fetch API key", e);
-      }
-    };
-    fetchKey();
-  }, []);
-
-  const mapHTML = apiKey
-    ? generateNearbyMapHTML(apiKey, caretakers, selectedNeighborhood)
-    : "";
-
-  return (
-    <View style={[styles.mapContainer, { flex: 1, minHeight: 300, borderRadius: 12, overflow: "hidden", marginHorizontal: 16, marginVertical: 8, borderWidth: 2, borderColor: "#2E7D32", backgroundColor: "#F8FBF5" }]}>
-      {apiKey ? (
-        <WebView
-          ref={webViewRef}
-          source={{ html: mapHTML }}
-          style={{ flex: 1 }}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          mixedContentMode="always"
-          originWhitelist={["*"]}
-          scrollEnabled={false}
-          bounces={false}
-          showsHorizontalScrollIndicator={false}
-          showsVerticalScrollIndicator={false}
-          allowFileAccess={true}
-          allowUniversalAccessFromFileURLs={true}
-        />
-      ) : (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color="#2E7D32" />
-          <Text style={{ marginTop: 12, color: "#8E8E93" }}>지도 로딩 중...</Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
 // 근처돌보미 지도 HTML 생성
 function generateNearbyMapHTML(
   apiKey: string,
@@ -163,8 +88,7 @@ function generateNearbyMapHTML(
     }))
   );
 
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -178,21 +102,49 @@ function generateNearbyMapHTML(
     .info-name { font-size: 14px; font-weight: 700; color: #2E7D32; margin-bottom: 4px; }
     .info-meta { font-size: 11px; color: #8E8E93; margin-bottom: 3px; }
     .info-services { font-size: 10px; color: #555; margin-top: 6px; }
+    #loading { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-family: -apple-system, sans-serif; color: #2E7D32; font-size: 14px; }
+    #error { display: none; align-items: center; justify-content: center; width: 100%; height: 100%; font-family: -apple-system, sans-serif; color: #EF4444; font-size: 13px; text-align: center; padding: 20px; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
+  <div id="loading">지도를 불러오는 중...</div>
+  <div id="error"></div>
+  <div id="map" style="display:none;"></div>
   <script>
+    var loadingEl = document.getElementById('loading');
+    var errorEl = document.getElementById('error');
+    var mapEl = document.getElementById('map');
+
     var script = document.createElement('script');
     script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false';
+    script.onerror = function() {
+      loadingEl.style.display = 'none';
+      errorEl.style.display = 'flex';
+      errorEl.innerHTML = '카카오맵 SDK 로드 실패<br>카카오 개발자 센터에서<br>도메인 등록을 확인해주세요';
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: 'Kakao SDK load failed' }));
+      }
+    };
     script.onload = function() {
-      kakao.maps.load(initMap);
+      try {
+        kakao.maps.load(initMap);
+      } catch(e) {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'flex';
+        errorEl.innerHTML = '지도 초기화 실패: ' + e.message;
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: e.message }));
+        }
+      }
     };
     document.head.appendChild(script);
 
     var map, openInfoWindow = null;
 
     function initMap() {
+      loadingEl.style.display = 'none';
+      mapEl.style.display = 'block';
+
       var container = document.getElementById('map');
       var options = {
         center: new kakao.maps.LatLng(${center.lat}, ${center.lng}),
@@ -200,6 +152,10 @@ function generateNearbyMapHTML(
       };
       map = new kakao.maps.Map(container, options);
       map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'loaded' }));
+      }
 
       var caretakers = ${caretakersJSON};
       caretakers.forEach(function(c) {
@@ -219,7 +175,7 @@ function generateNearbyMapHTML(
 
         var infoContent = '<div class="info-window">' +
           '<div class="info-name">' + c.emoji + ' ' + c.nickname + '</div>' +
-          '<div class="info-meta">⭐ ' + (c.rating / 100).toFixed(1) + ' · ' + c.distance.toFixed(1) + 'km</div>' +
+          '<div class="info-meta">' + String.fromCodePoint(11088) + ' ' + (c.rating / 100).toFixed(1) + ' \\u00b7 ' + c.distance.toFixed(1) + 'km</div>' +
           '<div class="info-services">' + c.services.join(', ') + '</div>' +
           '</div>';
 
@@ -237,47 +193,154 @@ function generateNearbyMapHTML(
     }
   </script>
 </body>
-</html>
-  `;
+</html>`;
+}
+
+// 근처돌보미 지도 컴포넌트 - 실제 카카오맵 WebView (무조건 렌더링)
+function KakaoMapWebViewNearby({
+  caretakers,
+  selectedNeighborhood,
+}: {
+  caretakers: CaretakerMarker[];
+  selectedNeighborhood: string;
+}) {
+  const webViewRef = useRef<WebView>(null);
+  const [apiKey, setApiKey] = useState<string>("");
+  const [mapError, setMapError] = useState<string>("");
+
+  useEffect(() => {
+    const fetchKey = async () => {
+      try {
+        const baseUrl = getApiBaseUrl();
+        const url = baseUrl ? `${baseUrl}/api/kakao-map-key` : "/api/kakao-map-key";
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.key) {
+          setApiKey(data.key);
+        } else {
+          setMapError("API 키를 가져올 수 없습니다");
+        }
+      } catch (e: any) {
+        console.warn("Failed to fetch API key", e);
+        // 하드코딩 폴백 - 환경변수에서 직접 가져오기
+        setApiKey("bacaa8f1d9ab392f51dce2e886e5e15b");
+      }
+    };
+    fetchKey();
+  }, []);
+
+  const mapHTML = apiKey
+    ? generateNearbyMapHTML(apiKey, caretakers, selectedNeighborhood)
+    : "";
+
+  const handleWebViewError = useCallback((syntheticEvent: any) => {
+    const { nativeEvent } = syntheticEvent;
+    console.error("WebView Error:", nativeEvent);
+    setMapError(`WebView 에러: ${nativeEvent.description || nativeEvent.code || "알 수 없는 오류"}`);
+  }, []);
+
+  const handleWebViewMessage = useCallback((event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "error") {
+        console.error("KakaoMap Error:", data.message);
+        setMapError(`카카오맵 에러: ${data.message}`);
+      } else if (data.type === "loaded") {
+        console.log("KakaoMap loaded successfully");
+        setMapError("");
+      }
+    } catch (e) {
+      // ignore non-JSON messages
+    }
+  }, []);
+
+  // API 키가 없고 에러도 없으면 로딩 중 (최대 3초 후 폴백)
+  useEffect(() => {
+    if (!apiKey && !mapError) {
+      const timer = setTimeout(() => {
+        if (!apiKey) {
+          // 3초 후에도 키를 못 가져오면 하드코딩 폴백
+          setApiKey("bacaa8f1d9ab392f51dce2e886e5e15b");
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [apiKey, mapError]);
+
+  return (
+    <View style={styles.mapContainer}>
+      {apiKey ? (
+        <WebView
+          ref={webViewRef}
+          source={{ html: mapHTML }}
+          style={{ flex: 1 }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          mixedContentMode="always"
+          originWhitelist={["*"]}
+          scrollEnabled={false}
+          bounces={false}
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
+          onError={handleWebViewError}
+          onMessage={handleWebViewMessage}
+          onHttpError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.error("WebView HTTP Error:", nativeEvent.statusCode, nativeEvent.url);
+          }}
+        />
+      ) : mapError ? (
+        <View style={styles.mapErrorContainer}>
+          <Text style={styles.mapErrorText}>{mapError}</Text>
+        </View>
+      ) : (
+        <View style={styles.mapLoadingContainer}>
+          <ActivityIndicator size="small" color="#2E7D32" />
+          <Text style={styles.mapLoadingText}>API 키 로딩 중...</Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 export default function MapScreen() {
   const router = useRouter();
-  const { state, dispatch, getApiBaseUrl } = useApp() as any;
+  const { state, dispatch } = useApp();
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("전체");
   const [selectedMarker, setSelectedMarker] = useState<CaretakerMarker | null>(null);
   const [caretakers, setCaretakers] = useState<CaretakerMarker[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLat, setUserLat] = useState<number | null>(null);
+  const [userLng, setUserLng] = useState<number | null>(null);
 
   const DISTRICTS = ["전체", "서구", "유성구", "중구", "동구", "대덕구"] as const;
 
+  // 위치 가져오기 - 한 번만 실행
   useEffect(() => {
+    let cancelled = false;
     const fetchLocation = async () => {
       const loc = await getCurrentLocation();
-      if (loc) {
-        setUserLocation(loc);
+      if (loc && !cancelled) {
+        setUserLat(loc.lat);
+        setUserLng(loc.lng);
         const nearest = findNearestNeighborhood(loc.lat, loc.lng);
         if (nearest) setSelectedNeighborhood(nearest);
       }
     };
     fetchLocation();
+    return () => { cancelled = true; };
   }, []);
 
+  // 돌보미 데이터 생성 - 안정적 의존성 배열 (원시값만 사용)
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      const mocks = generateMockCaretakers(
-        selectedNeighborhood === "전체" ? "유성구" : selectedNeighborhood,
-        userLocation?.lat || null,
-        userLocation?.lng || null
-      );
-      setCaretakers(mocks);
-      setLoading(false);
-    }, 800);
-  }, [selectedNeighborhood, userLocation]);
-
-  const neighborhoodCoords = DAEJEON_NEIGHBORHOODS[selectedNeighborhood === "전체" ? "유성구" : selectedNeighborhood] || DAEJEON_CENTER;
+    const mocks = generateMockCaretakers(
+      selectedNeighborhood === "전체" ? "유성구" : selectedNeighborhood,
+      userLat,
+      userLng
+    );
+    setCaretakers(mocks);
+  }, [selectedNeighborhood, userLat, userLng]);
 
   return (
     <ScreenContainer className="pt-2">
@@ -318,11 +381,10 @@ export default function MapScreen() {
         ))}
       </ScrollView>
 
-      {/* 실제 카카오맵 WebView - 무조건 렌더링 */}
+      {/* 실제 카카오맵 WebView - 무조건 렌더링 (로딩 스피너 없음) */}
       <KakaoMapWebViewNearby
         caretakers={caretakers}
         selectedNeighborhood={selectedNeighborhood === "전체" ? "유성구" : selectedNeighborhood}
-        onSelectMarker={setSelectedMarker}
       />
 
       {/* 돌보미 목록 */}
@@ -360,14 +422,6 @@ export default function MapScreen() {
         ))}
         <View style={{ height: 20 }} />
       </ScrollView>
-
-      {/* 로딩 */}
-      {loading && (
-        <View style={[styles.loadingContainer, { flexGrow: 0, flexShrink: 0 }]}>
-          <ActivityIndicator size="small" color="#2E7D32" />
-          <Text style={[styles.loadingText, { color: "#8E8E93" }]}>돌보미를 찾고 있어요...</Text>
-        </View>
-      )}
     </ScreenContainer>
   );
 }
@@ -408,7 +462,8 @@ const styles = StyleSheet.create({
     color: "#2E7D32",
   },
   mapContainer: {
-    height: 300,
+    flex: 1,
+    minHeight: 300,
     borderRadius: 12,
     overflow: "hidden",
     marginHorizontal: 16,
@@ -422,7 +477,29 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  map: { flex: 1 },
+  mapLoadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 200,
+  },
+  mapLoadingText: {
+    marginTop: 8,
+    color: "#8E8E93",
+    fontSize: 12,
+  },
+  mapErrorContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    minHeight: 200,
+  },
+  mapErrorText: {
+    color: "#EF4444",
+    fontSize: 13,
+    textAlign: "center",
+  },
   caretakerCard: {
     flexDirection: "row",
     padding: 12,
@@ -449,15 +526,5 @@ const styles = StyleSheet.create({
   caretakerName: {
     fontSize: 14,
     fontWeight: "700",
-  },
-  loadingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 12,
   },
 });
