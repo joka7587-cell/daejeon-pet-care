@@ -2,7 +2,7 @@
  * 카카오맵 JavaScript API를 WebView로 연동한 대전 전용 지도 컴포넌트
  *
  * 기능:
- * - 대전 시청(36.3504, 127.3845) 중심 좌표
+ * - 대전 엑스포과학공원(36.376, 127.387) 중심 좌표
  * - 커스텀 강아지 발바닥 아이콘 마커 (산책 명소)
  * - 마커 클릭 시 인포윈도우 표시
  * - 워커 실시간 위치 핀 + 경로 폴리라인
@@ -181,9 +181,9 @@ function generateKakaoMapHTML(
 ): string {
   const center = walkerLoc
     ? { lat: walkerLoc.latitude, lng: walkerLoc.longitude }
-    : { lat: 36.3504, lng: 127.3845 }; // 대전 시청
+    : { lat: 36.376, lng: 127.387 }; // 대전 엑스포과학공원 (한빛탑)
 
-  const zoomLevel = walkerLoc ? 4 : 7; // 워커 위치 있으면 더 줌인
+  const zoomLevel = walkerLoc ? 3 : 4; // 산책로 상세 보이도록 레벨 3~4
 
   const markersJSON = JSON.stringify(DAEJEON_WALK_MARKERS);
   const routeJSON = JSON.stringify(

@@ -14,8 +14,8 @@ import {
 
 describe("walk-simulation 모듈", () => {
   describe("EXPO_PARK_ROUTE 좌표 배열", () => {
-    it("5개의 좌표가 정의되어 있어야 한다", () => {
-      expect(EXPO_PARK_ROUTE).toHaveLength(5);
+    it("12개의 좌표가 정의되어 있어야 한다 (엑스포과학공원 → 엑스포 다리 → 갑천변)", () => {
+      expect(EXPO_PARK_ROUTE).toHaveLength(12);
     });
 
     it("모든 좌표에 필수 필드가 있어야 한다", () => {

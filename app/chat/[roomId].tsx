@@ -104,18 +104,20 @@ const FRIEND_REPLIES = [
 
 const DISTRICT_TABS = ["전체", "서구", "유성구", "중구", "동구", "대덕구"] as const;
 
-// ─── 데모 산책 시뮬레이션 경로 (대전 유성구 궁동 근처) ───
+// ─── 데모 산책 시뮬레이션 경로 (대전 엑스포과학공원 → 엑스포 다리 → 갑천변) ───
 const DEMO_WALK_ROUTE = [
-  { latitude: 36.3550, longitude: 127.3850 },
-  { latitude: 36.3555, longitude: 127.3860 },
-  { latitude: 36.3560, longitude: 127.3870 },
-  { latitude: 36.3565, longitude: 127.3880 },
-  { latitude: 36.3570, longitude: 127.3890 },
-  { latitude: 36.3575, longitude: 127.3895 },
-  { latitude: 36.3580, longitude: 127.3900 },
-  { latitude: 36.3585, longitude: 127.3905 },
-  { latitude: 36.3590, longitude: 127.3910 },
-  { latitude: 36.3595, longitude: 127.3915 },
+  { latitude: 36.3742, longitude: 127.3918 }, // 1. 엑스포과학공원 정문
+  { latitude: 36.3750, longitude: 127.3925 }, // 2. 과학공원 내부 산책로
+  { latitude: 36.3758, longitude: 127.3935 }, // 3. 한빛탑 광장
+  { latitude: 36.3765, longitude: 127.3928 }, // 4. 한빛탑 북쪽
+  { latitude: 36.3772, longitude: 127.3915 }, // 5. 엑스포 다리 입구
+  { latitude: 36.3780, longitude: 127.3900 }, // 6. 엑스포 다리 중간
+  { latitude: 36.3788, longitude: 127.3885 }, // 7. 엑스포 다리 건너편
+  { latitude: 36.3785, longitude: 127.3868 }, // 8. 갑천변 산책로 진입
+  { latitude: 36.3778, longitude: 127.3855 }, // 9. 갑천변 산책로 중간
+  { latitude: 36.3770, longitude: 127.3845 }, // 10. 갑천변 산책로 남쪽
+  { latitude: 36.3762, longitude: 127.3858 }, // 11. 엑스포 시민광장 방면
+  { latitude: 36.3755, longitude: 127.3870 }, // 12. 엑스포 시민광장
 ];
 
 // ─── 산책 명소 선택 모달 ───
@@ -409,7 +411,7 @@ export default function ChatScreen() {
           setWalkRoutePoints((pts) => [...pts, DEMO_WALK_ROUTE[next]]);
           return next;
         });
-      }, 3000);
+      }, 5000); // 5초마다 GPS 마커 이동
     }
     return () => {
       if (walkTimerRef.current) clearInterval(walkTimerRef.current);
@@ -527,10 +529,10 @@ export default function ChatScreen() {
     // 현재 위치 결정 (산책 중이면 산책 위치, 아니면 기본 위치)
     const currentLat = walkStatus === "walking" && walkRouteIndex < DEMO_WALK_ROUTE.length
       ? DEMO_WALK_ROUTE[walkRouteIndex].latitude
-      : 36.3550;
+      : 36.376; // 엑스포과학공원 기본 좌표
     const currentLon = walkStatus === "walking" && walkRouteIndex < DEMO_WALK_ROUTE.length
       ? DEMO_WALK_ROUTE[walkRouteIndex].longitude
-      : 127.3850;
+      : 127.387; // 엑스포과학공원 기본 좌표
     const district = getDistrictFromCoordinates(currentLat, currentLon);
 
     const photoData: PhotoData = {
