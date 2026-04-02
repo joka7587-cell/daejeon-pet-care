@@ -39,20 +39,20 @@ describe("산책 명소 - 5개 구 분포 검증", () => {
     });
   });
 
-  it("서구: 한밭수목원, 유림공원, 갑천 둔치 산책로 (3개)", () => {
+  it("서구: 한밭수목원, 대전 갑천 생태 호수 공원 (2개)", () => {
     const spots = getSpotsByDistrict("서구");
-    expect(spots).toHaveLength(3);
+    expect(spots).toHaveLength(2);
     const names = spots.map((s) => s.name);
     expect(names).toContain("한밭수목원");
-    expect(names).toContain("유림공원");
-    expect(names).toContain("갑천 둔치 산책로");
+    expect(names).toContain("대전 갑천 생태 호수 공원");
   });
 
-  it("유성구: 엑스포 시민광장, 카이스트 캠퍼스 산책로, 대덕연구단지 산책로 (3개)", () => {
+  it("유성구: 엑스포 시민광장, 유림공원, 카이스트 캠퍼스 산책로, 대덕연구단지 산책로 (4개)", () => {
     const spots = getSpotsByDistrict("유성구");
-    expect(spots).toHaveLength(3);
+    expect(spots).toHaveLength(4);
     const names = spots.map((s) => s.name);
     expect(names).toContain("엑스포 시민광장");
+    expect(names).toContain("유림공원");
     expect(names).toContain("카이스트 캠퍼스 산책로");
     expect(names).toContain("대덕연구단지 산책로");
   });

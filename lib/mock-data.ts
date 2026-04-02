@@ -292,7 +292,7 @@ export const MOCK_CARETAKERS: MockUser[] = [
     neighborhood: "도안동",
     district: "서구",
     role: "caretaker",
-    bio: "갑천 둔치 산책로 전문! 장거리 산책 가능합니다.",
+    bio: "갑천 생태 호수 공원 전문! 장거리 산책 가능합니다.",
     rating: 4.8,
     reviewCount: 41,
     services: ["대신 산책", "긴급 방문 돌봄"],

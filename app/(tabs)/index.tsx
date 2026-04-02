@@ -352,6 +352,38 @@ function OwnerHome() {
       {/* 구 필터 탭 */}
       <DistrictTabs selected={selectedDistrict} onSelect={setSelectedDistrict} />
 
+      {/* 광고 배너 캐러셀 */}
+      <View style={s.adBannerSection}>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 0 }}
+        >
+          {[
+            { id: "ad1", text: "대전 지역 애견 카페 제휴 할인 중!", emoji: "☕" },
+            { id: "ad2", text: "반려동물 전문 병원 10% 할인 제휴", emoji: "🏥" },
+            { id: "ad3", text: "애견 용품 전문점 특별 할인 이벤트", emoji: "🛍️" },
+          ].map((ad) => (
+            <Pressable
+              key={ad.id}
+              style={({ pressed }) => [s.adBannerCard, pressed && { opacity: 0.9 }]}
+            >
+              <View style={s.adBannerContent}>
+                <Text style={s.adBannerEmoji}>{ad.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.adBannerText}>{ad.text}</Text>
+                  <Text style={s.adBannerSub}>이미지 광고 영역</Text>
+                </View>
+              </View>
+              <View style={s.adBannerImagePlaceholder}>
+                <Text style={s.adBannerPlaceholderText}>광고 이미지</Text>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
       {/* 오늘의 추천 산책로 */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
@@ -1588,5 +1620,62 @@ const s = StyleSheet.create({
     height: 36,
     borderRadius: 10,
     marginRight: 10,
+  },
+
+  // Ad Banner Carousel
+  adBannerSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    marginTop: 4,
+  },
+  adBannerCard: {
+    width: 320,
+    backgroundColor: "#E8F5E9",
+    borderRadius: 16,
+    padding: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+    shadowColor: "#2E7D32",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  adBannerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  adBannerEmoji: {
+    fontSize: 28,
+  },
+  adBannerText: {
+    fontFamily: Fonts.bold,
+    fontSize: 14,
+    color: "#1B5E20",
+    letterSpacing: -0.2,
+  },
+  adBannerSub: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#4CAF50",
+    marginTop: 2,
+  },
+  adBannerImagePlaceholder: {
+    height: 80,
+    backgroundColor: "#C8E6C9",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#A5D6A7",
+    borderStyle: "dashed",
+  },
+  adBannerPlaceholderText: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: "#66BB6A",
   },
 });

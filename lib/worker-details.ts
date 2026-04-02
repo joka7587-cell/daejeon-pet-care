@@ -559,7 +559,7 @@ export const WORKER_DETAILS: Record<string, WorkerDetail> = {
     hasTrainerCert: false,
     responseTime: "15분 이내",
     introduction: "서구 도안동에서 3년간 대형견 산책을 전문으로 해왔습니다.",
-    specialNotes: "- 도안동/둔산동 일대\n- 대형견 전문\n- 갑천 둔치 산책로 활용"
+    specialNotes: "- 도안동/둔산동 일대\n- 대형견 전문\n- 갑천 생태 호수 공원 활용"
   },
   c13: {
     id: "c13",

@@ -28,9 +28,9 @@ describe("대전 산책 명소 마커", () => {
   const WALK_MARKERS = [
     { id: "spot_1", name: "한밭수목원", lat: 36.3685, lng: 127.3880, district: "서구 둔산동" },
     { id: "spot_2", name: "엑스포 시민광장", lat: 36.3742, lng: 127.3917, district: "유성구 도룡동" },
-    { id: "spot_3", name: "유림공원", lat: 36.3321, lng: 127.3654, district: "서구 괴정동" },
+    { id: "spot_3", name: "유림공원", lat: 36.3609, lng: 127.3592, district: "유성구 봉명동" },
     { id: "spot_4", name: "남선공원", lat: 36.3276, lng: 127.4218, district: "중구 대사동" },
-    { id: "spot_5", name: "갑천 둔치 산책로", lat: 36.3558, lng: 127.3761, district: "서구 월평동" },
+    { id: "spot_5", name: "대전 갑천 생태 호수 공원", lat: 36.3299, lng: 127.3536, district: "서구 도안동" },
     { id: "spot_6", name: "보문산 둘레길", lat: 36.3108, lng: 127.4176, district: "중구 대사동" },
     { id: "spot_7", name: "카이스트 캠퍼스", lat: 36.3721, lng: 127.3604, district: "유성구 어은동" },
     { id: "spot_8", name: "계족산 황톳길", lat: 36.4087, lng: 127.4312, district: "대덕구 장동" },
@@ -56,10 +56,10 @@ describe("대전 산책 명소 마커", () => {
     expect(expo!.district).toContain("유성구");
   });
 
-  it("유림공원 마커가 서구에 위치", () => {
+  it("유림공원 마커가 유성구에 위치", () => {
     const yurim = WALK_MARKERS.find((m) => m.name === "유림공원");
     expect(yurim).toBeDefined();
-    expect(yurim!.district).toContain("서구");
+    expect(yurim!.district).toContain("유성구");
   });
 
   it("모든 마커에 고유 ID가 있음", () => {
@@ -195,12 +195,12 @@ describe("대전 산책 명소 데이터 통합", () => {
     expect(expo!.longitude).toBeCloseTo(127.3917, 2);
   });
 
-  it("유림공원이 서구에 존재", async () => {
+  it("유림공원이 유성구에 존재", async () => {
     const { getSpotsByDistrict } = await import("../lib/daejeon-spots");
-    const seogu = getSpotsByDistrict("서구");
-    const yurim = seogu.find((s) => s.name === "유림공원");
+    const yuseong = getSpotsByDistrict("유성구");
+    const yurim = yuseong.find((s) => s.name === "유림공원");
     expect(yurim).toBeDefined();
-    expect(yurim!.latitude).toBeCloseTo(36.3321, 2);
-    expect(yurim!.longitude).toBeCloseTo(127.3654, 2);
+    expect(yurim!.latitude).toBeCloseTo(36.3609, 2);
+    expect(yurim!.longitude).toBeCloseTo(127.3592, 2);
   });
 });
