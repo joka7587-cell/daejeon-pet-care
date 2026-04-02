@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform } from "react-native";
+import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, Dimensions } from "react-native";
+import { WebView } from "react-native-webview";
+import { useRef, useState, useEffect } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp, Neighborhood } from "@/lib/app-context";
 import { useRouter } from "expo-router";
@@ -29,6 +30,8 @@ if (Platform.OS !== "web") {
     console.warn("react-native-maps not available");
   }
 }
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -80,228 +83,283 @@ function generateMockCaretakers(
   }).sort((a, b) => a.distance - b.distance);
 }
 
+// 근처돌보미 지도 컴포넌트 - 실제 카카오맵 WebView
+function KakaoMapWebViewNearby({
+  caretakers,
+  selectedNeighborhood,
+  onSelectMarker,
+}: {
+  caretakers: CaretakerMarker[];
+  selectedNeighborhood: string;
+  onSelectMarker: (marker: CaretakerMarker) => void;
+}) {
+  const webViewRef = useRef<WebView>(null);
+  const [apiKey, setApiKey] = useState<string>("");
+  const { getApiBaseUrl } = useApp() as any;
+
+  useEffect(() => {
+    const fetchKey = async () => {
+      try {
+        const baseUrl = getApiBaseUrl?.() || "http://localhost:3000";
+        const res = await fetch(`${baseUrl}/api/kakao-map-key`);
+        const data = await res.json();
+        if (data.key) setApiKey(data.key);
+      } catch (e) {
+        console.warn("Failed to fetch API key", e);
+      }
+    };
+    fetchKey();
+  }, []);
+
+  const mapHTML = apiKey
+    ? generateNearbyMapHTML(apiKey, caretakers, selectedNeighborhood)
+    : "";
+
+  return (
+    <View style={[styles.mapContainer, { flex: 1, minHeight: 300, borderRadius: 12, overflow: "hidden", marginHorizontal: 16, marginVertical: 8, borderWidth: 2, borderColor: "#2E7D32", backgroundColor: "#F8FBF5" }]}>
+      {apiKey ? (
+        <WebView
+          ref={webViewRef}
+          source={{ html: mapHTML }}
+          style={{ flex: 1 }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          mixedContentMode="always"
+          originWhitelist={["*"]}
+          scrollEnabled={false}
+          bounces={false}
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
+        />
+      ) : (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color="#2E7D32" />
+          <Text style={{ marginTop: 12, color: "#8E8E93" }}>지도 로딩 중...</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// 근처돌보미 지도 HTML 생성
+function generateNearbyMapHTML(
+  apiKey: string,
+  caretakers: CaretakerMarker[],
+  selectedNeighborhood: string
+): string {
+  const center = DAEJEON_NEIGHBORHOODS[selectedNeighborhood] || DAEJEON_NEIGHBORHOODS["유성구"];
+  const caretakersJSON = JSON.stringify(
+    caretakers.map((c) => ({
+      id: c.id,
+      nickname: c.nickname,
+      emoji: c.emoji,
+      lat: c.lat,
+      lng: c.lng,
+      distance: c.distance,
+      rating: c.rating,
+      services: c.services,
+    }))
+  );
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #F8FBF5; }
+    #map { width: 100%; height: 100%; }
+    .marker { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #2E7D32; border: 2px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.25); font-size: 18px; cursor: pointer; }
+    .info-window { padding: 12px 14px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 200px; font-family: -apple-system, sans-serif; }
+    .info-name { font-size: 14px; font-weight: 700; color: #2E7D32; margin-bottom: 4px; }
+    .info-meta { font-size: 11px; color: #8E8E93; margin-bottom: 3px; }
+    .info-services { font-size: 10px; color: #555; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var script = document.createElement('script');
+    script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false';
+    script.onload = function() {
+      kakao.maps.load(initMap);
+    };
+    document.head.appendChild(script);
+
+    var map, openInfoWindow = null;
+
+    function initMap() {
+      var container = document.getElementById('map');
+      var options = {
+        center: new kakao.maps.LatLng(${center.lat}, ${center.lng}),
+        level: 4
+      };
+      map = new kakao.maps.Map(container, options);
+      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+
+      var caretakers = ${caretakersJSON};
+      caretakers.forEach(function(c) {
+        var position = new kakao.maps.LatLng(c.lat, c.lng);
+        var el = document.createElement('div');
+        el.className = 'marker';
+        el.innerHTML = c.emoji;
+
+        var overlay = new kakao.maps.CustomOverlay({
+          position: position,
+          content: el,
+          yAnchor: 0.5,
+          xAnchor: 0.5,
+          zIndex: 10
+        });
+        overlay.setMap(map);
+
+        var infoContent = '<div class="info-window">' +
+          '<div class="info-name">' + c.emoji + ' ' + c.nickname + '</div>' +
+          '<div class="info-meta">⭐ ' + (c.rating / 100).toFixed(1) + ' · ' + c.distance.toFixed(1) + 'km</div>' +
+          '<div class="info-services">' + c.services.join(', ') + '</div>' +
+          '</div>';
+
+        var infoWindow = new kakao.maps.InfoWindow({
+          content: infoContent,
+          removable: true
+        });
+
+        el.addEventListener('click', function() {
+          if (openInfoWindow) openInfoWindow.close();
+          infoWindow.open(map, new kakao.maps.Marker({ position: position, map: null }));
+          openInfoWindow = infoWindow;
+        });
+      });
+    }
+  </script>
+</body>
+</html>
+  `;
+}
+
 export default function MapScreen() {
   const router = useRouter();
-  const { state, dispatch } = useApp();
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>(state.profile.neighborhood || "유성구");
+  const { state, dispatch, getApiBaseUrl } = useApp() as any;
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("전체");
+  const [selectedMarker, setSelectedMarker] = useState<CaretakerMarker | null>(null);
   const [caretakers, setCaretakers] = useState<CaretakerMarker[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedMarker, setSelectedMarker] = useState<CaretakerMarker | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
 
-  const isCaretaker = state.profile.role === "caretaker";
+  const DISTRICTS = ["전체", "서구", "유성구", "중구", "동구", "대덕구"] as const;
 
-  // 현재 위치 가져오기
-  const fetchLocation = useCallback(async () => {
-    setLocationLoading(true);
-    setLocationError(null);
-    try {
+  useEffect(() => {
+    const fetchLocation = async () => {
       const loc = await getCurrentLocation();
       if (loc) {
         setUserLocation(loc);
-        // 가장 가까운 동네 자동 감지
         const nearest = findNearestNeighborhood(loc.lat, loc.lng);
-        setSelectedNeighborhood(nearest);
-        // 프로필 동네도 업데이트 (대전 내 동네인 경우)
-        if (DAEJEON_NEIGHBORHOODS[nearest]) {
-          dispatch({ type: "SET_NEIGHBORHOOD", payload: nearest as Neighborhood });
-        }
-      } else {
-        setLocationError("위치를 가져올 수 없습니다");
+        if (nearest) setSelectedNeighborhood(nearest);
       }
-    } catch {
-      setLocationError("위치 권한이 필요합니다");
-    }
-    setLocationLoading(false);
-  }, [dispatch]);
-
-  // 돌보미 목록 로드
-  const loadCaretakers = useCallback(() => {
-    setLoading(true);
-    setSelectedMarker(null);
-    setTimeout(() => {
-      const data = generateMockCaretakers(
-        selectedNeighborhood,
-        userLocation?.lat ?? null,
-        userLocation?.lng ?? null
-      );
-      setCaretakers(data);
-      setLoading(false);
-    }, 400);
-  }, [selectedNeighborhood, userLocation]);
+    };
+    fetchLocation();
+  }, []);
 
   useEffect(() => {
-    loadCaretakers();
-  }, [loadCaretakers]);
+    setLoading(true);
+    setTimeout(() => {
+      const mocks = generateMockCaretakers(
+        selectedNeighborhood === "전체" ? "유성구" : selectedNeighborhood,
+        userLocation?.lat || null,
+        userLocation?.lng || null
+      );
+      setCaretakers(mocks);
+      setLoading(false);
+    }, 800);
+  }, [selectedNeighborhood, userLocation]);
 
-  const neighborhoodCoords = DAEJEON_NEIGHBORHOODS[selectedNeighborhood] || DAEJEON_NEIGHBORHOODS["유성구"];
+  const neighborhoodCoords = DAEJEON_NEIGHBORHOODS[selectedNeighborhood === "전체" ? "유성구" : selectedNeighborhood] || DAEJEON_CENTER;
 
   return (
     <ScreenContainer className="pt-2">
       {/* 헤더 */}
       <View style={[styles.header, { flexGrow: 0, flexShrink: 0 }]}>
-        <Text style={[styles.title, { color: "#1A1A1A" }]}>🗺️ 근처 돌보미</Text>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Pressable
-            onPress={() => {
-              haptic();
-              fetchLocation();
-            }}
-            style={({ pressed }) => [
-              styles.locationBtn,
-              locationLoading && { opacity: 0.5 },
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            {locationLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.locationBtnText}>📍 내 위치</Text>
-            )}
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              haptic();
-              loadCaretakers();
-            }}
-            style={({ pressed }) => [styles.refreshBtn, pressed && { opacity: 0.7 }]}
-          >
-            <Text style={styles.refreshBtnText}>🔄</Text>
-          </Pressable>
-        </View>
+        <Text style={[styles.title, { color: "#1A1A1A" }]}>근처 돌보미</Text>
       </View>
-
-      {/* 위치 상태 표시 */}
-      {userLocation && (
-        <View style={[styles.locationStatus, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", flexGrow: 0, flexShrink: 0 }]}>
-          <Text style={{ fontSize: 14 }}>📍</Text>
-          <Text style={[styles.locationStatusText, { color: "#1A1A1A" }]}>
-            현재 위치 감지됨 · <Text style={{ color: "#2E7D32", fontWeight: "700" }}>{selectedNeighborhood}</Text> 근처
-          </Text>
-          <Text style={[styles.locationCoords, { color: "#8E8E93" }]}>
-            {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-          </Text>
-        </View>
-      )}
-
-      {locationError && (
-        <View style={[styles.locationStatus, { backgroundColor: "#E8F5E9", borderColor: "#C8E6C9", flexGrow: 0, flexShrink: 0 }]}>
-          <Text style={{ fontSize: 14 }}>⚠️</Text>
-          <Text style={[styles.locationStatusText, { color: "#2E7D32" }]}>{locationError}</Text>
-        </View>
-      )}
 
       {/* 동네 선택 */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.neighborhoodList}
-        style={{ flexGrow: 0, flexShrink: 0 }}
+        style={{ flexGrow: 0, flexShrink: 0, marginVertical: 12 }}
       >
-        {Object.entries(DAEJEON_NEIGHBORHOODS).map(([key]) => {
-          const isSelected = selectedNeighborhood === key;
-          const distText = userLocation
-            ? formatDistance(calculateDistance(userLocation.lat, userLocation.lng, DAEJEON_NEIGHBORHOODS[key].lat, DAEJEON_NEIGHBORHOODS[key].lng))
-            : null;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => {
-                haptic();
-                setSelectedNeighborhood(key);
-              }}
-              style={({ pressed }) => [
-                styles.neighborhoodChip,
-                { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8" },
-                isSelected && styles.neighborhoodChipActive,
-                pressed && { opacity: 0.7 },
+        {DISTRICTS.map((district) => (
+          <Pressable
+            key={district}
+            onPress={() => {
+              haptic();
+              setSelectedNeighborhood(district);
+            }}
+            style={({ pressed }) => [
+              styles.neighborhoodChip,
+              selectedNeighborhood === district && styles.neighborhoodChipActive,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Text
+              style={[
+                styles.neighborhoodChipText,
+                selectedNeighborhood === district && styles.neighborhoodChipTextActive,
               ]}
             >
-              <Text
-                style={[
-                  styles.neighborhoodChipText,
-                  { color: "#8E8E93" },
-                  isSelected && styles.neighborhoodChipTextActive,
-                ]}
-              >
-                {key}
-              </Text>
-              {distText && (
-                <Text style={[styles.chipDistance, isSelected && { color: "#2E7D32" }]}>
-                  {distText}
-                </Text>
-              )}
-            </Pressable>
-          );
-        })}
+              {district}
+            </Text>
+          </Pressable>
+        ))}
       </ScrollView>
 
-      {/* 지도 또는 플레이스홀더 */}
-      {Platform.OS !== "web" && MapView ? (
-        <View style={[styles.mapContainer, { borderColor: "#E8E8E8", flexGrow: 0, flexShrink: 0 }]}>
-          <MapView
-            provider={PROVIDER_GOOGLE}
-            style={styles.map}
-            region={{
-              latitude: userLocation?.lat || neighborhoodCoords.lat,
-              longitude: userLocation?.lng || neighborhoodCoords.lng,
-              latitudeDelta: 0.03,
-              longitudeDelta: 0.03,
+      {/* 실제 카카오맵 WebView - 무조건 렌더링 */}
+      <KakaoMapWebViewNearby
+        caretakers={caretakers}
+        selectedNeighborhood={selectedNeighborhood === "전체" ? "유성구" : selectedNeighborhood}
+        onSelectMarker={setSelectedMarker}
+      />
+
+      {/* 돌보미 목록 */}
+      <ScrollView style={{ flex: 1, marginTop: 12 }} showsVerticalScrollIndicator={false}>
+        {caretakers.map((caretaker) => (
+          <Pressable
+            key={caretaker.id}
+            onPress={() => {
+              haptic();
+              router.push({
+                pathname: "/profile/[id]",
+                params: { id: caretaker.userId.toString() },
+              } as never);
             }}
-            showsUserLocation={true}
-            showsMyLocationButton={false}
+            style={({ pressed }) => [styles.caretakerCard, pressed && { opacity: 0.7 }]}
           >
-            {caretakers.map((caretaker) => (
-              <Marker
-                key={caretaker.id}
-                coordinate={{ latitude: caretaker.lat, longitude: caretaker.lng }}
-                onPress={() => {
-                  haptic();
-                  setSelectedMarker(caretaker);
-                }}
-              >
-                <View style={styles.markerContainer}>
-                  <Text style={styles.markerEmoji}>{caretaker.emoji}</Text>
-                </View>
-              </Marker>
-            ))}
-          </MapView>
-        </View>
-      ) : (
-        <View style={[styles.mapPlaceholder, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", flexGrow: 0, flexShrink: 0 }]}>
-          <View style={styles.webMapGrid}>
-            {/* 간이 지도 표시 (웹용) */}
-            <View style={styles.webMapCenter}>
-              {userLocation && (
-                <View style={styles.userDot}>
-                  <View style={styles.userDotInner} />
-                  <View style={styles.userDotPulse} />
-                </View>
-              )}
-              <Text style={{ fontSize: 32 }}>🗺️</Text>
-              <Text style={[styles.webMapLabel, { color: "#1A1A1A" }]}>{selectedNeighborhood}</Text>
+            <View style={styles.caretakerAvatar}>
+              <Text style={styles.caretakerEmoji}>{caretaker.emoji}</Text>
             </View>
-            {/* 돌보미 위치 표시 */}
-            <View style={styles.webMapMarkers}>
-              {caretakers.slice(0, 3).map((c) => (
-                <Pressable
-                  key={c.id}
-                  onPress={() => { haptic(); setSelectedMarker(c); }}
-                  style={({ pressed }) => [styles.webMapMarker, pressed && { opacity: 0.7 }]}
-                >
-                  <Text style={{ fontSize: 20 }}>{c.emoji}</Text>
-                  <Text style={[styles.webMapMarkerDist, { color: "#8E8E93" }]}>{formatDistance(c.distance)}</Text>
-                </Pressable>
-              ))}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.caretakerName, { color: "#1A1A1A" }]}>{caretaker.nickname}</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+                <Text style={{ fontSize: 12, color: "#2E7D32", fontWeight: "600" }}>⭐ {(caretaker.rating / 100).toFixed(1)}</Text>
+                <Text style={{ fontSize: 12, color: "#8E8E93" }}>📍 {formatDistance(caretaker.distance)}</Text>
+              </View>
+              <View style={{ flexDirection: "row", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+                {caretaker.services.map((service, idx) => (
+                  <View key={idx} style={{ backgroundColor: "#E8F5E9", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 10, color: "#2E7D32", fontWeight: "600" }}>{service}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
-          <Text style={[styles.mapPlaceholderSubtext, { color: "#8E8E93" }]}>
-            네이티브 앱에서 전체 지도를 이용할 수 있습니다
-          </Text>
-        </View>
-      )}
+          </Pressable>
+        ))}
+        <View style={{ height: 20 }} />
+      </ScrollView>
 
       {/* 로딩 */}
       {loading && (
@@ -310,174 +368,45 @@ export default function MapScreen() {
           <Text style={[styles.loadingText, { color: "#8E8E93" }]}>돌보미를 찾고 있어요...</Text>
         </View>
       )}
-
-      {/* 선택된 마커 상세 정보 */}
-      {selectedMarker && (
-        <View style={[styles.markerDetailCard, { backgroundColor: "#F8F8F8", borderColor: "#E8E8E8", flexGrow: 0, flexShrink: 0 }]}>
-          <View style={styles.markerDetailHeader}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <View style={styles.detailAvatar}>
-                <Text style={{ fontSize: 24 }}>{selectedMarker.emoji}</Text>
-              </View>
-              <View>
-                <Text style={[styles.markerDetailName, { color: "#1A1A1A" }]}>{selectedMarker.nickname}</Text>
-                <Text style={styles.markerDetailRating}>⭐ {(selectedMarker.rating / 100).toFixed(1)}</Text>
-              </View>
-            </View>
-            <Pressable
-              onPress={() => setSelectedMarker(null)}
-              style={({ pressed }) => [styles.closeBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.7 }]}
-            >
-              <Text style={[styles.closeBtnText, { color: "#8E8E93" }]}>✕</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.detailInfoRow}>
-            <View style={[styles.detailInfoChip, { backgroundColor: "#FFFFFF" }]}>
-              <Text style={{ fontSize: 12 }}>📍</Text>
-              <Text style={[styles.detailInfoText, { color: "#1A1A1A" }]}>{formatDistance(selectedMarker.distance)}</Text>
-            </View>
-            {selectedMarker.services.map((s, i) => (
-              <View key={i} style={[styles.detailInfoChip, { backgroundColor: "#E8F5E9" }]}>
-                <Text style={[styles.detailInfoText, { color: "#2E7D32" }]}>{s}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.markerDetailBody}>
-            <Pressable
-              onPress={() => {
-                haptic();
-                router.push(`/profile/${selectedMarker.userId}` as never);
-              }}
-              style={({ pressed }) => [styles.profileBtn, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.85 }]}
-            >
-              <Text style={styles.profileBtnText}>프로필 보기</Text>
-            </Pressable>
-            {!isCaretaker && (
-              <Pressable
-                onPress={() => {
-                  haptic();
-                  router.push("/request/new" as never);
-                }}
-                style={({ pressed }) => [styles.requestBtn, pressed && { opacity: 0.85 }]}
-              >
-                <Text style={styles.requestBtnText}>돌봄 요청하기</Text>
-              </Pressable>
-            )}
-          </View>
-        </View>
-      )}
-
-      {/* 돌보미 목록 */}
-      {!loading && caretakers.length > 0 && !selectedMarker && (
-        <View style={[styles.listContainer, { backgroundColor: "#F8F8F8", borderTopColor: "#E8E8E8", flex: 1 }]}>
-          <Text style={[styles.listTitle, { color: "#1A1A1A" }]}>
-            근처 돌보미 ({caretakers.length}명)
-            {userLocation && <Text style={{ fontSize: 12, color: "#8E8E93", fontWeight: "400" }}> · 거리순</Text>}
-          </Text>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
-            {caretakers.map((caretaker) => (
-              <Pressable
-                key={caretaker.id}
-                onPress={() => {
-                  haptic();
-                  setSelectedMarker(caretaker);
-                }}
-                style={({ pressed }) => [styles.listItem, { backgroundColor: "#FFFFFF" }, pressed && { opacity: 0.8 }]}
-              >
-                <View style={styles.listItemLeft}>
-                  <View style={[styles.listItemAvatar, { backgroundColor: "#E8F5E9" }]}>
-                    <Text style={{ fontSize: 22 }}>{caretaker.emoji}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.listItemName, { color: "#1A1A1A" }]}>{caretaker.nickname}</Text>
-                    <View style={{ flexDirection: "row", gap: 6, marginTop: 2 }}>
-                      <Text style={[styles.listItemDistance, { color: "#8E8E93" }]}>
-                        📍 {formatDistance(caretaker.distance)}
-                      </Text>
-                      <Text style={[styles.listItemService, { color: "#2E7D32" }]}>
-                        {caretaker.services[0]}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.listItemRight}>
-                  <Text style={styles.listItemRating}>⭐ {(caretaker.rating / 100).toFixed(1)}</Text>
-                  <Text style={[styles.listItemArrow, { color: "#8E8E93" }]}>›</Text>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {!loading && caretakers.length === 0 && (
-        <View style={[styles.emptyCard, { flexGrow: 0, flexShrink: 0 }]}>
-          <Text style={styles.emptyEmoji}>🌙</Text>
-          <Text style={[styles.emptyTitle, { color: "#1A1A1A" }]}>근처에 활동 중인 돌보미가 없어요</Text>
-          <Text style={[styles.emptyDesc, { color: "#8E8E93" }]}>다른 동네를 선택하거나 위치를 새로고침 해보세요</Text>
-        </View>
-      )}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8E8",
   },
-  title: { fontSize: 20, fontWeight: "800" },
-  locationBtn: {
-    backgroundColor: "#4CAF82",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
   },
-  locationBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  refreshBtn: {
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  refreshBtnText: { fontSize: 14 },
-  locationStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginHorizontal: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 4,
-  },
-  locationStatusText: { fontSize: 13, fontWeight: "600", flex: 1 },
-  locationCoords: { fontSize: 11 },
   neighborhoodList: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
     gap: 8,
   },
   neighborhoodChip: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    alignItems: "center",
+    borderColor: "#E8E8E8",
+    backgroundColor: "#FFFFFF",
   },
-  neighborhoodChipActive: { borderColor: "#2E7D32", backgroundColor: "#E8F5E9" },
-  neighborhoodChipText: { fontSize: 12, fontWeight: "600" },
-  neighborhoodChipTextActive: { color: "#2E7D32" },
-  chipDistance: { fontSize: 10, color: "#9E9E9E", marginTop: 1 },
+  neighborhoodChipActive: {
+    borderColor: "#2E7D32",
+    backgroundColor: "#E8F5E9",
+  },
+  neighborhoodChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#8E8E93",
+  },
+  neighborhoodChipTextActive: {
+    color: "#2E7D32",
+  },
   mapContainer: {
     height: 300,
     borderRadius: 12,
@@ -494,189 +423,41 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   map: { flex: 1 },
-  mapPlaceholder: {
-    height: 300,
+  caretakerCard: {
+    flexDirection: "row",
+    padding: 12,
+    marginHorizontal: 16,
+    marginVertical: 6,
     borderRadius: 12,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderWidth: 2,
-    borderColor: "#2E7D32",
-    backgroundColor: "#F8FBF5",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    shadowColor: "#2E7D32",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  webMapGrid: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 20,
-  },
-  webMapCenter: {
-    alignItems: "center",
-    gap: 4,
-  },
-  userDot: {
-    position: "absolute",
-    top: -8,
-    right: -8,
-    zIndex: 1,
-  },
-  userDotInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#4285F4",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  userDotPulse: {
-    position: "absolute",
-    top: -4,
-    left: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#4285F420",
-  },
-  webMapLabel: { fontSize: 14, fontWeight: "700" },
-  webMapMarkers: {
-    gap: 8,
-  },
-  webMapMarker: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  webMapMarkerDist: { fontSize: 11 },
-  mapPlaceholderSubtext: { fontSize: 11 },
-  markerContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#2E7D32",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  markerEmoji: { fontSize: 20 },
-  markerDetailCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
+    borderColor: "#E8E8E8",
+    alignItems: "flex-start",
     gap: 12,
   },
-  markerDetailHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  detailAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  caretakerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#E8F5E9",
     alignItems: "center",
     justifyContent: "center",
   },
-  markerDetailName: { fontSize: 17, fontWeight: "800" },
-  markerDetailRating: { fontSize: 13, color: "#2E7D32", fontWeight: "700", marginTop: 2 },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
+  caretakerEmoji: {
+    fontSize: 24,
   },
-  closeBtnText: { fontSize: 14 },
-  detailInfoRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
+  caretakerName: {
+    fontSize: 14,
+    fontWeight: "700",
   },
-  detailInfoChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  detailInfoText: { fontSize: 12, fontWeight: "600" },
-  markerDetailBody: { gap: 8 },
-  profileBtn: {
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  profileBtnText: { fontSize: 14, fontWeight: "700", color: "#2E7D32" },
-  requestBtn: {
-    backgroundColor: "#2E7D32",
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  requestBtnText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
-  listContainer: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
-    flex: 1,
-    borderTopWidth: 1,
-  },
-  listTitle: { fontSize: 15, fontWeight: "700", marginBottom: 12 },
-  listContent: { gap: 8, paddingBottom: 16 },
-  listItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderRadius: 12,
-    padding: 12,
-  },
-  listItemLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
-  listItemAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  listItemName: { fontSize: 14, fontWeight: "700" },
-  listItemDistance: { fontSize: 12 },
-  listItemService: { fontSize: 11, fontWeight: "600" },
-  listItemRight: { alignItems: "flex-end", gap: 4 },
-  listItemRating: { fontSize: 13, fontWeight: "700", color: "#2E7D32" },
-  listItemArrow: { fontSize: 18 },
   loadingContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 16,
-  },
-  loadingText: { fontSize: 13 },
-  emptyCard: {
-    alignItems: "center",
-    padding: 32,
+    paddingVertical: 12,
     gap: 8,
   },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 16, fontWeight: "700" },
-  emptyDesc: { fontSize: 13 },
+  loadingText: {
+    fontSize: 12,
+  },
 });
