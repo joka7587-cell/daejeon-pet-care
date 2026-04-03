@@ -461,6 +461,56 @@ function OwnerHome() {
         </View>
       </View>
 
+      {/* 1인 가구 전용 서비스 */}
+      <View style={s.section}>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>1인 가구 서포트</Text>
+          <Text style={[s.seeAll, { color: '#666' }]}>혼자서도 완벽하게</Text>
+        </View>
+        <View style={s.soloServiceGrid}>
+          <Pressable
+            onPress={() => { haptic(); router.push('/solo-care/facilities' as never); }}
+            style={({ pressed }) => [s.soloServiceCard, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+          >
+            <View style={[s.soloServiceIcon, { backgroundColor: '#E3F2FD' }]}>
+              <Text style={{ fontSize: 24 }}>🗺️</Text>
+            </View>
+            <Text style={s.soloServiceName}>주변 인프라</Text>
+            <Text style={s.soloServiceDesc}>병원·미용·카페</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { haptic(); router.push('/solo-care/health-manager' as never); }}
+            style={({ pressed }) => [s.soloServiceCard, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+          >
+            <View style={[s.soloServiceIcon, { backgroundColor: '#E8F5E9' }]}>
+              <Text style={{ fontSize: 24 }}>💊</Text>
+            </View>
+            <Text style={s.soloServiceName}>헬스 매니저</Text>
+            <Text style={s.soloServiceDesc}>건강·접종·복약</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { haptic(); router.push('/solo-care/emergency-guide' as never); }}
+            style={({ pressed }) => [s.soloServiceCard, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+          >
+            <View style={[s.soloServiceIcon, { backgroundColor: '#FFF3E0' }]}>
+              <Text style={{ fontSize: 24 }}>🚨</Text>
+            </View>
+            <Text style={s.soloServiceName}>응급처치</Text>
+            <Text style={s.soloServiceDesc}>상황별 매뉴얼</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { haptic(); router.push('/solo-care/welfare-policy' as never); }}
+            style={({ pressed }) => [s.soloServiceCard, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+          >
+            <View style={[s.soloServiceIcon, { backgroundColor: '#F3E5F5' }]}>
+              <Text style={{ fontSize: 24 }}>🏛️</Text>
+            </View>
+            <Text style={s.soloServiceName}>복지 정책</Text>
+            <Text style={s.soloServiceDesc}>대전 지원사업</Text>
+          </Pressable>
+        </View>
+      </View>
+
       {/* 산책 기록 배너 */}
       {(state.walkSessions || []).length > 0 && (
         <View style={s.section}>
@@ -1677,5 +1727,41 @@ const s = StyleSheet.create({
     fontFamily: Fonts.medium,
     fontSize: 12,
     color: "#66BB6A",
+  },
+
+  // 1인 가구 서포트 그리드
+  soloServiceGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  soloServiceCard: {
+    width: "48%" as any,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    alignItems: "center",
+    gap: 8,
+  },
+  soloServiceIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  soloServiceName: {
+    fontFamily: Fonts.bold,
+    fontSize: 14,
+    color: "#1A1A1A",
+    textAlign: "center",
+  },
+  soloServiceDesc: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#8E8E93",
+    textAlign: "center",
   },
 });
