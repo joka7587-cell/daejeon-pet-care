@@ -993,8 +993,19 @@ export default function ChatScreen() {
         data={messages}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
+        style={{ flex: 1 }}
         contentContainerStyle={styles.messageList}
         scrollEnabled={true}
+        onContentSizeChange={() => {
+          if (messages.length > 0) {
+            flatListRef.current?.scrollToEnd({ animated: false });
+          }
+        }}
+        onLayout={() => {
+          if (messages.length > 0) {
+            flatListRef.current?.scrollToEnd({ animated: false });
+          }
+        }}
         ListEmptyComponent={
           <View style={styles.emptyChat}>
             <Text style={styles.emptyChatEmoji}>{otherUserEmoji}</Text>
@@ -1195,7 +1206,7 @@ const styles = StyleSheet.create({
     borderColor: "#C6F6D5",
   },
   startWalkText: { fontFamily: Fonts.semiBold, fontSize: 13, color: "#2E7D32" },
-  messageList: { paddingHorizontal: 12, paddingVertical: 12, gap: 8, flexGrow: 1 },
+  messageList: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 16, gap: 8, flexGrow: 1 },
   messageRow: { flexDirection: "row", justifyContent: "flex-start", marginVertical: 4, alignItems: "flex-end" },
   messageRowOwn: { justifyContent: "flex-end" },
   systemMessageRow: { alignItems: "center", marginVertical: 8 },
@@ -1274,7 +1285,8 @@ const styles = StyleSheet.create({
     borderTopColor: "#F0F0F0",
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingTop: 10,
+    paddingBottom: 24,
   },
   inputWrapper: { flexDirection: "row", alignItems: "flex-end", gap: 6 },
   actionBtn: {

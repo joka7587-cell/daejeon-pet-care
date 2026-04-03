@@ -238,7 +238,14 @@ export default function PaymentPreviewScreen() {
           </View>
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+          {/* 상단 타이틀 영역 */}
+          <View style={styles.heroSection}>
+            <Text style={styles.heroIcon}>🔒</Text>
+            <Text style={styles.heroTitle}>안심하고 결제하세요</Text>
+            <Text style={styles.heroSub}>SSL 암호화 및 대전사랑카드 인증 결제</Text>
+          </View>
+
           {/* 대전사랑카드 배너 */}
           <View style={styles.daejeonBanner}>
             <View style={styles.bannerIconRow}>
@@ -352,7 +359,7 @@ export default function PaymentPreviewScreen() {
           {/* 결제 요약 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📋 결제 요약</Text>
-            <View style={styles.summaryCard}>
+            <View style={[styles.summaryCard, { borderWidth: 2, borderColor: accent + '30' }]}>
               {PAYMENT_ITEMS.filter(i => selectedItems.has(i.id)).map(item => (
                 <View key={item.id} style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>{item.icon} {item.name}</Text>
@@ -383,27 +390,26 @@ export default function PaymentPreviewScreen() {
                 </Text>
               </View>
             </View>
+            {/* 결제 버튼 - 요약 바로 아래 배치 */}
+            <View style={styles.inlinePaySection}>
+              <View style={styles.inlinePayInfo}>
+                <Text style={styles.inlinePayLabel}>최종 결제 금액</Text>
+                <Text style={styles.inlinePayPrice}>
+                  {Math.max(0, totalPrice - cashback).toLocaleString()}원
+                </Text>
+              </View>
+              <Pressable
+                style={[styles.inlinePayButton, selectedItems.size === 0 && styles.payButtonDisabled]}
+                onPress={handlePayment}
+                disabled={selectedItems.size === 0}
+              >
+                <Text style={styles.inlinePayButtonText}>
+                  {selectedItems.size > 0 ? `${selectedItems.size}건 결제하기` : "항목을 선택하세요"}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
-
-        {/* 하단 결제 버튼 */}
-        <View style={styles.bottomBar}>
-          <View style={styles.bottomInfo}>
-            <Text style={styles.bottomLabel}>결제 금액</Text>
-            <Text style={styles.bottomPrice}>
-              {Math.max(0, totalPrice - cashback).toLocaleString()}원
-            </Text>
-          </View>
-          <Pressable
-            style={[styles.payButton, selectedItems.size === 0 && styles.payButtonDisabled]}
-            onPress={handlePayment}
-            disabled={selectedItems.size === 0}
-          >
-            <Text style={styles.payButtonText}>
-              {selectedItems.size > 0 ? `${selectedItems.size}건 결제하기` : "항목을 선택하세요"}
-            </Text>
-          </Pressable>
-        </View>
 
         {/* 결제 확인 모달 */}
         <Modal visible={showConfirm} transparent animationType="fade">
@@ -536,6 +542,16 @@ const styles = StyleSheet.create({
   previewBadgeText: { fontFamily: Fonts.bold, fontSize: 11, color: "#FFF" },
   scrollView: { flex: 1 },
 
+  // 상단 타이틀 영역
+  heroSection: {
+    alignItems: "center", paddingVertical: 20, paddingHorizontal: 16,
+    backgroundColor: "#FFF", marginHorizontal: 16, marginTop: 16,
+    borderRadius: 16, borderWidth: 1, borderColor: border,
+  },
+  heroIcon: { fontSize: 40, marginBottom: 8 },
+  heroTitle: { fontFamily: Fonts.bold, fontSize: 20, color: textP, marginBottom: 4 },
+  heroSub: { fontFamily: Fonts.regular, fontSize: 13, color: textS },
+
   // 대전사랑카드 배너
   daejeonBanner: {
     marginHorizontal: 16, marginTop: 16, padding: 20, borderRadius: 16,
@@ -630,20 +646,20 @@ const styles = StyleSheet.create({
   summaryTotal: { fontFamily: Fonts.bold, fontSize: 16, color: textP },
   summaryTotalValue: { fontFamily: Fonts.extraBold, fontSize: 20, color: accent },
 
-  // 하단 결제 바
-  bottomBar: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#FFF",
-    borderTopWidth: 1, borderTopColor: border,
+  // 인라인 결제 버튼 (요약 카드 내부)
+  inlinePaySection: {
+    marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: border,
+    alignItems: "center",
   },
-  bottomInfo: {},
-  bottomLabel: { fontFamily: Fonts.regular, fontSize: 11, color: textS },
-  bottomPrice: { fontFamily: Fonts.extraBold, fontSize: 20, color: accent },
-  payButton: {
-    backgroundColor: accent, borderRadius: 14, paddingHorizontal: 28, paddingVertical: 14,
+  inlinePayInfo: { alignItems: "center", marginBottom: 12 },
+  inlinePayLabel: { fontFamily: Fonts.medium, fontSize: 13, color: textS, marginBottom: 4 },
+  inlinePayPrice: { fontFamily: Fonts.extraBold, fontSize: 28, color: accent },
+  inlinePayButton: {
+    backgroundColor: accent, borderRadius: 16, paddingHorizontal: 48, paddingVertical: 16,
+    width: "100%", alignItems: "center",
   },
+  inlinePayButtonText: { fontFamily: Fonts.bold, fontSize: 17, color: "#FFF" },
   payButtonDisabled: { backgroundColor: "#CCC" },
-  payButtonText: { fontFamily: Fonts.bold, fontSize: 16, color: "#FFF" },
 
   // 모달 공통
   modalOverlay: {

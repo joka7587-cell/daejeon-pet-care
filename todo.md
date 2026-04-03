@@ -929,3 +929,13 @@
 - [x] 결제 확인 모달 → 2초 처리 시뮬레이션 → 결제 완료 팝업
 - [x] 관리자 대시보드 섹션 5에 결제 프리뷰 버튼 추가
 - [x] 테스트 594개 통과, TS 에러 0건
+
+## 채팅/결제 화면 레이아웃 균형 개선 (Phase 68)
+- [x] 채팅 화면: FlatList style flex:1, contentContainerStyle 개선으로 MessageList 영역 확대
+- [x] 채팅 화면: 입력창 paddingBottom 24px 여백 적용
+- [x] 채팅 화면: onContentSizeChange + onLayout로 최신 메시지 자동 스크롤
+- [x] 결제 화면: 하단 고정 bottomBar 제거, 결제 버튼을 요약 카드 내부로 이동
+- [x] 결제 화면: 요약 카드 테두리 강화 (accent 30% 보더)
+- [x] 결제 화면: 상단 히어로 섹션 추가 (🔒 안심하고 결제하세요 + SSL 안내)
+- [x] 결제 버튼 전체 너비 + 큰 폰트(28px 금액, 17px 버튼)
+- [x] 테스트 594개 통과, TS 에러 0건
