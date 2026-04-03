@@ -1,12 +1,12 @@
 /**
  * 관리자 전용 - 산책 시뮬레이션 모드 (멀티 코스)
  * 프로필 > 앱 버전 5번 탭 > 관리자 메뉴 > 산책 시뮬레이션
- * 3개 코스 중 선택하여 5초 간격으로 좌표 전송
  *
- * Phase 70: 멀티 코스 선택 기능 추가
- * - 코스 A: 엑스포 시민광장 (도심형)
- * - 코스 B: 유림공원 (수변형)
- * - 코스 C: 남선공원 (숲길형)
+ * Phase 71: 강제 동기화 시스템
+ * - 1초 간격 보간 좌표 전송 (부드러운 마커 이동)
+ * - localStorage 키를 'walker_location'으로 통일
+ * - 코스명/진행률/상태 정보 함께 전송
+ * - 보호자 뷰와 완벽 동기화
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -15,7 +15,6 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Alert,
   Platform,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
@@ -41,58 +40,86 @@ const haptic = () => {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 };
 
-// localStorage 직접 저장 (웹 환경에서 storage 이벤트 발생시키기 위함)
-const broadcastLocation = (lat: number, lng: number, label: string, index: number, courseId: string) => {
+// ─── 통합 위치 브로드캐스트 (walker_location 키 사용) ───
+const STORAGE_KEY = "walker_location";
+
+interface WalkerLocationPayload {
+  lat: number;
+  lng: number;
+  label: string;
+  index: number;         // 현재 경유지 인덱스
+  courseId: string;
+  courseName: string;
+  courseType: string;
+  progress: number;      // 0~100 진행률
+  status: SimulationStatus;
+  timestamp: number;
+  interpolated: boolean; // 보간 좌표 여부
+}
+
+const broadcastWalkerLocation = (payload: WalkerLocationPayload) => {
+  const json = JSON.stringify(payload);
+
+  // 웹 localStorage (StorageEvent 트리거)
   if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-    const payload = JSON.stringify({ lat, lng, label, index, courseId, timestamp: Date.now() });
-    window.localStorage.setItem("currentLocation", payload);
+    window.localStorage.setItem(STORAGE_KEY, json);
+    // 같은 탭 내 동기화를 위해 CustomEvent도 발행
+    try {
+      window.dispatchEvent(new CustomEvent("walker_location_update", { detail: payload }));
+    } catch {}
   }
+
+  // AsyncStorage (네이티브 + 폴백)
+  AsyncStorage.setItem(STORAGE_KEY, json).catch(() => {});
+  // 하위 호환: 기존 키도 업데이트
+  AsyncStorage.setItem("walk_simulation_current", json).catch(() => {});
 };
 
-// 시뮬레이션 완료/초기화 시 localStorage 정리
-const clearBroadcastLocation = () => {
+const clearWalkerLocation = () => {
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ status: "idle", timestamp: Date.now() }));
+  }
+  AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
+  AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
+  // 하위 호환: 기존 키도 정리
   if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
     window.localStorage.removeItem("currentLocation");
   }
 };
 
-export default function SimulationScreen() {
-
-// 시뮬레이션 상태를 localStorage에 저장
-const saveSimulationState = async (isRunning: boolean, currentTime: number, currentPath: any) => {
+// 시뮬레이션 상태를 AsyncStorage에 영속 저장
+const saveSimState = async (data: any) => {
   try {
-    await AsyncStorage.setItem('walk_simulation_state', JSON.stringify({
-      isRunning,
-      startTime: Date.now() - currentTime,
-      currentPath,
+    await AsyncStorage.setItem("walk_simulation_state", JSON.stringify({
+      ...data,
       lastUpdate: Date.now(),
     }));
-  } catch (e) {
-    console.warn('Failed to save simulation state:', e);
-  }
+  } catch {}
 };
 
-// 시뮬레이션 상태 복구
-const restoreSimulationState = async () => {
+const restoreSimState = async () => {
   try {
-    const saved = await AsyncStorage.getItem('walk_simulation_state');
+    const saved = await AsyncStorage.getItem("walk_simulation_state");
     if (saved) {
       const state = JSON.parse(saved);
       const elapsed = Date.now() - state.startTime;
-      if (state.isRunning && elapsed < 3600000) { // 1시간 이내
+      if (state.isRunning && elapsed < 3600000) {
         return { ...state, elapsedTime: elapsed };
       }
     }
-  } catch (e) {
-    console.warn('Failed to restore simulation state:', e);
-  }
+  } catch {}
   return null;
 };
 
+export default function SimulationScreen() {
   const { state, dispatch } = useApp();
   const router = useRouter();
   const { walkSimulation } = state;
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 타이머 refs
+  const mainTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const interpTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [currentStep, setCurrentStep] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -108,16 +135,113 @@ const restoreSimulationState = async () => {
   const activeWaypoints = selectedCourse.waypoints;
   const totalDistance = calculateRouteDistance(activeRoute);
 
+  // 보간 전송 시작 (두 경유지 사이를 1초 간격으로 보간)
+  const startInterpolation = useCallback((
+    fromCoord: SimulationCoord,
+    toCoord: SimulationCoord,
+    fromIndex: number,
+    toIndex: number,
+    courseId: string,
+    course: SimulationCourse,
+    routeLength: number,
+  ) => {
+    // 기존 보간 타이머 정리
+    if (interpTimerRef.current) {
+      clearInterval(interpTimerRef.current);
+      interpTimerRef.current = null;
+    }
+
+    const totalSteps = Math.floor(SIMULATION_INTERVAL_MS / 1000); // 5단계 (5초 / 1초)
+    let interpStep = 0;
+
+    interpTimerRef.current = setInterval(() => {
+      interpStep++;
+      if (interpStep >= totalSteps) {
+        // 보간 완료 - 정확한 목표 좌표 전송
+        if (interpTimerRef.current) {
+          clearInterval(interpTimerRef.current);
+          interpTimerRef.current = null;
+        }
+        return;
+      }
+
+      const t = interpStep / totalSteps;
+      const interp = interpolateCoords(fromCoord, toCoord, t);
+      const progress = ((fromIndex + t) / (routeLength - 1)) * 100;
+
+      broadcastWalkerLocation({
+        lat: interp.latitude,
+        lng: interp.longitude,
+        label: `${fromCoord.label} → ${toCoord.label}`,
+        index: fromIndex,
+        courseId,
+        courseName: course.name,
+        courseType: course.type,
+        progress: Math.min(progress, 100),
+        status: "running",
+        timestamp: Date.now(),
+        interpolated: true,
+      });
+    }, 1000);
+  }, []);
+
+  // 경유지 좌표 전송 + 보간 시작
+  const sendWaypointAndInterpolate = useCallback((
+    stepIndex: number,
+    route: SimulationCoord[],
+    courseId: string,
+    course: SimulationCourse,
+  ) => {
+    const coord = route[stepIndex];
+    const progress = (stepIndex / (route.length - 1)) * 100;
+
+    // 정확한 경유지 좌표 전송
+    broadcastWalkerLocation({
+      lat: coord.latitude,
+      lng: coord.longitude,
+      label: coord.label,
+      index: stepIndex,
+      courseId,
+      courseName: course.name,
+      courseType: course.type,
+      progress: Math.min(progress, 100),
+      status: "running",
+      timestamp: Date.now(),
+      interpolated: false,
+    });
+
+    // 다음 경유지가 있으면 보간 시작
+    if (stepIndex < route.length - 1) {
+      startInterpolation(
+        coord,
+        route[stepIndex + 1],
+        stepIndex,
+        stepIndex + 1,
+        courseId,
+        course,
+        route.length,
+      );
+    }
+  }, [startInterpolation]);
+
+  // 모든 타이머 정리
+  const clearAllTimers = useCallback(() => {
+    if (mainTimerRef.current) {
+      clearInterval(mainTimerRef.current);
+      mainTimerRef.current = null;
+    }
+    if (interpTimerRef.current) {
+      clearInterval(interpTimerRef.current);
+      interpTimerRef.current = null;
+    }
+  }, []);
+
   // 코스 선택 핸들러
   const handleSelectCourse = useCallback((courseId: string) => {
     haptic();
     setSelectedCourseId(courseId);
     setShowCourseDropdown(false);
-    // 초기화
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+    clearAllTimers();
     setIsRunning(false);
     setCurrentStep(0);
     stepRef.current = 0;
@@ -131,11 +255,12 @@ const restoreSimulationState = async () => {
         startedAt: null,
       },
     });
-  }, [dispatch]);
+  }, [dispatch, clearAllTimers]);
 
-  // 시뮬레이션 시작
+  // ─── 시뮬레이션 시작 ───
   const handleStart = useCallback(() => {
     haptic();
+    clearAllTimers();
     setCurrentStep(0);
     stepRef.current = 0;
     setElapsedSec(0);
@@ -145,9 +270,9 @@ const restoreSimulationState = async () => {
     const startTime = new Date().toISOString();
     const route = activeRoute;
     const courseId = selectedCourseId;
+    const course = selectedCourse;
 
     // 첫 번째 좌표 즉시 전송
-    const firstCoord = route[0];
     dispatch({
       type: "SET_WALK_SIMULATION",
       payload: {
@@ -161,41 +286,41 @@ const restoreSimulationState = async () => {
       },
     });
 
-    // LocalStorage에 첫 좌표 저장
-    AsyncStorage.setItem(
-      "walk_simulation_current",
-      JSON.stringify({
-        lat: firstCoord.latitude,
-        lng: firstCoord.longitude,
-        label: firstCoord.label,
-        timestamp: startTime,
-        index: 0,
-        courseId,
-      })
-    ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
+    // 첫 경유지 전송 + 보간 시작
+    sendWaypointAndInterpolate(0, route, courseId, course);
 
-    // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-    broadcastLocation(firstCoord.latitude, firstCoord.longitude, firstCoord.label, 0, courseId);
-
-    // 시작 시 상태 저장
-    saveSimulationState(true, 0, {
-      lat: firstCoord.latitude,
-      lng: firstCoord.longitude,
-      index: 0,
-      courseId,
+    saveSimState({
+      isRunning: true,
+      startTime: Date.now(),
+      currentPath: { lat: route[0].latitude, lng: route[0].longitude, index: 0, courseId },
     });
 
-    // 5초 간격으로 다음 좌표 전송
-    timerRef.current = setInterval(() => {
+    // 5초 간격으로 다음 경유지 전송
+    mainTimerRef.current = setInterval(() => {
       elapsedRef.current += 5;
       setElapsedSec(elapsedRef.current);
 
       const nextStep = stepRef.current + 1;
       if (nextStep >= route.length) {
-        // 모든 좌표 전송 완료
-        if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = null;
+        clearAllTimers();
         setIsRunning(false);
+
+        // 완료 상태 전송
+        const lastCoord = route[route.length - 1];
+        broadcastWalkerLocation({
+          lat: lastCoord.latitude,
+          lng: lastCoord.longitude,
+          label: lastCoord.label,
+          index: route.length - 1,
+          courseId,
+          courseName: course.name,
+          courseType: course.type,
+          progress: 100,
+          status: "completed",
+          timestamp: Date.now(),
+          interpolated: false,
+        });
+
         dispatch({
           type: "SET_WALK_SIMULATION",
           payload: {
@@ -203,9 +328,7 @@ const restoreSimulationState = async () => {
             currentIndex: route.length - 1,
           },
         });
-        AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
         AsyncStorage.removeItem("walk_simulation_state").catch(() => {});
-        clearBroadcastLocation();
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -214,7 +337,6 @@ const restoreSimulationState = async () => {
 
       stepRef.current = nextStep;
       setCurrentStep(nextStep);
-      const coord = route[nextStep];
 
       dispatch({
         type: "SET_WALK_SIMULATION",
@@ -224,47 +346,48 @@ const restoreSimulationState = async () => {
         },
       });
 
-      // LocalStorage에 현재 좌표 저장 (보호자 뷰가 감시)
-      AsyncStorage.setItem(
-        "walk_simulation_current",
-        JSON.stringify({
-          lat: coord.latitude,
-          lng: coord.longitude,
-          label: coord.label,
-          timestamp: new Date().toISOString(),
-          index: nextStep,
-          courseId,
-        })
-      ).catch(() => {});
+      // 경유지 전송 + 보간
+      sendWaypointAndInterpolate(nextStep, route, courseId, course);
 
-      // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-      broadcastLocation(coord.latitude, coord.longitude, coord.label, nextStep, courseId);
-
-      // 상태 영속 저장
-      saveSimulationState(true, elapsedRef.current * 1000, {
-        lat: coord.latitude,
-        lng: coord.longitude,
-        index: nextStep,
-        courseId,
+      saveSimState({
+        isRunning: true,
+        startTime: Date.now() - elapsedRef.current * 1000,
+        currentPath: { lat: route[nextStep].latitude, lng: route[nextStep].longitude, index: nextStep, courseId },
       });
     }, SIMULATION_INTERVAL_MS);
-  }, [dispatch, activeRoute, selectedCourseId]);
+  }, [dispatch, activeRoute, selectedCourseId, selectedCourse, clearAllTimers, sendWaypointAndInterpolate]);
 
-  // 시뮬레이션 일시정지
+  // ─── 일시정지 ───
   const handlePause = useCallback(() => {
     haptic();
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+    clearAllTimers();
     setIsRunning(false);
+
+    const route = activeRoute;
+    const course = selectedCourse;
+    const coord = route[stepRef.current];
+
+    broadcastWalkerLocation({
+      lat: coord.latitude,
+      lng: coord.longitude,
+      label: coord.label,
+      index: stepRef.current,
+      courseId: selectedCourseId,
+      courseName: course.name,
+      courseType: course.type,
+      progress: (stepRef.current / (route.length - 1)) * 100,
+      status: "paused",
+      timestamp: Date.now(),
+      interpolated: false,
+    });
+
     dispatch({
       type: "SET_WALK_SIMULATION",
       payload: { status: "paused" as SimulationStatus },
     });
-  }, [dispatch]);
+  }, [dispatch, activeRoute, selectedCourse, selectedCourseId, clearAllTimers]);
 
-  // 시뮬레이션 재개
+  // ─── 재개 ───
   const handleResume = useCallback(() => {
     haptic();
     setIsRunning(true);
@@ -275,16 +398,35 @@ const restoreSimulationState = async () => {
 
     const route = activeRoute;
     const courseId = selectedCourseId;
+    const course = selectedCourse;
 
-    timerRef.current = setInterval(() => {
+    // 현재 위치 재전송 + 보간
+    sendWaypointAndInterpolate(stepRef.current, route, courseId, course);
+
+    mainTimerRef.current = setInterval(() => {
       elapsedRef.current += 5;
       setElapsedSec(elapsedRef.current);
 
       const nextStep = stepRef.current + 1;
       if (nextStep >= route.length) {
-        if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = null;
+        clearAllTimers();
         setIsRunning(false);
+
+        const lastCoord = route[route.length - 1];
+        broadcastWalkerLocation({
+          lat: lastCoord.latitude,
+          lng: lastCoord.longitude,
+          label: lastCoord.label,
+          index: route.length - 1,
+          courseId,
+          courseName: course.name,
+          courseType: course.type,
+          progress: 100,
+          status: "completed",
+          timestamp: Date.now(),
+          interpolated: false,
+        });
+
         dispatch({
           type: "SET_WALK_SIMULATION",
           payload: {
@@ -292,10 +434,7 @@ const restoreSimulationState = async () => {
             currentIndex: route.length - 1,
           },
         });
-        AsyncStorage.removeItem("walk_simulation_current").catch((e) =>
-          console.error("[Simulation] LocalStorage remove error:", e)
-        );
-        clearBroadcastLocation();
+        AsyncStorage.removeItem("walk_simulation_state").catch(() => {});
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -304,7 +443,6 @@ const restoreSimulationState = async () => {
 
       stepRef.current = nextStep;
       setCurrentStep(nextStep);
-      const coord = route[nextStep];
 
       dispatch({
         type: "SET_WALK_SIMULATION",
@@ -314,36 +452,27 @@ const restoreSimulationState = async () => {
         },
       });
 
-      // LocalStorage에 현재 좌표 저장 (보호자 뷰가 감시)
-      AsyncStorage.setItem(
-        "walk_simulation_current",
-        JSON.stringify({
-          lat: coord.latitude,
-          lng: coord.longitude,
-          label: coord.label,
-          timestamp: new Date().toISOString(),
-          index: nextStep,
-          courseId,
-        })
-      ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
+      sendWaypointAndInterpolate(nextStep, route, courseId, course);
 
-      // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-      broadcastLocation(coord.latitude, coord.longitude, coord.label, nextStep, courseId);
+      saveSimState({
+        isRunning: true,
+        startTime: Date.now() - elapsedRef.current * 1000,
+        currentPath: { lat: route[nextStep].latitude, lng: route[nextStep].longitude, index: nextStep, courseId },
+      });
     }, SIMULATION_INTERVAL_MS);
-  }, [dispatch, activeRoute, selectedCourseId]);
+  }, [dispatch, activeRoute, selectedCourseId, selectedCourse, clearAllTimers, sendWaypointAndInterpolate]);
 
-  // 시뮬레이션 초기화
+  // ─── 초기화 ───
   const handleReset = useCallback(() => {
     haptic();
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+    clearAllTimers();
     setIsRunning(false);
     setCurrentStep(0);
     stepRef.current = 0;
     setElapsedSec(0);
     elapsedRef.current = 0;
+    clearWalkerLocation();
+    AsyncStorage.removeItem("walk_simulation_state").catch(() => {});
     dispatch({
       type: "SET_WALK_SIMULATION",
       payload: {
@@ -352,19 +481,18 @@ const restoreSimulationState = async () => {
         startedAt: null,
       },
     });
-  }, [dispatch]);
+  }, [dispatch, clearAllTimers]);
 
-  // 화면 재진입 시 시뮬레이션 상태 복구 (Resume)
+  // ─── 화면 재진입 시 상태 복구 ───
   useEffect(() => {
-    const restoreState = async () => {
-      const savedState = await restoreSimulationState();
+    const restore = async () => {
+      const savedState = await restoreSimState();
       if (savedState && savedState.isRunning) {
         const courseId = savedState.currentPath?.courseId || "course_a";
         setSelectedCourseId(courseId);
         const course = getCourseById(courseId);
         const route = course.route;
 
-        // 경과 시간에서 현재 스텝 계산
         const elapsedMs = savedState.elapsedTime;
         const elapsedSeconds = Math.floor(elapsedMs / 1000);
         const calculatedStep = Math.min(
@@ -378,7 +506,6 @@ const restoreSimulationState = async () => {
         elapsedRef.current = elapsedSeconds;
         setIsRunning(true);
 
-        // 현재 좌표를 dispatch
         dispatch({
           type: "SET_WALK_SIMULATION",
           payload: {
@@ -388,34 +515,34 @@ const restoreSimulationState = async () => {
           },
         });
 
-        // LocalStorage에 현재 좌표 저장
-        const coord = route[calculatedStep];
-        await AsyncStorage.setItem(
-          "walk_simulation_current",
-          JSON.stringify({
-            lat: coord.latitude,
-            lng: coord.longitude,
-            label: coord.label,
-            timestamp: new Date().toISOString(),
-            index: calculatedStep,
-            courseId,
-          })
-        );
+        // 현재 위치 즉시 전송
+        sendWaypointAndInterpolate(calculatedStep, route, courseId, course);
 
-        // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-        broadcastLocation(coord.latitude, coord.longitude, coord.label, calculatedStep, courseId);
-
-        // 아직 완료되지 않았으면 타이머 재개
         if (calculatedStep < route.length - 1) {
-          timerRef.current = setInterval(() => {
+          mainTimerRef.current = setInterval(() => {
             elapsedRef.current += 5;
             setElapsedSec(elapsedRef.current);
 
             const nextStep = stepRef.current + 1;
             if (nextStep >= route.length) {
-              if (timerRef.current) clearInterval(timerRef.current);
-              timerRef.current = null;
+              clearAllTimers();
               setIsRunning(false);
+
+              const lastCoord = route[route.length - 1];
+              broadcastWalkerLocation({
+                lat: lastCoord.latitude,
+                lng: lastCoord.longitude,
+                label: lastCoord.label,
+                index: route.length - 1,
+                courseId,
+                courseName: course.name,
+                courseType: course.type,
+                progress: 100,
+                status: "completed",
+                timestamp: Date.now(),
+                interpolated: false,
+              });
+
               dispatch({
                 type: "SET_WALK_SIMULATION",
                 payload: {
@@ -423,15 +550,12 @@ const restoreSimulationState = async () => {
                   currentIndex: route.length - 1,
                 },
               });
-              AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
               AsyncStorage.removeItem("walk_simulation_state").catch(() => {});
-              clearBroadcastLocation();
               return;
             }
 
             stepRef.current = nextStep;
             setCurrentStep(nextStep);
-            const c = route[nextStep];
             dispatch({
               type: "SET_WALK_SIMULATION",
               payload: {
@@ -439,30 +563,16 @@ const restoreSimulationState = async () => {
                 currentIndex: nextStep,
               },
             });
-            AsyncStorage.setItem(
-              "walk_simulation_current",
-              JSON.stringify({
-                lat: c.latitude,
-                lng: c.longitude,
-                label: c.label,
-                timestamp: new Date().toISOString(),
-                index: nextStep,
-                courseId,
-              })
-            ).catch(() => {});
 
-            // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-            broadcastLocation(c.latitude, c.longitude, c.label, nextStep, courseId);
+            sendWaypointAndInterpolate(nextStep, route, courseId, course);
 
-            saveSimulationState(true, elapsedRef.current * 1000, {
-              lat: c.latitude,
-              lng: c.longitude,
-              index: nextStep,
-              courseId,
+            saveSimState({
+              isRunning: true,
+              startTime: Date.now() - elapsedRef.current * 1000,
+              currentPath: { lat: route[nextStep].latitude, lng: route[nextStep].longitude, index: nextStep, courseId },
             });
           }, SIMULATION_INTERVAL_MS);
         } else {
-          // 이미 완료된 경우
           setIsRunning(false);
           dispatch({
             type: "SET_WALK_SIMULATION",
@@ -474,13 +584,10 @@ const restoreSimulationState = async () => {
         }
       }
     };
-    restoreState();
+    restore();
 
-    // cleanup on unmount
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [dispatch]);
+    return () => { clearAllTimers(); };
+  }, [dispatch, clearAllTimers, sendWaypointAndInterpolate]);
 
   const simStatus = walkSimulation.status;
   const progressPercent = ((currentStep + 1) / activeRoute.length) * 100;
@@ -509,7 +616,7 @@ const restoreSimulationState = async () => {
         <View style={s.warningBanner}>
           <Text style={s.warningEmoji}>⚠️</Text>
           <Text style={s.warningText}>
-            이 기능은 시연 전용입니다. 실제 GPS 대신 미리 정의된 좌표를 5초 간격으로 전송합니다.
+            이 기능은 시연 전용입니다. 1초 간격 보간 좌표로 부드러운 마커 이동을 제공합니다.
           </Text>
         </View>
 
@@ -543,7 +650,6 @@ const restoreSimulationState = async () => {
             </Text>
           </Pressable>
 
-          {/* 드롭다운 목록 */}
           {showCourseDropdown && (
             <View style={s.courseDropdownList}>
               {SIMULATION_COURSES.map((course) => {
@@ -613,7 +719,7 @@ const restoreSimulationState = async () => {
           </View>
         </View>
 
-        {/* 경유지 목록 (동적 갱신) */}
+        {/* 경유지 목록 */}
         <View style={s.coordList}>
           <Text style={s.coordListTitle}>산책 경로</Text>
           {activeWaypoints.map((wp, i) => {
@@ -775,8 +881,8 @@ const restoreSimulationState = async () => {
             <Text style={s.infoValue}>🐕 초코 (말티즈)</Text>
           </View>
           <View style={s.infoRow}>
-            <Text style={s.infoLabel}>전송 간격</Text>
-            <Text style={s.infoValue}>5초</Text>
+            <Text style={s.infoLabel}>전송 방식</Text>
+            <Text style={s.infoValue}>1초 보간 · 5초 경유지</Text>
           </View>
           <View style={s.infoRow}>
             <Text style={s.infoLabel}>선택 코스</Text>
@@ -802,409 +908,112 @@ const s = StyleSheet.create({
     borderBottomColor: "#F0F0F0",
     gap: 12,
   },
-  backBtn: {
-    paddingVertical: 4,
-    paddingRight: 8,
-  },
-  backBtnText: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 17,
-    color: "#2E7D32",
-  },
-  headerTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 18,
-    color: "#1A1A1A",
-    letterSpacing: -0.3,
-  },
-  headerSub: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: "#8E8E93",
-    marginTop: 2,
-  },
-  adminBadge: {
-    backgroundColor: "#1A1A1A",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  adminBadgeText: {
-    fontFamily: Fonts.bold,
-    fontSize: 10,
-    color: "#FFFFFF",
-    letterSpacing: 1,
-  },
+  backBtn: { paddingVertical: 4, paddingRight: 8 },
+  backBtnText: { fontFamily: Fonts.semiBold, fontSize: 17, color: "#2E7D32" },
+  headerTitle: { fontFamily: Fonts.bold, fontSize: 18, color: "#1A1A1A", letterSpacing: -0.3 },
+  headerSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#8E8E93", marginTop: 2 },
+  adminBadge: { backgroundColor: "#1A1A1A", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  adminBadgeText: { fontFamily: Fonts.bold, fontSize: 10, color: "#FFFFFF", letterSpacing: 1 },
   warningBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: "#FFF8E1",
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#FFE082",
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginHorizontal: 16, marginTop: 12,
+    backgroundColor: "#FFF8E1", borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: "#FFE082",
   },
   warningEmoji: { fontSize: 20 },
-  warningText: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    color: "#F57F17",
-    flex: 1,
-    lineHeight: 18,
-  },
-  // ─── 코스 선택 드롭다운 ───
-  courseSelector: {
-    marginHorizontal: 16,
-    marginTop: 16,
-  },
-  courseSelectorTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 15,
-    color: "#1A1A1A",
-    marginBottom: 8,
-  },
+  warningText: { fontFamily: Fonts.regular, fontSize: 13, color: "#F57F17", flex: 1, lineHeight: 18 },
+  courseSelector: { marginHorizontal: 16, marginTop: 16 },
+  courseSelectorTitle: { fontFamily: Fonts.bold, fontSize: 15, color: "#1A1A1A", marginBottom: 8 },
   courseDropdownBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 2,
-    borderColor: "#2E7D32",
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: "#FFFFFF", borderRadius: 14, padding: 14,
+    borderWidth: 2, borderColor: "#2E7D32",
   },
-  courseDropdownName: {
-    fontFamily: Fonts.bold,
-    fontSize: 15,
-    color: "#1A1A1A",
-  },
-  courseDropdownType: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: "#8E8E93",
-    marginTop: 2,
-  },
+  courseDropdownName: { fontFamily: Fonts.bold, fontSize: 15, color: "#1A1A1A" },
+  courseDropdownType: { fontFamily: Fonts.regular, fontSize: 12, color: "#8E8E93", marginTop: 2 },
   courseDropdownList: {
-    marginTop: 6,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    overflow: "hidden",
+    marginTop: 6, backgroundColor: "#FFFFFF", borderRadius: 14,
+    borderWidth: 1, borderColor: "#E0E0E0", overflow: "hidden",
   },
   courseDropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingVertical: 14, paddingHorizontal: 14,
+    borderBottomWidth: 1, borderBottomColor: "#F5F5F5",
   },
-  courseDropdownItemSelected: {
-    backgroundColor: "#F0FFF4",
-  },
-  courseDropdownItemName: {
-    fontFamily: Fonts.bold,
-    fontSize: 14,
-    color: "#1A1A1A",
-  },
-  courseDropdownItemDesc: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: "#666666",
-    marginTop: 3,
-    lineHeight: 16,
-  },
-  courseDropdownItemMeta: {
-    fontFamily: Fonts.regular,
-    fontSize: 11,
-    color: "#8E8E93",
-    marginTop: 2,
-  },
-  courseTypeBadge: {
-    backgroundColor: "#1565C0",
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  courseTypeBadgeText: {
-    fontFamily: Fonts.bold,
-    fontSize: 10,
-    color: "#FFFFFF",
-  },
-  // ─── 경로 정보 ───
+  courseDropdownItemSelected: { backgroundColor: "#F0FFF4" },
+  courseDropdownItemName: { fontFamily: Fonts.bold, fontSize: 14, color: "#1A1A1A" },
+  courseDropdownItemDesc: { fontFamily: Fonts.regular, fontSize: 12, color: "#666666", marginTop: 3, lineHeight: 16 },
+  courseDropdownItemMeta: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93", marginTop: 2 },
+  courseTypeBadge: { backgroundColor: "#1565C0", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  courseTypeBadgeText: { fontFamily: Fonts.bold, fontSize: 10, color: "#FFFFFF" },
   routeCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: "#F0F8FF",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#D0E8FF",
+    marginHorizontal: 16, marginTop: 16,
+    backgroundColor: "#F0F8FF", borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: "#D0E8FF",
   },
-  routeTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 16,
-    color: "#1A1A1A",
-  },
-  routeSubtitle: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    color: "#8E8E93",
-    marginTop: 4,
-  },
+  routeTitle: { fontFamily: Fonts.bold, fontSize: 16, color: "#1A1A1A" },
+  routeSubtitle: { fontFamily: Fonts.regular, fontSize: 13, color: "#8E8E93", marginTop: 4 },
   routeStats: {
-    flexDirection: "row",
-    marginTop: 14,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 12,
-    alignItems: "center",
+    flexDirection: "row", marginTop: 14,
+    backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12, alignItems: "center",
   },
   routeStat: { flex: 1, alignItems: "center", gap: 4 },
-  routeStatValue: {
-    fontFamily: Fonts.bold,
-    fontSize: 15,
-    color: "#1A1A1A",
-  },
-  routeStatLabel: {
-    fontFamily: Fonts.regular,
-    fontSize: 11,
-    color: "#8E8E93",
-  },
+  routeStatValue: { fontFamily: Fonts.bold, fontSize: 15, color: "#1A1A1A" },
+  routeStatLabel: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93" },
   routeStatDivider: { width: 1, height: 30, backgroundColor: "#E0E8F0" },
-  coordList: {
-    marginHorizontal: 16,
-    marginTop: 16,
-  },
-  coordListTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 15,
-    color: "#1A1A1A",
-    marginBottom: 10,
-  },
+  coordList: { marginHorizontal: 16, marginTop: 16 },
+  coordListTitle: { fontFamily: Fonts.bold, fontSize: 15, color: "#1A1A1A", marginBottom: 10 },
   coordItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 6,
-    backgroundColor: "#F8F8F8",
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, marginBottom: 6,
+    backgroundColor: "#F8F8F8", borderWidth: 1, borderColor: "#F0F0F0",
   },
-  coordItemActive: {
-    backgroundColor: "#E8F5E9",
-    borderColor: "#2E7D32",
-  },
-  coordItemDone: {
-    backgroundColor: "#F0FFF4",
-    borderColor: "#C6F6D5",
-  },
-  coordIndex: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#E0E0E0",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coordIndexActive: {
-    backgroundColor: "#2E7D32",
-  },
-  coordIndexDone: {
-    backgroundColor: "#4CAF82",
-  },
-  coordIndexText: {
-    fontFamily: Fonts.bold,
-    fontSize: 12,
-    color: "#8E8E93",
-  },
-  coordLabel: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 14,
-    color: "#1A1A1A",
-  },
-  coordDetail: {
-    fontFamily: Fonts.regular,
-    fontSize: 11,
-    color: "#8E8E93",
-    marginTop: 2,
-  },
+  coordItemActive: { backgroundColor: "#E8F5E9", borderColor: "#2E7D32" },
+  coordItemDone: { backgroundColor: "#F0FFF4", borderColor: "#C6F6D5" },
+  coordIndex: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#E0E0E0", alignItems: "center", justifyContent: "center" },
+  coordIndexActive: { backgroundColor: "#2E7D32" },
+  coordIndexDone: { backgroundColor: "#4CAF82" },
+  coordIndexText: { fontFamily: Fonts.bold, fontSize: 12, color: "#8E8E93" },
+  coordLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: "#1A1A1A" },
+  coordDetail: { fontFamily: Fonts.regular, fontSize: 11, color: "#8E8E93", marginTop: 2 },
   liveIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "#2E7D32", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
   },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#FFFFFF",
-  },
-  liveText: {
-    fontFamily: Fonts.bold,
-    fontSize: 10,
-    color: "#FFFFFF",
-  },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#FFFFFF" },
+  liveText: { fontFamily: Fonts.bold, fontSize: 10, color: "#FFFFFF" },
   progressCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
+    marginHorizontal: 16, marginTop: 16,
+    backgroundColor: "#FFFFFF", borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: "#F0F0F0",
   },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  progressTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 14,
-    color: "#1A1A1A",
-  },
-  progressStatus: {
-    fontFamily: Fonts.bold,
-    fontSize: 12,
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: "#F0F0F0",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: 8,
-    backgroundColor: "#2E7D32",
-    borderRadius: 4,
-  },
-  progressInfo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  progressInfoText: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: "#8E8E93",
-  },
-  controls: {
-    marginHorizontal: 16,
-    marginTop: 16,
-  },
-  startBtn: {
-    backgroundColor: "#2E7D32",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  startBtnText: {
-    fontFamily: Fonts.bold,
-    fontSize: 16,
-    color: "#FFFFFF",
-  },
-  controlRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  pauseBtn: {
-    flex: 1,
-    backgroundColor: "#F59E0B",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  pauseBtnText: {
-    fontFamily: Fonts.bold,
-    fontSize: 16,
-    color: "#FFFFFF",
-  },
-  resetBtn: {
-    backgroundColor: "#EF5350",
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    alignItems: "center",
-  },
-  resetBtnText: {
-    fontFamily: Fonts.bold,
-    fontSize: 16,
-    color: "#FFFFFF",
-  },
+  progressHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  progressTitle: { fontFamily: Fonts.bold, fontSize: 14, color: "#1A1A1A" },
+  progressStatus: { fontFamily: Fonts.bold, fontSize: 12 },
+  progressBarBg: { height: 8, backgroundColor: "#F0F0F0", borderRadius: 4, overflow: "hidden" },
+  progressBarFill: { height: 8, backgroundColor: "#2E7D32", borderRadius: 4 },
+  progressInfo: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
+  progressInfoText: { fontFamily: Fonts.regular, fontSize: 12, color: "#8E8E93" },
+  controls: { marginHorizontal: 16, marginTop: 16 },
+  startBtn: { backgroundColor: "#2E7D32", borderRadius: 14, paddingVertical: 16, alignItems: "center" },
+  startBtnText: { fontFamily: Fonts.bold, fontSize: 16, color: "#FFFFFF" },
+  controlRow: { flexDirection: "row", gap: 10 },
+  pauseBtn: { flex: 1, backgroundColor: "#F59E0B", borderRadius: 14, paddingVertical: 16, alignItems: "center" },
+  pauseBtnText: { fontFamily: Fonts.bold, fontSize: 16, color: "#FFFFFF" },
+  resetBtn: { backgroundColor: "#EF5350", borderRadius: 14, paddingVertical: 16, paddingHorizontal: 24, alignItems: "center" },
+  resetBtnText: { fontFamily: Fonts.bold, fontSize: 16, color: "#FFFFFF" },
   completedCard: {
-    backgroundColor: "#F0FFF4",
-    borderRadius: 16,
-    padding: 24,
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#C6F6D5",
+    backgroundColor: "#F0FFF4", borderRadius: 16, padding: 24,
+    alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#C6F6D5",
   },
   completedEmoji: { fontSize: 40 },
-  completedText: {
-    fontFamily: Fonts.bold,
-    fontSize: 18,
-    color: "#2E7D32",
-  },
-  completedSub: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    color: "#4CAF82",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  restartBtn: {
-    marginTop: 8,
-    backgroundColor: "#4CAF82",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  restartBtnText: {
-    fontFamily: Fonts.bold,
-    fontSize: 14,
-    color: "#FFFFFF",
-  },
-  infoCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: "#F8F8F8",
-    borderRadius: 14,
-    padding: 16,
-    gap: 10,
-  },
-  infoTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 14,
-    color: "#1A1A1A",
-    marginBottom: 4,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  infoLabel: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    color: "#8E8E93",
-  },
-  infoValue: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 13,
-    color: "#1A1A1A",
-  },
+  completedText: { fontFamily: Fonts.bold, fontSize: 18, color: "#2E7D32" },
+  completedSub: { fontFamily: Fonts.regular, fontSize: 13, color: "#4CAF82", textAlign: "center", lineHeight: 18 },
+  restartBtn: { marginTop: 8, backgroundColor: "#4CAF82", borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
+  restartBtnText: { fontFamily: Fonts.bold, fontSize: 14, color: "#FFFFFF" },
+  infoCard: { marginHorizontal: 16, marginTop: 16, backgroundColor: "#F8F8F8", borderRadius: 14, padding: 16, gap: 10 },
+  infoTitle: { fontFamily: Fonts.bold, fontSize: 14, color: "#1A1A1A", marginBottom: 4 },
+  infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  infoLabel: { fontFamily: Fonts.regular, fontSize: 13, color: "#8E8E93" },
+  infoValue: { fontFamily: Fonts.semiBold, fontSize: 13, color: "#1A1A1A" },
 });

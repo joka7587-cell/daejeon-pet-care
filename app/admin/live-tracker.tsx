@@ -2,10 +2,11 @@
  * 보호자용 - 시뮬레이션 산책 실시간 추적 화면
  * 카카오맵 WebView로 실시간 마커 이동 표시
  *
- * Phase 70 수정사항:
- * - 멀티 코스 지원: localStorage에서 courseId를 읽어 해당 코스 경로/경유지를 동적 로드
- * - 코스 변경 시 지도 중심점 + 경로 + 경유지 자동 갱신
- * - 지도 HTML 생성 시 코스 데이터를 동적으로 주입
+ * Phase 71: 강제 동기화 시스템
+ * - walker_location 키로 통일 (StorageEvent + CustomEvent 이중 수신)
+ * - 부드러운 마커 이동 애니메이션 (requestAnimationFrame 기반 보간)
+ * - 초기 상태 일치화: 뒤늦게 접속해도 즉시 복원
+ * - 코스 변경 시 지도 경로/경유지/중심점 자동 갱신
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -26,8 +27,6 @@ import { Fonts } from "@/hooks/use-fonts";
 import * as Haptics from "expo-haptics";
 import { getApiBaseUrl } from "@/constants/oauth";
 import {
-  EXPO_PARK_ROUTE,
-  WAYPOINTS,
   SIMULATION_COURSES,
   getCourseById,
   calculateRouteDistance,
@@ -41,7 +40,9 @@ const haptic = () => {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 };
 
-// 카카오맵 HTML 생성 - 코스 데이터를 동적으로 주입
+const STORAGE_KEY = "walker_location";
+
+// 카카오맵 HTML 생성 - 부드러운 애니메이션 포함
 function generateTrackerMapHTML(
   apiKey: string,
   initialLat: number,
@@ -76,6 +77,7 @@ html,body{width:100%;height:100%;overflow:hidden}
   display:flex;align-items:center;justify-content:center;
   font-size:24px;box-shadow:0 3px 14px rgba(0,0,0,0.4);
   position:relative;z-index:100;
+  transition:none;
 }
 .walker-marker .pulse{
   position:absolute;width:48px;height:48px;border-radius:50%;
@@ -106,17 +108,23 @@ html,body{width:100%;height:100%;overflow:hidden}
   background:rgba(248,248,248,0.95);z-index:999;
   font-family:-apple-system,sans-serif;color:#666;font-size:14px;
 }
-.refresh-btn{
-  position:absolute;top:12px;right:12px;z-index:500;
-  width:36px;height:36px;border-radius:4px;
-  background:#FFFFFF;border:1px solid #ddd;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;cursor:pointer;
-  box-shadow:0 1px 4px rgba(0,0,0,0.15);
-  transition:background 0.15s;
+.status-bar{
+  position:absolute;top:12px;left:12px;z-index:500;
+  background:rgba(46,125,50,0.92);color:#fff;
+  padding:6px 12px;border-radius:20px;font-size:12px;
+  font-family:-apple-system,sans-serif;font-weight:600;
+  white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.2);
+  display:flex;align-items:center;gap:6px;
 }
-.refresh-btn:hover{background:#F5F5F5}
-.refresh-btn:active{background:#EEEEEE;transform:scale(0.95)}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#4ADE80;
+  animation:blink 1s ease-in-out infinite;
+}
+@keyframes blink{
+  0%,100%{opacity:1}
+  50%{opacity:0.3}
+}
 .toast-msg{
   position:absolute;top:56px;left:50%;transform:translateX(-50%);
   z-index:600;background:rgba(46,125,50,0.92);color:#fff;
@@ -131,14 +139,21 @@ html,body{width:100%;height:100%;overflow:hidden}
 </head><body>
 <div id="loading" class="loading-overlay">지도를 불러오는 중...</div>
 <div id="map"></div>
-<div id="refreshBtn" class="refresh-btn" onclick="refreshLocation()">🔄</div>
-<div id="toast" class="toast-msg">실시간 위치를 동기화합니다</div>
+<div id="statusBar" class="status-bar" style="display:none">
+  <div class="status-dot"></div>
+  <span id="statusText">연결 대기 중</span>
+</div>
+<div id="toast" class="toast-msg"></div>
 <script>
 function sendMsg(obj){
   try{
     if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(obj));
     else if(window.parent) window.parent.postMessage(JSON.stringify(obj),'*');
   }catch(e){}
+}
+function showToast(msg){
+  var t=document.getElementById('toast');
+  if(t){t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},1500);}
 }
 </script>
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false"
@@ -151,25 +166,19 @@ function sendMsg(obj){
     sendMsg({type:'error',msg:'timeout'});
   }, 10000);
 
-  if(typeof kakao === 'undefined' || !kakao.maps){
-    return;
-  }
+  if(typeof kakao === 'undefined' || !kakao.maps){ return; }
 
   kakao.maps.load(function(){
     clearTimeout(loadTimeout);
 
     setTimeout(function(){
       var container = document.getElementById('map');
-      if(!container){
-        sendMsg({type:'error',msg:'container not found'});
-        return;
-      }
+      if(!container){ sendMsg({type:'error',msg:'container not found'}); return; }
 
       var map = new kakao.maps.Map(container, {
         center: new kakao.maps.LatLng(${initialLat}, ${initialLng}),
         level: 4
       });
-
       window.kakaoMapInstance = map;
       map.relayout();
       map.setCenter(new kakao.maps.LatLng(${initialLat}, ${initialLng}));
@@ -181,22 +190,14 @@ function sendMsg(obj){
 
       // 전체 경로 폴리라인 (점선)
       var bgPolyline = new kakao.maps.Polyline({
-        map: map,
-        path: routePath,
-        strokeWeight: 4,
-        strokeColor: '#CCCCCC',
-        strokeOpacity: 0.5,
-        strokeStyle: 'dashed'
+        map: map, path: routePath,
+        strokeWeight: 4, strokeColor: '#CCCCCC', strokeOpacity: 0.5, strokeStyle: 'dashed'
       });
 
       // 이동 경로 폴리라인 (실선)
       var activePolyline = new kakao.maps.Polyline({
-        map: map,
-        path: [routePath[0]],
-        strokeWeight: 5,
-        strokeColor: '#3366FF',
-        strokeOpacity: 0.8,
-        strokeStyle: 'solid'
+        map: map, path: [routePath[0]],
+        strokeWeight: 5, strokeColor: '#3366FF', strokeOpacity: 0.8, strokeStyle: 'solid'
       });
 
       // 경유지 마커
@@ -206,24 +207,17 @@ function sendMsg(obj){
         var pos = new kakao.maps.LatLng(wp.lat, wp.lng);
         var el = document.createElement('div');
         el.className = 'wp-marker';
-
         var icon = document.createElement('div');
         icon.className = 'wp-icon';
         icon.textContent = wp.emoji;
         icon.id = 'wp_' + wp.routeIndex;
         el.appendChild(icon);
-
         var label = document.createElement('div');
         label.className = 'wp-label';
         label.textContent = wp.label;
         el.appendChild(label);
-
         var overlay = new kakao.maps.CustomOverlay({
-          position: pos,
-          content: el,
-          yAnchor: 1.5,
-          zIndex: 5,
-          map: map
+          position: pos, content: el, yAnchor: 1.5, zIndex: 5, map: map
         });
         wpOverlays.push(overlay);
       });
@@ -232,86 +226,139 @@ function sendMsg(obj){
       var walkerEl = document.createElement('div');
       walkerEl.className = 'walker-marker';
       walkerEl.innerHTML = '<div class="pulse"></div>\\uD83D\\uDC15';
-
       var walkerOverlay = new kakao.maps.CustomOverlay({
         position: new kakao.maps.LatLng(${initialLat}, ${initialLng}),
-        content: walkerEl,
-        yAnchor: 0.5,
-        zIndex: 100,
-        map: map
+        content: walkerEl, yAnchor: 0.5, zIndex: 100, map: map
       });
 
       document.getElementById('loading').style.display = 'none';
 
-      // 마커 업데이트 함수
-      window.updateWalkerPosition = function(lat, lng, stepIndex) {
-        var newPos = new kakao.maps.LatLng(lat, lng);
-        walkerOverlay.setPosition(newPos);
-        map.panTo(newPos);
+      // ─── 부드러운 마커 이동 (requestAnimationFrame 기반) ───
+      var currentLat = ${initialLat};
+      var currentLng = ${initialLng};
+      var targetLat = ${initialLat};
+      var targetLng = ${initialLng};
+      var animating = false;
+      var animStartTime = 0;
+      var animDuration = 800; // 800ms 애니메이션
+      var animStartLat = 0;
+      var animStartLng = 0;
 
+      function easeInOutCubic(t){
+        return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+      }
+
+      function animateStep(timestamp){
+        if(!animating) return;
+        var elapsed = timestamp - animStartTime;
+        var t = Math.min(elapsed / animDuration, 1);
+        var eased = easeInOutCubic(t);
+
+        currentLat = animStartLat + (targetLat - animStartLat) * eased;
+        currentLng = animStartLng + (targetLng - animStartLng) * eased;
+
+        var pos = new kakao.maps.LatLng(currentLat, currentLng);
+        walkerOverlay.setPosition(pos);
+
+        if(t < 1){
+          requestAnimationFrame(animateStep);
+        } else {
+          animating = false;
+          currentLat = targetLat;
+          currentLng = targetLng;
+        }
+      }
+
+      function smoothMoveTo(lat, lng){
+        animStartLat = currentLat;
+        animStartLng = currentLng;
+        targetLat = lat;
+        targetLng = lng;
+        animStartTime = performance.now();
+        if(!animating){
+          animating = true;
+          requestAnimationFrame(animateStep);
+        }
+      }
+
+      // 마커 업데이트 (부드러운 이동)
+      window.updateWalkerPosition = function(lat, lng, stepIndex, doAnimate) {
+        if(doAnimate !== false){
+          smoothMoveTo(lat, lng);
+        } else {
+          // 즉시 이동 (초기화 시)
+          currentLat = lat;
+          currentLng = lng;
+          targetLat = lat;
+          targetLng = lng;
+          walkerOverlay.setPosition(new kakao.maps.LatLng(lat, lng));
+        }
+
+        // 부드러운 지도 중심 이동
+        map.panTo(new kakao.maps.LatLng(lat, lng));
+
+        // 줌 레벨 유지
         var currentLevel = map.getLevel();
-        if(currentLevel < 3 || currentLevel > 4){
-          map.setLevel(4);
-        }
+        if(currentLevel < 3 || currentLevel > 5){ map.setLevel(4); }
 
-        var activePath = [];
-        for(var i = 0; i <= stepIndex && i < routePath.length; i++){
-          activePath.push(routePath[i]);
-        }
-        activePath.push(newPos);
-        activePolyline.setPath(activePath);
-
-        waypoints.forEach(function(wp){
-          var wpEl = document.getElementById('wp_' + wp.routeIndex);
-          if(wpEl){
-            if(wp.routeIndex < stepIndex){
-              wpEl.style.background = '#4CAF82';
-              wpEl.style.borderColor = '#2E7D32';
-              wpEl.style.color = 'white';
-            } else if(wp.routeIndex === stepIndex){
-              wpEl.style.background = '#2E7D32';
-              wpEl.style.borderColor = '#1B5E20';
-              wpEl.style.color = 'white';
-            }
+        // 이동 경로 업데이트
+        if(stepIndex !== undefined && stepIndex >= 0){
+          var activePath = [];
+          for(var i = 0; i <= stepIndex && i < routePath.length; i++){
+            activePath.push(routePath[i]);
           }
-        });
+          activePath.push(new kakao.maps.LatLng(lat, lng));
+          activePolyline.setPath(activePath);
+
+          // 경유지 색상 업데이트
+          waypoints.forEach(function(wp){
+            var wpEl = document.getElementById('wp_' + wp.routeIndex);
+            if(wpEl){
+              if(wp.routeIndex < stepIndex){
+                wpEl.style.background = '#4CAF82';
+                wpEl.style.borderColor = '#2E7D32';
+                wpEl.style.color = 'white';
+              } else if(wp.routeIndex === stepIndex){
+                wpEl.style.background = '#2E7D32';
+                wpEl.style.borderColor = '#1B5E20';
+                wpEl.style.color = 'white';
+              }
+            }
+          });
+        }
       };
 
-      // 코스 변경 함수 (React Native에서 호출)
+      // 상태바 업데이트
+      window.updateStatusBar = function(text, visible){
+        var bar = document.getElementById('statusBar');
+        var txt = document.getElementById('statusText');
+        if(bar) bar.style.display = visible ? 'flex' : 'none';
+        if(txt) txt.textContent = text || '';
+      };
+
+      // 코스 변경 함수
       window.changeCourse = function(newRouteJSON, newWaypointsJSON) {
         try {
           var newRoute = JSON.parse(newRouteJSON);
           var newWaypoints = JSON.parse(newWaypointsJSON);
 
-          // 기존 경로/경유지 제거
           bgPolyline.setMap(null);
           activePolyline.setMap(null);
           wpOverlays.forEach(function(o){ o.setMap(null); });
           wpOverlays = [];
 
-          // 새 경로 데이터
           routeData = newRoute;
           routePath = newRoute.map(function(c){ return new kakao.maps.LatLng(c.lat, c.lng); });
 
-          // 새 폴리라인
           bgPolyline = new kakao.maps.Polyline({
-            map: map,
-            path: routePath,
-            strokeWeight: 4,
-            strokeColor: '#CCCCCC',
-            strokeOpacity: 0.5,
-            strokeStyle: 'dashed'
+            map: map, path: routePath,
+            strokeWeight: 4, strokeColor: '#CCCCCC', strokeOpacity: 0.5, strokeStyle: 'dashed'
           });
           activePolyline = new kakao.maps.Polyline({
-            map: map,
-            path: [routePath[0]],
-            strokeWeight: 5,
-            strokeColor: '#3366FF',
-            strokeOpacity: 0.8,
-            strokeStyle: 'solid'
+            map: map, path: [routePath[0]],
+            strokeWeight: 5, strokeColor: '#3366FF', strokeOpacity: 0.8, strokeStyle: 'solid'
           });
 
-          // 새 경유지 마커
           waypoints = newWaypoints;
           waypoints.forEach(function(wp){
             var pos = new kakao.maps.LatLng(wp.lat, wp.lng);
@@ -327,37 +374,19 @@ function sendMsg(obj){
             label.textContent = wp.label;
             el.appendChild(label);
             var overlay = new kakao.maps.CustomOverlay({
-              position: pos,
-              content: el,
-              yAnchor: 1.5,
-              zIndex: 5,
-              map: map
+              position: pos, content: el, yAnchor: 1.5, zIndex: 5, map: map
             });
             wpOverlays.push(overlay);
           });
 
-          // 지도 중심 이동
           if(routePath.length > 0){
             map.panTo(routePath[0]);
-            walkerOverlay.setPosition(routePath[0]);
+            window.updateWalkerPosition(newRoute[0].lat, newRoute[0].lng, 0, false);
           }
-        } catch(e) {
-          console.error('changeCourse error:', e);
-        }
+        } catch(e) { console.error('changeCourse error:', e); }
       };
 
-      window.refreshLocation = function(){
-        sendMsg({type:'refresh_request'});
-        var toast = document.getElementById('toast');
-        if(toast){
-          toast.classList.add('show');
-          setTimeout(function(){ toast.classList.remove('show'); }, 1000);
-        }
-      };
-
-      window.forceRelayout = function(){
-        map.relayout();
-      };
+      window.forceRelayout = function(){ map.relayout(); };
 
       setTimeout(function(){
         map.relayout();
@@ -381,12 +410,14 @@ export default function LiveTrackerScreen() {
   const [mapReady, setMapReady] = useState(false);
   const [mapLoadFailed, setMapLoadFailed] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
-  const [debugCoord, setDebugCoord] = useState<{ lat: number; lng: number; index: number } | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>("");
+  const [liveStatus, setLiveStatus] = useState<string>("대기 중");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ─── 멀티 코스: 현재 활성 코스 상태 ───
   const [activeCourseId, setActiveCourseId] = useState<string>("course_a");
+  const [activeCourseName, setActiveCourseName] = useState<string>("엑스포 시민광장");
+  const [progress, setProgress] = useState<number>(0);
   const activeCourse = getCourseById(activeCourseId);
   const activeRoute = activeCourse.route;
   const activeWaypoints = activeCourse.waypoints;
@@ -394,6 +425,7 @@ export default function LiveTrackerScreen() {
   const simStatus = walkSimulation.status;
   const currentIndex = walkSimulation.currentIndex;
   const currentCoord = activeRoute[currentIndex] || activeRoute[0];
+  const lastCourseIdRef = useRef<string>("course_a");
 
   // API 키 가져오기
   useEffect(() => {
@@ -430,9 +462,8 @@ export default function LiveTrackerScreen() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [simStatus, walkSimulation.startedAt]);
 
-  // 지도에 좌표 전송 헬퍼
-  const sendPositionToMap = useCallback((lat: number, lng: number, index: number) => {
-    const js = `window.updateWalkerPosition(${lat}, ${lng}, ${index});`;
+  // ─── 지도에 JS 주입 헬퍼 ───
+  const injectJS = useCallback((js: string) => {
     if (Platform.OS === "web") {
       if (iframeRef.current && iframeRef.current.contentWindow) {
         try { (iframeRef.current.contentWindow as any).eval(js); } catch {}
@@ -440,10 +471,19 @@ export default function LiveTrackerScreen() {
     } else {
       webViewRef.current?.injectJavaScript(js + "true;");
     }
-    setDebugCoord({ lat, lng, index });
   }, []);
 
-  // 코스 변경 시 지도에 새 경로 주입
+  // ─── 마커 위치 업데이트 (부드러운 이동) ───
+  const sendPositionToMap = useCallback((lat: number, lng: number, index: number, animate: boolean = true) => {
+    injectJS(`window.updateWalkerPosition(${lat}, ${lng}, ${index}, ${animate});`);
+  }, [injectJS]);
+
+  // ─── 상태바 업데이트 ───
+  const updateStatusBar = useCallback((text: string, visible: boolean) => {
+    injectJS(`window.updateStatusBar('${text.replace(/'/g, "\\'")}', ${visible});`);
+  }, [injectJS]);
+
+  // ─── 코스 변경 시 지도에 새 경로 주입 ───
   const sendCourseChangeToMap = useCallback((course: SimulationCourse) => {
     const routeJSON = JSON.stringify(course.route.map(c => ({
       lat: c.latitude,
@@ -456,22 +496,15 @@ export default function LiveTrackerScreen() {
       lat: course.route[wp.routeIndex].latitude,
       lng: course.route[wp.routeIndex].longitude,
     })));
-    const js = `window.changeCourse('${routeJSON.replace(/'/g, "\\'")}', '${wpJSON.replace(/'/g, "\\'")}');`;
-    if (Platform.OS === "web") {
-      if (iframeRef.current && iframeRef.current.contentWindow) {
-        try { (iframeRef.current.contentWindow as any).eval(js); } catch {}
-      }
-    } else {
-      webViewRef.current?.injectJavaScript(js + "true;");
-    }
-  }, []);
+    injectJS(`window.changeCourse('${routeJSON.replace(/'/g, "\\'")}', '${wpJSON.replace(/'/g, "\\'")}');`);
+  }, [injectJS]);
 
-  // localStorage 폴링에서 courseId 감지 → 코스 변경
-  const lastCourseIdRef = useRef<string>("course_a");
+  // ─── 수신 데이터 처리 (핵심 동기화 로직) ───
+  const handleWalkerData = useCallback((parsed: any) => {
+    if (!parsed || !parsed.lat || !parsed.lng) return;
+    if (parsed.status === "idle") return; // idle 상태는 무시
 
-  const handleLocationData = useCallback((parsed: any) => {
-    sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0);
-    // courseId가 변경되었으면 코스 전환
+    // 코스 변경 감지
     if (parsed.courseId && parsed.courseId !== lastCourseIdRef.current) {
       lastCourseIdRef.current = parsed.courseId;
       setActiveCourseId(parsed.courseId);
@@ -480,82 +513,157 @@ export default function LiveTrackerScreen() {
         sendCourseChangeToMap(newCourse);
       }
     }
-  }, [sendPositionToMap, sendCourseChangeToMap, mapReady]);
 
-  // 초기 로드 시 localStorage에 기존 좌표가 있으면 복원
+    // 코스 이름/진행률 업데이트
+    if (parsed.courseName) setActiveCourseName(parsed.courseName);
+    if (parsed.progress !== undefined) setProgress(parsed.progress);
+
+    // 마커 이동 (부드러운 애니메이션)
+    if (mapReady) {
+      sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0, true);
+
+      // 상태바 업데이트
+      const statusText = parsed.status === "running"
+        ? `산책 중 · ${parsed.courseName || ""} · ${Math.round(parsed.progress || 0)}%`
+        : parsed.status === "paused"
+        ? "일시정지"
+        : parsed.status === "completed"
+        ? "산책 완료!"
+        : "연결됨";
+      updateStatusBar(statusText, true);
+    }
+
+    // 상태 업데이트
+    if (parsed.status === "running") setLiveStatus("산책 중");
+    else if (parsed.status === "paused") setLiveStatus("일시정지");
+    else if (parsed.status === "completed") setLiveStatus("산책 완료");
+
+    // 디버깅 정보
+    setDebugInfo(`${parsed.lat.toFixed(5)}, ${parsed.lng.toFixed(5)} [${parsed.index}] ${parsed.interpolated ? "보간" : "경유지"}`);
+  }, [mapReady, sendPositionToMap, sendCourseChangeToMap, updateStatusBar]);
+
+  // ─── 1. 초기 상태 복원 (뒤늦게 접속해도 현재 위치 즉시 표시) ───
   useEffect(() => {
     if (!mapReady) return;
-    if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-      const existing = window.localStorage.getItem("currentLocation");
-      if (existing) {
-        try {
-          const parsed = JSON.parse(existing);
-          handleLocationData(parsed);
-        } catch {}
-      }
-    }
-    AsyncStorage.getItem("walk_simulation_current").then((data) => {
-      if (data) {
-        try {
-          const parsed = JSON.parse(data);
-          handleLocationData(parsed);
-        } catch {}
-      }
-    }).catch(() => {});
-  }, [mapReady, handleLocationData]);
 
-  // window.addEventListener('storage') - 실시간 감지
+    const restoreFromStorage = () => {
+      // 웹 localStorage에서 읽기
+      if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+        const data = window.localStorage.getItem(STORAGE_KEY);
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.status && parsed.status !== "idle") {
+              // 초기 로드는 애니메이션 없이 즉시 이동
+              sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0, false);
+              handleWalkerData(parsed);
+            }
+          } catch {}
+        }
+        // 하위 호환: 기존 키도 확인
+        const oldData = window.localStorage.getItem("currentLocation");
+        if (oldData && !data) {
+          try {
+            const parsed = JSON.parse(oldData);
+            sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0, false);
+            handleWalkerData(parsed);
+          } catch {}
+        }
+      }
+
+      // AsyncStorage 폴백
+      AsyncStorage.getItem(STORAGE_KEY).then((data) => {
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.status && parsed.status !== "idle") {
+              handleWalkerData(parsed);
+            }
+          } catch {}
+        }
+      }).catch(() => {});
+    };
+
+    restoreFromStorage();
+  }, [mapReady, sendPositionToMap, handleWalkerData]);
+
+  // ─── 2. StorageEvent 리스너 (다른 탭/창에서 변경 시) ───
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
     if (!mapReady) return;
 
     const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY && event.newValue) {
+        try {
+          const parsed = JSON.parse(event.newValue);
+          handleWalkerData(parsed);
+        } catch {}
+      }
+      // 하위 호환
       if (event.key === "currentLocation" && event.newValue) {
         try {
           const parsed = JSON.parse(event.newValue);
-          handleLocationData(parsed);
+          handleWalkerData(parsed);
         } catch {}
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, [mapReady, handleLocationData]);
+  }, [mapReady, handleWalkerData]);
 
-  // 같은 탭 내 동기화 - localStorage 폴링
+  // ─── 3. CustomEvent 리스너 (같은 탭 내 동기화) ───
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    if (!mapReady) return;
+
+    const handleCustomEvent = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail) {
+        handleWalkerData(detail);
+      }
+    };
+
+    window.addEventListener("walker_location_update", handleCustomEvent);
+    return () => window.removeEventListener("walker_location_update", handleCustomEvent);
+  }, [mapReady, handleWalkerData]);
+
+  // ─── 4. 폴링 백업 (500ms 간격 - StorageEvent가 누락될 경우 대비) ───
   useEffect(() => {
     if (!mapReady) return;
 
-    pollingRef.current = setInterval(() => {
+    let lastTimestamp = 0;
+    const pollRef = setInterval(() => {
       if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-        const data = window.localStorage.getItem("currentLocation");
+        const data = window.localStorage.getItem(STORAGE_KEY);
         if (data) {
           try {
             const parsed = JSON.parse(data);
-            handleLocationData(parsed);
+            // 새로운 데이터만 처리 (중복 방지)
+            if (parsed.timestamp && parsed.timestamp > lastTimestamp) {
+              lastTimestamp = parsed.timestamp;
+              handleWalkerData(parsed);
+            }
           } catch {}
         }
       } else {
-        AsyncStorage.getItem("walk_simulation_current").then((data) => {
+        // 네이티브 AsyncStorage 폴링
+        AsyncStorage.getItem(STORAGE_KEY).then((data) => {
           if (data) {
             try {
               const parsed = JSON.parse(data);
-              handleLocationData(parsed);
+              if (parsed.timestamp && parsed.timestamp > lastTimestamp) {
+                lastTimestamp = parsed.timestamp;
+                handleWalkerData(parsed);
+              }
             } catch {}
           }
         }).catch(() => {});
       }
-    }, 1000);
+    }, 500);
 
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
-  }, [mapReady, handleLocationData]);
-
-  // 상태 변경 시 지도 마커 업데이트
-  useEffect(() => {
-    if (!mapReady) return;
-    const coord = activeRoute[currentIndex] || activeRoute[0];
-    sendPositionToMap(coord.latitude, coord.longitude, currentIndex);
-  }, [currentIndex, mapReady, sendPositionToMap, activeRoute]);
+    return () => clearInterval(pollRef);
+  }, [mapReady, handleWalkerData]);
 
   // 이동 거리 계산
   let distanceSoFar = 0;
@@ -568,7 +676,6 @@ export default function LiveTrackerScreen() {
     );
   }
   const totalDistance = calculateRouteDistance(activeRoute);
-  const progressPercent = ((currentIndex + 1) / activeRoute.length) * 100;
 
   // 현재 구간 이름
   const getCurrentSection = () => {
@@ -589,33 +696,29 @@ export default function LiveTrackerScreen() {
     return m > 0 ? `${m}분 ${s}초` : `${s}초`;
   };
 
-  // 새로고침 처리 함수
+  // 새로고침 처리
   const handleRefreshRequest = useCallback(() => {
     if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-      const data = window.localStorage.getItem("currentLocation");
+      const data = window.localStorage.getItem(STORAGE_KEY);
       if (data) {
         try {
           const parsed = JSON.parse(data);
-          handleLocationData(parsed);
-          const relayoutJs = `window.forceRelayout();`;
-          if (iframeRef.current && iframeRef.current.contentWindow) {
-            try { (iframeRef.current.contentWindow as any).eval(relayoutJs); } catch {}
-          }
+          sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0, false);
+          handleWalkerData(parsed);
+          injectJS(`window.forceRelayout();`);
           return;
         } catch {}
       }
     }
-    AsyncStorage.getItem("walk_simulation_current").then((data) => {
+    AsyncStorage.getItem(STORAGE_KEY).then((data) => {
       if (data) {
         try {
           const parsed = JSON.parse(data);
-          handleLocationData(parsed);
+          handleWalkerData(parsed);
         } catch {}
       }
     }).catch(() => {});
-    const coord = activeRoute[currentIndex] || activeRoute[0];
-    sendPositionToMap(coord.latitude, coord.longitude, currentIndex);
-  }, [handleLocationData, sendPositionToMap, currentIndex, activeRoute]);
+  }, [handleWalkerData, sendPositionToMap, injectJS]);
 
   const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
@@ -673,13 +776,8 @@ export default function LiveTrackerScreen() {
             ref={(el) => { iframeRef.current = el; }}
             srcDoc={html}
             style={{
-              width: "100%",
-              height: "100%",
-              border: "none",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              zIndex: 1,
+              width: "100%", height: "100%", border: "none",
+              position: "absolute", top: 0, left: 0, zIndex: 1,
             }}
             title="kakao-map-live-tracker"
             onLoad={() => { setTimeout(() => setMapReady(true), 3000); }}
@@ -733,23 +831,22 @@ export default function LiveTrackerScreen() {
             <Text style={s.headerTitle}>실시간 산책 추적</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
               <View style={[s.statusDot, {
-                backgroundColor: simStatus === "running" ? "#4CAF82" : simStatus === "paused" ? "#F59E0B" : "#8E8E93",
+                backgroundColor: liveStatus === "산책 중" ? "#4CAF82" : liveStatus === "일시정지" ? "#F59E0B" : liveStatus === "산책 완료" ? "#8E8E93" : "#BDBDBD",
               }]} />
               <Text style={[s.statusText, {
-                color: simStatus === "running" ? "#4CAF82" : simStatus === "paused" ? "#F59E0B" : "#8E8E93",
+                color: liveStatus === "산책 중" ? "#4CAF82" : liveStatus === "일시정지" ? "#F59E0B" : "#8E8E93",
               }]}>
-                {simStatus === "running" ? "산책 중" : simStatus === "paused" ? "일시정지" : simStatus === "completed" ? "산책 완료" : "대기 중"}
+                {liveStatus}
               </Text>
-              {/* 코스 이름 배지 */}
               <View style={{ backgroundColor: "#E8F5E9", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
                 <Text style={{ fontFamily: Fonts.bold, fontSize: 10, color: "#2E7D32" }}>
-                  {activeCourse.typeEmoji} {activeCourse.name}
+                  {activeCourse.typeEmoji} {activeCourseName}
                 </Text>
               </View>
             </View>
           </View>
           <View style={s.simBadge}>
-            <Text style={s.simBadgeText}>SIM</Text>
+            <Text style={s.simBadgeText}>LIVE</Text>
           </View>
         </View>
 
@@ -757,21 +854,24 @@ export default function LiveTrackerScreen() {
         <View style={{ position: "relative" }}>
           {renderMap()}
           <Pressable
-            onPress={() => {
-              haptic();
-              handleRefreshRequest();
-            }}
+            onPress={() => { haptic(); handleRefreshRequest(); }}
             style={({ pressed }) => [s.refreshBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
           >
             <Text style={{ fontSize: 18 }}>🔄</Text>
           </Pressable>
-          {debugCoord && (
+          {debugInfo ? (
             <View style={s.debugOverlay}>
-              <Text style={s.debugText}>
-                수신: {debugCoord.lat.toFixed(5)}, {debugCoord.lng.toFixed(5)} [{debugCoord.index}/{activeRoute.length}]
-              </Text>
+              <Text style={s.debugText}>수신: {debugInfo}</Text>
             </View>
-          )}
+          ) : null}
+        </View>
+
+        {/* 진행률 바 */}
+        <View style={s.progressSection}>
+          <View style={s.progressBarBg}>
+            <View style={[s.progressBarFill, { width: `${progress}%` }]} />
+          </View>
+          <Text style={s.progressText}>{Math.round(progress)}% 완료</Text>
         </View>
 
         {/* 워커 정보 카드 */}
@@ -792,7 +892,7 @@ export default function LiveTrackerScreen() {
           </View>
         </View>
 
-        {/* 현재 구간 표시 */}
+        {/* 현재 구간 */}
         <View style={s.sectionCard}>
           <Text style={s.sectionLabel}>현재 구간</Text>
           <Text style={s.sectionValue}>{getCurrentSection()}</Text>
@@ -819,16 +919,8 @@ export default function LiveTrackerScreen() {
           </View>
         </View>
 
-        {/* 진행 바 */}
-        <View style={s.progressBar}>
-          <View style={s.progressBg}>
-            <View style={[s.progressFill, { width: `${progressPercent}%` }]} />
-          </View>
-          <Text style={s.progressText}>{currentCoord.label}</Text>
-        </View>
-
         {/* 완료 배너 */}
-        {simStatus === "completed" && (
+        {liveStatus === "산책 완료" && (
           <View style={s.completedBanner}>
             <Text style={{ fontSize: 32 }}>🎉</Text>
             <Text style={s.completedText}>산책이 완료되었습니다!</Text>
@@ -838,11 +930,11 @@ export default function LiveTrackerScreen() {
           </View>
         )}
 
-        {simStatus === "idle" && (
+        {liveStatus === "대기 중" && (
           <View style={s.idleBanner}>
             <Text style={{ fontSize: 32 }}>⏳</Text>
             <Text style={s.idleText}>시뮬레이션 대기 중</Text>
-            <Text style={s.idleSub}>관리자 메뉴에서 시뮬레이션을 시작하세요</Text>
+            <Text style={s.idleSub}>관리자 메뉴에서 시뮬레이션을 시작하면 자동으로 추적이 시작됩니다</Text>
           </View>
         )}
       </ScrollView>
@@ -852,221 +944,109 @@ export default function LiveTrackerScreen() {
 
 const s = StyleSheet.create({
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-    gap: 12,
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: "#F0F0F0", gap: 12,
   },
   backBtn: { paddingVertical: 4, paddingRight: 8 },
   backBtnText: { fontFamily: Fonts.semiBold, fontSize: 17, color: "#2E7D32" },
   headerTitle: { fontFamily: Fonts.bold, fontSize: 18, color: "#1A1A1A", letterSpacing: -0.3 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontFamily: Fonts.semiBold, fontSize: 12 },
-  simBadge: {
-    backgroundColor: "#2E7D32",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
+  simBadge: { backgroundColor: "#2E7D32", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
   simBadgeText: { fontFamily: Fonts.bold, fontSize: 10, color: "#FFFFFF", letterSpacing: 1 },
   mapContainer: {
-    height: 400,
-    width: "100%",
-    position: "relative",
-    backgroundColor: "#F0F0F0",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8E8E8",
-    overflow: "hidden",
-    zIndex: 1,
+    height: 400, width: "100%", position: "relative",
+    backgroundColor: "#F0F0F0", borderBottomWidth: 1, borderBottomColor: "#E8E8E8",
+    overflow: "hidden", zIndex: 1,
   },
   mapWebView: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
-    zIndex: 1,
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+    width: "100%", height: "100%", zIndex: 1,
   },
   mapOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(248,248,248,0.95)",
-    zIndex: 10,
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(248,248,248,0.95)", zIndex: 10,
   },
   mapLoading: {
-    height: 400,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F8F8F8",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8E8E8",
+    height: 400, width: "100%", alignItems: "center", justifyContent: "center",
+    backgroundColor: "#F8F8F8", borderBottomWidth: 1, borderBottomColor: "#E8E8E8",
   },
   mapFallback: {
-    height: 400,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F0F7F0",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8E8E8",
+    height: 400, width: "100%", alignItems: "center", justifyContent: "center",
+    backgroundColor: "#F0F7F0", borderBottomWidth: 1, borderBottomColor: "#E8E8E8",
+  },
+  progressSection: {
+    marginHorizontal: 16, marginTop: 12, gap: 4,
+  },
+  progressBarBg: {
+    height: 8, backgroundColor: "#F0F0F0", borderRadius: 4, overflow: "hidden",
+  },
+  progressBarFill: {
+    height: 8, backgroundColor: "#2E7D32", borderRadius: 4,
+  },
+  progressText: {
+    fontFamily: Fonts.semiBold, fontSize: 12, color: "#2E7D32", textAlign: "right",
   },
   infoCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: "#E8F5E9",
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#C6F6D5",
+    marginHorizontal: 16, marginTop: 10,
+    backgroundColor: "#E8F5E9", borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: "#C6F6D5",
   },
   walkerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#2E7D32",
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: "#2E7D32",
   },
   walkerName: { fontFamily: Fonts.bold, fontSize: 15, color: "#1A1A1A" },
   walkerSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#8E8E93", marginTop: 2 },
-  locationBadge: {
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
+  locationBadge: { backgroundColor: "#2E7D32", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   locationBadgeText: { fontSize: 11, color: "#FFFFFF", fontWeight: "700" },
   sectionCard: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    backgroundColor: "#FFF8E1",
-    borderRadius: 10,
-    padding: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#FFE082",
+    marginHorizontal: 16, marginTop: 8,
+    backgroundColor: "#FFF8E1", borderRadius: 10, padding: 10,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    borderWidth: 1, borderColor: "#FFE082",
   },
-  sectionLabel: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 11,
-    color: "#F57F17",
-  },
-  sectionValue: {
-    fontFamily: Fonts.bold,
-    fontSize: 13,
-    color: "#1A1A1A",
-    flex: 1,
-  },
+  sectionLabel: { fontFamily: Fonts.semiBold, fontSize: 11, color: "#F57F17" },
+  sectionValue: { fontFamily: Fonts.bold, fontSize: 13, color: "#1A1A1A", flex: 1 },
   statsRow: {
-    flexDirection: "row",
-    marginHorizontal: 16,
-    marginTop: 10,
-    backgroundColor: "#F8F8F8",
-    borderRadius: 14,
-    padding: 14,
-    alignItems: "center",
+    flexDirection: "row", marginHorizontal: 16, marginTop: 10,
+    backgroundColor: "#F8F8F8", borderRadius: 14, padding: 14, alignItems: "center",
   },
   statItem: { flex: 1, alignItems: "center", gap: 3 },
   statIcon: { fontSize: 18 },
   statValue: { fontFamily: Fonts.bold, fontSize: 14, color: "#1A1A1A" },
   statLabel: { fontFamily: Fonts.regular, fontSize: 10, color: "#8E8E93" },
   statDivider: { width: 1, height: 36, backgroundColor: "#E0E0E0" },
-  progressBar: {
-    marginHorizontal: 16,
-    marginTop: 10,
-    gap: 6,
-  },
-  progressBg: {
-    height: 6,
-    backgroundColor: "#F0F0F0",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: 6,
-    backgroundColor: "#2E7D32",
-    borderRadius: 3,
-  },
-  progressText: {
-    fontFamily: Fonts.regular,
-    fontSize: 11,
-    color: "#8E8E93",
-    textAlign: "center",
-  },
   completedBanner: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: "#F0FFF4",
-    borderRadius: 14,
-    padding: 20,
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "#C6F6D5",
+    marginHorizontal: 16, marginTop: 12,
+    backgroundColor: "#F0FFF4", borderRadius: 14, padding: 20,
+    alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#C6F6D5",
   },
   completedText: { fontFamily: Fonts.bold, fontSize: 16, color: "#2E7D32" },
   completedSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#4CAF82" },
   idleBanner: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: "#F8F8F8",
-    borderRadius: 14,
-    padding: 20,
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    marginHorizontal: 16, marginTop: 12,
+    backgroundColor: "#F8F8F8", borderRadius: 14, padding: 20,
+    alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#E0E0E0",
   },
   idleText: { fontFamily: Fonts.bold, fontSize: 16, color: "#8E8E93" },
-  idleSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#BDBDBD" },
+  idleSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#BDBDBD", textAlign: "center", lineHeight: 18 },
   refreshBtn: {
-    position: "absolute" as const,
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#DDDDDD",
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
+    position: "absolute" as const, top: 12, right: 12,
+    width: 36, height: 36, borderRadius: 4,
+    backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#DDDDDD",
+    alignItems: "center" as const, justifyContent: "center" as const,
     zIndex: 500,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
   },
   debugOverlay: {
-    position: "absolute" as const,
-    bottom: 8,
-    left: 8,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    zIndex: 100,
+    position: "absolute" as const, bottom: 8, left: 8,
+    backgroundColor: "rgba(0,0,0,0.7)", borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 4, zIndex: 100,
   },
-  debugText: {
-    fontFamily: Fonts.regular,
-    fontSize: 10,
-    color: "#00FF88",
-    letterSpacing: 0.3,
-  },
+  debugText: { fontFamily: Fonts.regular, fontSize: 10, color: "#00FF88", letterSpacing: 0.3 },
 });

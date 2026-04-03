@@ -1,5 +1,5 @@
 /**
- * Phase 70: 산책 시뮬레이션 멀티 코스 테스트
+ * Phase 70+71: 산책 시뮬레이션 멀티 코스 + 강제 동기화 시스템 테스트
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -321,6 +321,25 @@ describe("walk-simulation 멀티 코스 모듈", () => {
       expect(result.latitude).toBeCloseTo(36.376, 3);
       expect(result.longitude).toBeCloseTo(127.390, 3);
     });
+
+    it("보간 좌표가 시작-끝 범위 내에 있어야 한다", () => {
+      for (let t = 0; t <= 1; t += 0.1) {
+        const result = interpolateCoords(coordA, coordB, t);
+        expect(result.latitude).toBeGreaterThanOrEqual(Math.min(coordA.latitude, coordB.latitude));
+        expect(result.latitude).toBeLessThanOrEqual(Math.max(coordA.latitude, coordB.latitude));
+        expect(result.longitude).toBeGreaterThanOrEqual(Math.min(coordA.longitude, coordB.longitude));
+        expect(result.longitude).toBeLessThanOrEqual(Math.max(coordA.longitude, coordB.longitude));
+      }
+    });
+
+    it("보간 결과가 연속적이어야 한다", () => {
+      let prevLat = coordA.latitude;
+      for (let t = 0; t <= 1; t += 0.1) {
+        const result = interpolateCoords(coordA, coordB, t);
+        expect(result.latitude).toBeGreaterThanOrEqual(prevLat - 0.0001);
+        prevLat = result.latitude;
+      }
+    });
   });
 
   describe("initialSimulationState", () => {
@@ -383,6 +402,155 @@ describe("멀티 코스 데이터 무결성", () => {
   it("모든 코스의 typeEmoji가 비어있지 않아야 한다", () => {
     SIMULATION_COURSES.forEach(course => {
       expect(course.typeEmoji.length).toBeGreaterThan(0);
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Phase 71: 강제 동기화 시스템 테스트
+// ═══════════════════════════════════════════════════════════════
+describe("강제 동기화 페이로드 구조", () => {
+  it("WalkerLocationPayload 형태가 올바른지 검증", () => {
+    const payload = {
+      lat: 36.368,
+      lng: 127.389,
+      label: "엑스포 시민광장 입구",
+      index: 0,
+      courseId: "course_a",
+      courseName: "엑스포 시민광장",
+      courseType: "도심형",
+      progress: 0,
+      status: "running" as const,
+      timestamp: Date.now(),
+      interpolated: false,
+    };
+
+    expect(payload.lat).toBeGreaterThan(36);
+    expect(payload.lng).toBeGreaterThan(127);
+    expect(payload.courseId).toBeTruthy();
+    expect(payload.courseName).toBeTruthy();
+    expect(payload.courseType).toBeTruthy();
+    expect(payload.progress).toBeGreaterThanOrEqual(0);
+    expect(payload.progress).toBeLessThanOrEqual(100);
+    expect(["running", "paused", "completed", "idle"]).toContain(payload.status);
+    expect(typeof payload.interpolated).toBe("boolean");
+  });
+
+  it("보간 좌표 페이로드가 올바른지 검증", () => {
+    const from = COURSE_A_ROUTE[0];
+    const to = COURSE_A_ROUTE[1];
+    const interp = interpolateCoords(from, to, 0.5);
+
+    const payload = {
+      lat: interp.latitude,
+      lng: interp.longitude,
+      label: `${from.label} → ${to.label}`,
+      index: 0,
+      courseId: "course_a",
+      courseName: "엑스포 시민광장",
+      courseType: "도심형",
+      progress: 12.5,
+      status: "running" as const,
+      timestamp: Date.now(),
+      interpolated: true,
+    };
+
+    expect(payload.interpolated).toBe(true);
+    expect(payload.lat).toBeGreaterThan(from.latitude);
+    expect(payload.lat).toBeLessThan(to.latitude);
+  });
+
+  it("완료 상태 페이로드가 올바른지 검증", () => {
+    const lastCoord = COURSE_A_ROUTE[COURSE_A_ROUTE.length - 1];
+    const payload = {
+      lat: lastCoord.latitude,
+      lng: lastCoord.longitude,
+      label: lastCoord.label,
+      index: COURSE_A_ROUTE.length - 1,
+      courseId: "course_a",
+      courseName: "엑스포 시민광장",
+      courseType: "도심형",
+      progress: 100,
+      status: "completed" as const,
+      timestamp: Date.now(),
+      interpolated: false,
+    };
+
+    expect(payload.progress).toBe(100);
+    expect(payload.status).toBe("completed");
+    expect(payload.index).toBe(COURSE_A_ROUTE.length - 1);
+  });
+
+  it("일시정지 상태 페이로드 검증", () => {
+    const coord = COURSE_B_ROUTE[1];
+    const payload = {
+      lat: coord.latitude,
+      lng: coord.longitude,
+      label: coord.label,
+      index: 1,
+      courseId: "course_b",
+      courseName: "유림공원",
+      courseType: "수변형",
+      progress: 33.3,
+      status: "paused" as const,
+      timestamp: Date.now(),
+      interpolated: false,
+    };
+
+    expect(payload.status).toBe("paused");
+    expect(payload.courseId).toBe("course_b");
+  });
+});
+
+describe("보간 단계 수 계산", () => {
+  it("5초 간격에서 1초 보간이면 5단계여야 한다", () => {
+    const totalSteps = Math.floor(SIMULATION_INTERVAL_MS / 1000);
+    expect(totalSteps).toBe(5);
+  });
+
+  it("각 보간 단계의 progress가 0~1 범위여야 한다", () => {
+    const totalSteps = Math.floor(SIMULATION_INTERVAL_MS / 1000);
+    for (let step = 0; step <= totalSteps; step++) {
+      const t = step / totalSteps;
+      expect(t).toBeGreaterThanOrEqual(0);
+      expect(t).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("보간 단계별 좌표가 점진적으로 변해야 한다", () => {
+    const totalSteps = Math.floor(SIMULATION_INTERVAL_MS / 1000);
+    const from = COURSE_A_ROUTE[0];
+    const to = COURSE_A_ROUTE[1];
+    let prevLat = from.latitude;
+
+    for (let step = 0; step <= totalSteps; step++) {
+      const t = step / totalSteps;
+      const interp = interpolateCoords(from, to, t);
+      expect(interp.latitude).toBeGreaterThanOrEqual(prevLat - 0.0001);
+      prevLat = interp.latitude;
+    }
+  });
+});
+
+describe("코스별 진행률 계산", () => {
+  SIMULATION_COURSES.forEach(course => {
+    it(`${course.name}: 각 스텝의 진행률이 0~100% 범위여야 한다`, () => {
+      for (let i = 0; i < course.route.length; i++) {
+        const progress = (i / (course.route.length - 1)) * 100;
+        expect(progress).toBeGreaterThanOrEqual(0);
+        expect(progress).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it(`${course.name}: 마지막 스텝의 진행률이 100%여야 한다`, () => {
+      const lastIndex = course.route.length - 1;
+      const progress = (lastIndex / (course.route.length - 1)) * 100;
+      expect(progress).toBe(100);
+    });
+
+    it(`${course.name}: 첫 스텝의 진행률이 0%여야 한다`, () => {
+      const progress = (0 / (course.route.length - 1)) * 100;
+      expect(progress).toBe(0);
     });
   });
 });

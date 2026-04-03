@@ -963,3 +963,13 @@
 - [x] 보호자 뷰 지도 초기 중심점을 선택된 코스 시작점으로 설정
 - [x] 테스트 업데이트 및 전체 통과 확인
 - [x] 테스트 632개 통과, TS 에러 0건
+
+## 보호자 뷰 마커 자동 이동 및 강제 동기화 시스템 (Phase 71)
+- [x] localStorage 키를 'walker_location'으로 통일 (관리자 송신/보호자 수신)
+- [x] 관리자 simulation.tsx: setInterval 1초마다 walker_location에 lat/lng/courseId/progress 갱신
+- [x] 보호자 live-tracker.tsx: StorageEvent 리스너로 walker_location 변경 즉시 감지
+- [x] 보호자 뷰: 마커 부드러운 이동 애니메이션 (requestAnimationFrame 기반 보간)
+- [x] 보호자 뷰: 지도 중심 panTo 자동 추적
+- [x] 초기 상태 일치화: 뒤늦게 접속해도 현재 진행 상태 즉시 복원
+- [x] 같은 탭 내 동기화를 위한 폴링 백업 (StorageEvent는 다른 탭에서만 발생)
+- [x] 테스트 업데이트 및 전체 통과 확인 (650개 통과, TS 에러 0건)
