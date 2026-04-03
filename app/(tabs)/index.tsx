@@ -391,7 +391,7 @@ function OwnerHome() {
           <Pressable
             onPress={() => {
               haptic();
-              router.push("/(tabs)/map" as never);
+              router.push("/walk/all-trails" as never);
             }}
           >
             <Text style={s.seeAll}>전체보기</Text>
