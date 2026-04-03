@@ -68,11 +68,11 @@ export const DAEJEON_WALK_SPOTS: WalkSpot[] = [
     difficulty: "쉬움",
     petFriendly: "호수 주변 리드줄 필수",
   },
-    {
-    id: "spot_3",
+  {
+    id: "spot_3_1",
     name: "남선공원",
-    district: "서구",
-    dong: "도안동",
+    district: "중구",
+    dong: "중앙로",
     description: "대전 시내 중심부의 공원. 넓은 산책로와 다양한 편의시설이 있습니다.",
     emoji: "🌳",
     features: ["산책로", "벤치", "주차장", "편의점"],

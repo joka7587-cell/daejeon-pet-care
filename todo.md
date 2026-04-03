@@ -832,11 +832,11 @@
 
 
 ## 시연용 데이터 동기화 & 지도 렌더링 완전 해결 (Phase 58)
-- [ ] 산책 시뮬레이션 데이터 localStorage 영구 저장 (타이머, 좌표, 상태)
-- [ ] 화면 재진입 시 시뮬레이션 자동 재개 (Resume 로직)
-- [ ] 보호자뷰 지도 Lazy Loading 방지 (setTimeout 100ms 지연)
-- [ ] 지도 relayout() 및 setCenter() 강제 실행
-- [ ] 지도 컨테이너 Z-Index 및 min-height 설정
-- [ ] 대전 주요 산책로 입구 좌표 정밀화 (4개 지점)
-- [ ] 카카오맵 LatLngBounds 적용 (모든 산책로 한눈에 보기)
-- [ ] 네비게이션 라우팅 최종 검증
+- [x] 산책 시뮬레이션 데이터 localStorage 영구 저장 (타이머, 좌표, 상태)
+- [x] 화면 재진입 시 시뮬레이션 자동 재개 (Resume 로직)
+- [x] 보호자뷰 지도 Lazy Loading 방지 (setTimeout 100ms 지연)
+- [x] 지도 relayout() 및 setCenter() 강제 실행
+- [x] 지도 컨테이너 Z-Index 및 min-height 설정
+- [x] 대전 주요 산책로 입구 좌표 정밀화 (4개 지점)
+- [x] 카카오맵 LatLngBounds 적용 (모든 산책로 한눈에 보기)
+- [x] 네비게이션 라우팅 최종 검증
