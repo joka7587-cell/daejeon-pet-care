@@ -2,12 +2,10 @@
  * 보호자용 - 시뮬레이션 산책 실시간 추적 화면
  * 카카오맵 WebView로 실시간 마커 이동 표시
  *
- * Phase 61 수정사항:
- * - 도로 기반 Polyline (건물 관통 방지)
- * - 경유지 마커를 주요 4곳만 표시 (출발-한빛탑-엑스포다리-시민광장)
- * - 마커 이동이 도로 경로만 따르도록 동기화
- * - map.panTo()로 부드러운 중심 이동
- * - 줌 레벨 3~4 고정
+ * Phase 70 수정사항:
+ * - 멀티 코스 지원: localStorage에서 courseId를 읽어 해당 코스 경로/경유지를 동적 로드
+ * - 코스 변경 시 지도 중심점 + 경로 + 경유지 자동 갱신
+ * - 지도 HTML 생성 시 코스 데이터를 동적으로 주입
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,29 +28,38 @@ import { getApiBaseUrl } from "@/constants/oauth";
 import {
   EXPO_PARK_ROUTE,
   WAYPOINTS,
+  SIMULATION_COURSES,
+  getCourseById,
   calculateRouteDistance,
   haversineDistance,
+  type SimulationCourse,
+  type SimulationCoord,
+  type Waypoint,
 } from "@/lib/walk-simulation";
 
 const haptic = () => {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 };
 
-// 카카오맵 HTML 생성 - 도로 기반 경로 + 주요 경유지만 마커
-function generateTrackerMapHTML(apiKey: string, initialLat: number, initialLng: number): string {
-  // 전체 경로 좌표 (4개 도로 좌표)
-  const routePathJSON = JSON.stringify(EXPO_PARK_ROUTE.map(c => ({
+// 카카오맵 HTML 생성 - 코스 데이터를 동적으로 주입
+function generateTrackerMapHTML(
+  apiKey: string,
+  initialLat: number,
+  initialLng: number,
+  route: SimulationCoord[],
+  waypoints: Waypoint[]
+): string {
+  const routePathJSON = JSON.stringify(route.map(c => ({
     lat: c.latitude,
     lng: c.longitude,
   })));
 
-  // 주요 경유지 (3곳: 출발/경유/도착)
-  const waypointsJSON = JSON.stringify(WAYPOINTS.map(wp => ({
+  const waypointsJSON = JSON.stringify(waypoints.map(wp => ({
     routeIndex: wp.routeIndex,
     label: wp.label,
     emoji: wp.emoji,
-    lat: EXPO_PARK_ROUTE[wp.routeIndex].latitude,
-    lng: EXPO_PARK_ROUTE[wp.routeIndex].longitude,
+    lat: route[wp.routeIndex].latitude,
+    lng: route[wp.routeIndex].longitude,
   })));
 
   return `<!DOCTYPE html>
@@ -79,9 +86,7 @@ html,body{width:100%;height:100%;overflow:hidden}
   0%{transform:scale(1);opacity:0.6}
   100%{transform:scale(2.2);opacity:0}
 }
-.wp-marker{
-  text-align:center;
-}
+.wp-marker{text-align:center}
 .wp-icon{
   width:32px;height:32px;border-radius:50%;
   background:white;border:2px solid #2E7D32;
@@ -153,7 +158,6 @@ function sendMsg(obj){
   kakao.maps.load(function(){
     clearTimeout(loadTimeout);
 
-    // 300ms 지연 - DOM 확실히 생성 후 지도 초기화
     setTimeout(function(){
       var container = document.getElementById('map');
       if(!container){
@@ -166,22 +170,17 @@ function sendMsg(obj){
         level: 4
       });
 
-      // 전역 참조
       window.kakaoMapInstance = map;
-
-      // relayout 강제 실행
       map.relayout();
       map.setCenter(new kakao.maps.LatLng(${initialLat}, ${initialLng}));
-
-      // 줌 컨트롤
       map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
-      // 도로 기반 경로 데이터 (4개 좌표)
+      // 경로 데이터
       var routeData = ${routePathJSON};
       var routePath = routeData.map(function(c){ return new kakao.maps.LatLng(c.lat, c.lng); });
 
-      // 전체 경로 폴리라인 (연한 회색 점선 - 아직 안 간 구간)
-      new kakao.maps.Polyline({
+      // 전체 경로 폴리라인 (점선)
+      var bgPolyline = new kakao.maps.Polyline({
         map: map,
         path: routePath,
         strokeWeight: 4,
@@ -190,7 +189,7 @@ function sendMsg(obj){
         strokeStyle: 'dashed'
       });
 
-      // 이동 경로 폴리라인 (진행된 구간 - 파란색 실선)
+      // 이동 경로 폴리라인 (실선)
       var activePolyline = new kakao.maps.Polyline({
         map: map,
         path: [routePath[0]],
@@ -200,8 +199,9 @@ function sendMsg(obj){
         strokeStyle: 'solid'
       });
 
-      // 주요 경유지 마커 (3곳: 출발/경유/도착)
+      // 경유지 마커
       var waypoints = ${waypointsJSON};
+      var wpOverlays = [];
       waypoints.forEach(function(wp){
         var pos = new kakao.maps.LatLng(wp.lat, wp.lng);
         var el = document.createElement('div');
@@ -218,16 +218,17 @@ function sendMsg(obj){
         label.textContent = wp.label;
         el.appendChild(label);
 
-        new kakao.maps.CustomOverlay({
+        var overlay = new kakao.maps.CustomOverlay({
           position: pos,
           content: el,
           yAnchor: 1.5,
           zIndex: 5,
           map: map
         });
+        wpOverlays.push(overlay);
       });
 
-      // 워커 마커 (강아지)
+      // 워커 마커
       var walkerEl = document.createElement('div');
       walkerEl.className = 'walker-marker';
       walkerEl.innerHTML = '<div class="pulse"></div>\\uD83D\\uDC15';
@@ -240,34 +241,26 @@ function sendMsg(obj){
         map: map
       });
 
-      // 로딩 오버레이 제거
       document.getElementById('loading').style.display = 'none';
 
-      // 마커 업데이트 함수 (외부에서 호출)
-      // stepIndex: 현재 EXPO_PARK_ROUTE 배열 인덱스
+      // 마커 업데이트 함수
       window.updateWalkerPosition = function(lat, lng, stepIndex) {
         var newPos = new kakao.maps.LatLng(lat, lng);
         walkerOverlay.setPosition(newPos);
-
-        // 부드러운 지도 중심 이동
         map.panTo(newPos);
 
-        // 줌 레벨 3~4 유지
         var currentLevel = map.getLevel();
         if(currentLevel < 3 || currentLevel > 4){
           map.setLevel(4);
         }
 
-        // 이동 경로 업데이트 (도로 기반 - 해당 인덱스까지의 모든 좌표)
         var activePath = [];
         for(var i = 0; i <= stepIndex && i < routePath.length; i++){
           activePath.push(routePath[i]);
         }
-        // 현재 위치가 정확히 routePath[stepIndex]가 아닐 수 있으므로 추가
         activePath.push(newPos);
         activePolyline.setPath(activePath);
 
-        // 경유지 색상 업데이트 (통과한 경유지 녹색으로)
         waypoints.forEach(function(wp){
           var wpEl = document.getElementById('wp_' + wp.routeIndex);
           if(wpEl){
@@ -284,10 +277,77 @@ function sendMsg(obj){
         });
       };
 
-      // 새로고침 버튼 로직 - 부모에게 메시지 보내서 최신 좌표 요청
+      // 코스 변경 함수 (React Native에서 호출)
+      window.changeCourse = function(newRouteJSON, newWaypointsJSON) {
+        try {
+          var newRoute = JSON.parse(newRouteJSON);
+          var newWaypoints = JSON.parse(newWaypointsJSON);
+
+          // 기존 경로/경유지 제거
+          bgPolyline.setMap(null);
+          activePolyline.setMap(null);
+          wpOverlays.forEach(function(o){ o.setMap(null); });
+          wpOverlays = [];
+
+          // 새 경로 데이터
+          routeData = newRoute;
+          routePath = newRoute.map(function(c){ return new kakao.maps.LatLng(c.lat, c.lng); });
+
+          // 새 폴리라인
+          bgPolyline = new kakao.maps.Polyline({
+            map: map,
+            path: routePath,
+            strokeWeight: 4,
+            strokeColor: '#CCCCCC',
+            strokeOpacity: 0.5,
+            strokeStyle: 'dashed'
+          });
+          activePolyline = new kakao.maps.Polyline({
+            map: map,
+            path: [routePath[0]],
+            strokeWeight: 5,
+            strokeColor: '#3366FF',
+            strokeOpacity: 0.8,
+            strokeStyle: 'solid'
+          });
+
+          // 새 경유지 마커
+          waypoints = newWaypoints;
+          waypoints.forEach(function(wp){
+            var pos = new kakao.maps.LatLng(wp.lat, wp.lng);
+            var el = document.createElement('div');
+            el.className = 'wp-marker';
+            var icon = document.createElement('div');
+            icon.className = 'wp-icon';
+            icon.textContent = wp.emoji;
+            icon.id = 'wp_' + wp.routeIndex;
+            el.appendChild(icon);
+            var label = document.createElement('div');
+            label.className = 'wp-label';
+            label.textContent = wp.label;
+            el.appendChild(label);
+            var overlay = new kakao.maps.CustomOverlay({
+              position: pos,
+              content: el,
+              yAnchor: 1.5,
+              zIndex: 5,
+              map: map
+            });
+            wpOverlays.push(overlay);
+          });
+
+          // 지도 중심 이동
+          if(routePath.length > 0){
+            map.panTo(routePath[0]);
+            walkerOverlay.setPosition(routePath[0]);
+          }
+        } catch(e) {
+          console.error('changeCourse error:', e);
+        }
+      };
+
       window.refreshLocation = function(){
         sendMsg({type:'refresh_request'});
-        // 토스트 표시
         var toast = document.getElementById('toast');
         if(toast){
           toast.classList.add('show');
@@ -295,12 +355,10 @@ function sendMsg(obj){
         }
       };
 
-      // 부모에서 좌표를 주입하면 relayout도 실행
       window.forceRelayout = function(){
         map.relayout();
       };
 
-      // relayout 한번 더 (안전)
       setTimeout(function(){
         map.relayout();
         sendMsg({type:'ready'});
@@ -327,9 +385,15 @@ export default function LiveTrackerScreen() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ─── 멀티 코스: 현재 활성 코스 상태 ───
+  const [activeCourseId, setActiveCourseId] = useState<string>("course_a");
+  const activeCourse = getCourseById(activeCourseId);
+  const activeRoute = activeCourse.route;
+  const activeWaypoints = activeCourse.waypoints;
+
   const simStatus = walkSimulation.status;
   const currentIndex = walkSimulation.currentIndex;
-  const currentCoord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
+  const currentCoord = activeRoute[currentIndex] || activeRoute[0];
 
   // API 키 가져오기
   useEffect(() => {
@@ -376,9 +440,47 @@ export default function LiveTrackerScreen() {
     } else {
       webViewRef.current?.injectJavaScript(js + "true;");
     }
-    // 디버깅 UI 업데이트
     setDebugCoord({ lat, lng, index });
   }, []);
+
+  // 코스 변경 시 지도에 새 경로 주입
+  const sendCourseChangeToMap = useCallback((course: SimulationCourse) => {
+    const routeJSON = JSON.stringify(course.route.map(c => ({
+      lat: c.latitude,
+      lng: c.longitude,
+    })));
+    const wpJSON = JSON.stringify(course.waypoints.map(wp => ({
+      routeIndex: wp.routeIndex,
+      label: wp.label,
+      emoji: wp.emoji,
+      lat: course.route[wp.routeIndex].latitude,
+      lng: course.route[wp.routeIndex].longitude,
+    })));
+    const js = `window.changeCourse('${routeJSON.replace(/'/g, "\\'")}', '${wpJSON.replace(/'/g, "\\'")}');`;
+    if (Platform.OS === "web") {
+      if (iframeRef.current && iframeRef.current.contentWindow) {
+        try { (iframeRef.current.contentWindow as any).eval(js); } catch {}
+      }
+    } else {
+      webViewRef.current?.injectJavaScript(js + "true;");
+    }
+  }, []);
+
+  // localStorage 폴링에서 courseId 감지 → 코스 변경
+  const lastCourseIdRef = useRef<string>("course_a");
+
+  const handleLocationData = useCallback((parsed: any) => {
+    sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0);
+    // courseId가 변경되었으면 코스 전환
+    if (parsed.courseId && parsed.courseId !== lastCourseIdRef.current) {
+      lastCourseIdRef.current = parsed.courseId;
+      setActiveCourseId(parsed.courseId);
+      const newCourse = getCourseById(parsed.courseId);
+      if (mapReady) {
+        sendCourseChangeToMap(newCourse);
+      }
+    }
+  }, [sendPositionToMap, sendCourseChangeToMap, mapReady]);
 
   // 초기 로드 시 localStorage에 기존 좌표가 있으면 복원
   useEffect(() => {
@@ -388,22 +490,21 @@ export default function LiveTrackerScreen() {
       if (existing) {
         try {
           const parsed = JSON.parse(existing);
-          sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+          handleLocationData(parsed);
         } catch {}
       }
     }
-    // AsyncStorage 폴백도 시도
     AsyncStorage.getItem("walk_simulation_current").then((data) => {
       if (data) {
         try {
           const parsed = JSON.parse(data);
-          sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+          handleLocationData(parsed);
         } catch {}
       }
     }).catch(() => {});
-  }, [mapReady, sendPositionToMap]);
+  }, [mapReady, handleLocationData]);
 
-  // window.addEventListener('storage') - 실시간 감지 (타 탭/창에서 변경 시)
+  // window.addEventListener('storage') - 실시간 감지
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
     if (!mapReady) return;
@@ -412,16 +513,16 @@ export default function LiveTrackerScreen() {
       if (event.key === "currentLocation" && event.newValue) {
         try {
           const parsed = JSON.parse(event.newValue);
-          sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+          handleLocationData(parsed);
         } catch {}
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, [mapReady, sendPositionToMap]);
+  }, [mapReady, handleLocationData]);
 
-  // 같은 탭 내 동기화 - localStorage 폴링 (같은 탭에서는 storage 이벤트가 발생하지 않으므로)
+  // 같은 탭 내 동기화 - localStorage 폴링
   useEffect(() => {
     if (!mapReady) return;
 
@@ -431,16 +532,15 @@ export default function LiveTrackerScreen() {
         if (data) {
           try {
             const parsed = JSON.parse(data);
-            sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+            handleLocationData(parsed);
           } catch {}
         }
       } else {
-        // 네이티브에서는 AsyncStorage 폴링
         AsyncStorage.getItem("walk_simulation_current").then((data) => {
           if (data) {
             try {
               const parsed = JSON.parse(data);
-              sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+              handleLocationData(parsed);
             } catch {}
           }
         }).catch(() => {});
@@ -448,39 +548,39 @@ export default function LiveTrackerScreen() {
     }, 1000);
 
     return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
-  }, [mapReady, sendPositionToMap]);
+  }, [mapReady, handleLocationData]);
 
   // 상태 변경 시 지도 마커 업데이트
   useEffect(() => {
     if (!mapReady) return;
-    const coord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
+    const coord = activeRoute[currentIndex] || activeRoute[0];
     sendPositionToMap(coord.latitude, coord.longitude, currentIndex);
-  }, [currentIndex, mapReady, sendPositionToMap]);
+  }, [currentIndex, mapReady, sendPositionToMap, activeRoute]);
 
   // 이동 거리 계산
   let distanceSoFar = 0;
-  for (let i = 1; i <= currentIndex && i < EXPO_PARK_ROUTE.length; i++) {
+  for (let i = 1; i <= currentIndex && i < activeRoute.length; i++) {
     distanceSoFar += haversineDistance(
-      EXPO_PARK_ROUTE[i - 1].latitude,
-      EXPO_PARK_ROUTE[i - 1].longitude,
-      EXPO_PARK_ROUTE[i].latitude,
-      EXPO_PARK_ROUTE[i].longitude
+      activeRoute[i - 1].latitude,
+      activeRoute[i - 1].longitude,
+      activeRoute[i].latitude,
+      activeRoute[i].longitude
     );
   }
-  const totalDistance = calculateRouteDistance(EXPO_PARK_ROUTE);
-  const progressPercent = ((currentIndex + 1) / EXPO_PARK_ROUTE.length) * 100;
+  const totalDistance = calculateRouteDistance(activeRoute);
+  const progressPercent = ((currentIndex + 1) / activeRoute.length) * 100;
 
-  // 현재 구간 이름 (주요 경유지 기준)
+  // 현재 구간 이름
   const getCurrentSection = () => {
-    for (let i = WAYPOINTS.length - 1; i >= 0; i--) {
-      if (currentIndex >= WAYPOINTS[i].routeIndex) {
-        if (i < WAYPOINTS.length - 1) {
-          return `${WAYPOINTS[i].label} → ${WAYPOINTS[i + 1].label}`;
+    for (let i = activeWaypoints.length - 1; i >= 0; i--) {
+      if (currentIndex >= activeWaypoints[i].routeIndex) {
+        if (i < activeWaypoints.length - 1) {
+          return `${activeWaypoints[i].label} → ${activeWaypoints[i + 1].label}`;
         }
-        return WAYPOINTS[i].label;
+        return activeWaypoints[i].label;
       }
     }
-    return WAYPOINTS[0].label;
+    return activeWaypoints[0].label;
   };
 
   const formatTime = (sec: number) => {
@@ -489,16 +589,14 @@ export default function LiveTrackerScreen() {
     return m > 0 ? `${m}분 ${s}초` : `${s}초`;
   };
 
-  // 새로고침 처리 함수 - 최신 좌표 읽어서 지도에 주입
+  // 새로고침 처리 함수
   const handleRefreshRequest = useCallback(() => {
-    // 1) 부모 페이지 localStorage에서 읽기
     if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
       const data = window.localStorage.getItem("currentLocation");
       if (data) {
         try {
           const parsed = JSON.parse(data);
-          sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0);
-          // relayout도 강제 실행
+          handleLocationData(parsed);
           const relayoutJs = `window.forceRelayout();`;
           if (iframeRef.current && iframeRef.current.contentWindow) {
             try { (iframeRef.current.contentWindow as any).eval(relayoutJs); } catch {}
@@ -507,19 +605,17 @@ export default function LiveTrackerScreen() {
         } catch {}
       }
     }
-    // 2) AsyncStorage 폴백
     AsyncStorage.getItem("walk_simulation_current").then((data) => {
       if (data) {
         try {
           const parsed = JSON.parse(data);
-          sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0);
+          handleLocationData(parsed);
         } catch {}
       }
     }).catch(() => {});
-    // 3) 현재 상태에서라도 전송
-    const coord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
+    const coord = activeRoute[currentIndex] || activeRoute[0];
     sendPositionToMap(coord.latitude, coord.longitude, currentIndex);
-  }, [sendPositionToMap, currentIndex]);
+  }, [handleLocationData, sendPositionToMap, currentIndex, activeRoute]);
 
   const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
@@ -567,8 +663,8 @@ export default function LiveTrackerScreen() {
       );
     }
 
-    const initialCoord = EXPO_PARK_ROUTE[0];
-    const html = generateTrackerMapHTML(apiKey, initialCoord.latitude, initialCoord.longitude);
+    const initialCoord = activeRoute[0];
+    const html = generateTrackerMapHTML(apiKey, initialCoord.latitude, initialCoord.longitude, activeRoute, activeWaypoints);
 
     if (Platform.OS === "web") {
       return (
@@ -644,6 +740,12 @@ export default function LiveTrackerScreen() {
               }]}>
                 {simStatus === "running" ? "산책 중" : simStatus === "paused" ? "일시정지" : simStatus === "completed" ? "산책 완료" : "대기 중"}
               </Text>
+              {/* 코스 이름 배지 */}
+              <View style={{ backgroundColor: "#E8F5E9", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                <Text style={{ fontFamily: Fonts.bold, fontSize: 10, color: "#2E7D32" }}>
+                  {activeCourse.typeEmoji} {activeCourse.name}
+                </Text>
+              </View>
             </View>
           </View>
           <View style={s.simBadge}>
@@ -654,7 +756,6 @@ export default function LiveTrackerScreen() {
         {/* 카카오맵 지도 */}
         <View style={{ position: "relative" }}>
           {renderMap()}
-          {/* React Native 측 새로고침 버튼 (지도 우측 상단) */}
           <Pressable
             onPress={() => {
               haptic();
@@ -664,11 +765,10 @@ export default function LiveTrackerScreen() {
           >
             <Text style={{ fontSize: 18 }}>🔄</Text>
           </Pressable>
-          {/* 디버깅 좌표 UI */}
           {debugCoord && (
             <View style={s.debugOverlay}>
               <Text style={s.debugText}>
-                수신: {debugCoord.lat.toFixed(5)}, {debugCoord.lng.toFixed(5)} [{debugCoord.index}/{EXPO_PARK_ROUTE.length}]
+                수신: {debugCoord.lat.toFixed(5)}, {debugCoord.lng.toFixed(5)} [{debugCoord.index}/{activeRoute.length}]
               </Text>
             </View>
           )}
@@ -714,7 +814,7 @@ export default function LiveTrackerScreen() {
           <View style={s.statDivider} />
           <View style={s.statItem}>
             <Text style={s.statIcon}>📍</Text>
-            <Text style={s.statValue}>{currentIndex + 1}/{EXPO_PARK_ROUTE.length}</Text>
+            <Text style={s.statValue}>{currentIndex + 1}/{activeRoute.length}</Text>
             <Text style={s.statLabel}>진행 포인트</Text>
           </View>
         </View>
@@ -733,7 +833,7 @@ export default function LiveTrackerScreen() {
             <Text style={{ fontSize: 32 }}>🎉</Text>
             <Text style={s.completedText}>산책이 완료되었습니다!</Text>
             <Text style={s.completedSub}>
-              총 {totalDistance.toFixed(2)}km · {WAYPOINTS.length}개 주요 경유지
+              총 {totalDistance.toFixed(2)}km · {activeWaypoints.length}개 주요 경유지
             </Text>
           </View>
         )}
@@ -772,7 +872,6 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   simBadgeText: { fontFamily: Fonts.bold, fontSize: 10, color: "#FFFFFF", letterSpacing: 1 },
-  // 지도 컨테이너 - 강제 고정 스타일
   mapContainer: {
     height: 400,
     width: "100%",

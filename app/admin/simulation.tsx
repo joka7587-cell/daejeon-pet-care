@@ -1,7 +1,12 @@
 /**
- * 관리자 전용 - 산책 시뮬레이션 모드
+ * 관리자 전용 - 산책 시뮬레이션 모드 (멀티 코스)
  * 프로필 > 앱 버전 5번 탭 > 관리자 메뉴 > 산책 시뮬레이션
- * 대전 엑스포 과학공원 근처 5개 좌표를 5초 간격으로 전송
+ * 3개 코스 중 선택하여 5초 간격으로 좌표 전송
+ *
+ * Phase 70: 멀티 코스 선택 기능 추가
+ * - 코스 A: 엑스포 시민광장 (도심형)
+ * - 코스 B: 유림공원 (수변형)
+ * - 코스 C: 남선공원 (숲길형)
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -20,14 +25,16 @@ import { Fonts } from "@/hooks/use-fonts";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  EXPO_PARK_ROUTE,
-  WAYPOINTS,
-  SimulationCoord,
+  SIMULATION_COURSES,
+  getCourseById,
   SIMULATION_INTERVAL_MS,
   haversineDistance,
   calculateRouteDistance,
   interpolateCoords,
   type SimulationStatus,
+  type SimulationCourse,
+  type SimulationCoord,
+  type Waypoint,
 } from "@/lib/walk-simulation";
 
 const haptic = () => {
@@ -35,9 +42,9 @@ const haptic = () => {
 };
 
 // localStorage 직접 저장 (웹 환경에서 storage 이벤트 발생시키기 위함)
-const broadcastLocation = (lat: number, lng: number, label: string, index: number) => {
+const broadcastLocation = (lat: number, lng: number, label: string, index: number, courseId: string) => {
   if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-    const payload = JSON.stringify({ lat, lng, label, index, timestamp: Date.now() });
+    const payload = JSON.stringify({ lat, lng, label, index, courseId, timestamp: Date.now() });
     window.localStorage.setItem("currentLocation", payload);
   }
 };
@@ -92,7 +99,39 @@ const restoreSimulationState = async () => {
   const elapsedRef = useRef(0);
   const stepRef = useRef(0);
 
-  const totalDistance = calculateRouteDistance(EXPO_PARK_ROUTE);
+  // ─── 멀티 코스 선택 상태 ───
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("course_a");
+  const [showCourseDropdown, setShowCourseDropdown] = useState(false);
+
+  const selectedCourse = getCourseById(selectedCourseId);
+  const activeRoute = selectedCourse.route;
+  const activeWaypoints = selectedCourse.waypoints;
+  const totalDistance = calculateRouteDistance(activeRoute);
+
+  // 코스 선택 핸들러
+  const handleSelectCourse = useCallback((courseId: string) => {
+    haptic();
+    setSelectedCourseId(courseId);
+    setShowCourseDropdown(false);
+    // 초기화
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsRunning(false);
+    setCurrentStep(0);
+    stepRef.current = 0;
+    setElapsedSec(0);
+    elapsedRef.current = 0;
+    dispatch({
+      type: "SET_WALK_SIMULATION",
+      payload: {
+        status: "idle" as SimulationStatus,
+        currentIndex: 0,
+        startedAt: null,
+      },
+    });
+  }, [dispatch]);
 
   // 시뮬레이션 시작
   const handleStart = useCallback(() => {
@@ -104,9 +143,11 @@ const restoreSimulationState = async () => {
     setIsRunning(true);
 
     const startTime = new Date().toISOString();
+    const route = activeRoute;
+    const courseId = selectedCourseId;
 
     // 첫 번째 좌표 즉시 전송
-    const firstCoord = EXPO_PARK_ROUTE[0];
+    const firstCoord = route[0];
     dispatch({
       type: "SET_WALK_SIMULATION",
       payload: {
@@ -129,17 +170,19 @@ const restoreSimulationState = async () => {
         label: firstCoord.label,
         timestamp: startTime,
         index: 0,
+        courseId,
       })
     ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
 
     // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-    broadcastLocation(firstCoord.latitude, firstCoord.longitude, firstCoord.label, 0);
+    broadcastLocation(firstCoord.latitude, firstCoord.longitude, firstCoord.label, 0, courseId);
 
     // 시작 시 상태 저장
     saveSimulationState(true, 0, {
       lat: firstCoord.latitude,
       lng: firstCoord.longitude,
       index: 0,
+      courseId,
     });
 
     // 5초 간격으로 다음 좌표 전송
@@ -148,7 +191,7 @@ const restoreSimulationState = async () => {
       setElapsedSec(elapsedRef.current);
 
       const nextStep = stepRef.current + 1;
-      if (nextStep >= EXPO_PARK_ROUTE.length) {
+      if (nextStep >= route.length) {
         // 모든 좌표 전송 완료
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = null;
@@ -157,7 +200,7 @@ const restoreSimulationState = async () => {
           type: "SET_WALK_SIMULATION",
           payload: {
             status: "completed" as SimulationStatus,
-            currentIndex: EXPO_PARK_ROUTE.length - 1,
+            currentIndex: route.length - 1,
           },
         });
         AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
@@ -171,7 +214,7 @@ const restoreSimulationState = async () => {
 
       stepRef.current = nextStep;
       setCurrentStep(nextStep);
-      const coord = EXPO_PARK_ROUTE[nextStep];
+      const coord = route[nextStep];
 
       dispatch({
         type: "SET_WALK_SIMULATION",
@@ -190,20 +233,22 @@ const restoreSimulationState = async () => {
           label: coord.label,
           timestamp: new Date().toISOString(),
           index: nextStep,
+          courseId,
         })
       ).catch(() => {});
 
       // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-      broadcastLocation(coord.latitude, coord.longitude, coord.label, nextStep);
+      broadcastLocation(coord.latitude, coord.longitude, coord.label, nextStep, courseId);
 
       // 상태 영속 저장
       saveSimulationState(true, elapsedRef.current * 1000, {
         lat: coord.latitude,
         lng: coord.longitude,
         index: nextStep,
+        courseId,
       });
     }, SIMULATION_INTERVAL_MS);
-  }, [dispatch]);
+  }, [dispatch, activeRoute, selectedCourseId]);
 
   // 시뮬레이션 일시정지
   const handlePause = useCallback(() => {
@@ -228,12 +273,15 @@ const restoreSimulationState = async () => {
       payload: { status: "running" as SimulationStatus },
     });
 
+    const route = activeRoute;
+    const courseId = selectedCourseId;
+
     timerRef.current = setInterval(() => {
       elapsedRef.current += 5;
       setElapsedSec(elapsedRef.current);
 
       const nextStep = stepRef.current + 1;
-      if (nextStep >= EXPO_PARK_ROUTE.length) {
+      if (nextStep >= route.length) {
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = null;
         setIsRunning(false);
@@ -241,7 +289,7 @@ const restoreSimulationState = async () => {
           type: "SET_WALK_SIMULATION",
           payload: {
             status: "completed" as SimulationStatus,
-            currentIndex: EXPO_PARK_ROUTE.length - 1,
+            currentIndex: route.length - 1,
           },
         });
         AsyncStorage.removeItem("walk_simulation_current").catch((e) =>
@@ -256,7 +304,7 @@ const restoreSimulationState = async () => {
 
       stepRef.current = nextStep;
       setCurrentStep(nextStep);
-      const coord = EXPO_PARK_ROUTE[nextStep];
+      const coord = route[nextStep];
 
       dispatch({
         type: "SET_WALK_SIMULATION",
@@ -275,13 +323,14 @@ const restoreSimulationState = async () => {
           label: coord.label,
           timestamp: new Date().toISOString(),
           index: nextStep,
+          courseId,
         })
       ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
 
       // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-      broadcastLocation(coord.latitude, coord.longitude, coord.label, nextStep);
+      broadcastLocation(coord.latitude, coord.longitude, coord.label, nextStep, courseId);
     }, SIMULATION_INTERVAL_MS);
-  }, [dispatch]);
+  }, [dispatch, activeRoute, selectedCourseId]);
 
   // 시뮬레이션 초기화
   const handleReset = useCallback(() => {
@@ -310,12 +359,17 @@ const restoreSimulationState = async () => {
     const restoreState = async () => {
       const savedState = await restoreSimulationState();
       if (savedState && savedState.isRunning) {
+        const courseId = savedState.currentPath?.courseId || "course_a";
+        setSelectedCourseId(courseId);
+        const course = getCourseById(courseId);
+        const route = course.route;
+
         // 경과 시간에서 현재 스텝 계산
         const elapsedMs = savedState.elapsedTime;
         const elapsedSeconds = Math.floor(elapsedMs / 1000);
         const calculatedStep = Math.min(
           Math.floor(elapsedMs / SIMULATION_INTERVAL_MS),
-          EXPO_PARK_ROUTE.length - 1
+          route.length - 1
         );
 
         setCurrentStep(calculatedStep);
@@ -335,7 +389,7 @@ const restoreSimulationState = async () => {
         });
 
         // LocalStorage에 현재 좌표 저장
-        const coord = EXPO_PARK_ROUTE[calculatedStep];
+        const coord = route[calculatedStep];
         await AsyncStorage.setItem(
           "walk_simulation_current",
           JSON.stringify({
@@ -344,20 +398,21 @@ const restoreSimulationState = async () => {
             label: coord.label,
             timestamp: new Date().toISOString(),
             index: calculatedStep,
+            courseId,
           })
         );
 
         // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-        broadcastLocation(coord.latitude, coord.longitude, coord.label, calculatedStep);
+        broadcastLocation(coord.latitude, coord.longitude, coord.label, calculatedStep, courseId);
 
         // 아직 완료되지 않았으면 타이머 재개
-        if (calculatedStep < EXPO_PARK_ROUTE.length - 1) {
+        if (calculatedStep < route.length - 1) {
           timerRef.current = setInterval(() => {
             elapsedRef.current += 5;
             setElapsedSec(elapsedRef.current);
 
             const nextStep = stepRef.current + 1;
-            if (nextStep >= EXPO_PARK_ROUTE.length) {
+            if (nextStep >= route.length) {
               if (timerRef.current) clearInterval(timerRef.current);
               timerRef.current = null;
               setIsRunning(false);
@@ -365,7 +420,7 @@ const restoreSimulationState = async () => {
                 type: "SET_WALK_SIMULATION",
                 payload: {
                   status: "completed" as SimulationStatus,
-                  currentIndex: EXPO_PARK_ROUTE.length - 1,
+                  currentIndex: route.length - 1,
                 },
               });
               AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
@@ -376,7 +431,7 @@ const restoreSimulationState = async () => {
 
             stepRef.current = nextStep;
             setCurrentStep(nextStep);
-            const c = EXPO_PARK_ROUTE[nextStep];
+            const c = route[nextStep];
             dispatch({
               type: "SET_WALK_SIMULATION",
               payload: {
@@ -392,16 +447,18 @@ const restoreSimulationState = async () => {
                 label: c.label,
                 timestamp: new Date().toISOString(),
                 index: nextStep,
+                courseId,
               })
             ).catch(() => {});
 
             // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
-            broadcastLocation(c.latitude, c.longitude, c.label, nextStep);
+            broadcastLocation(c.latitude, c.longitude, c.label, nextStep, courseId);
 
             saveSimulationState(true, elapsedRef.current * 1000, {
               lat: c.latitude,
               lng: c.longitude,
               index: nextStep,
+              courseId,
             });
           }, SIMULATION_INTERVAL_MS);
         } else {
@@ -411,7 +468,7 @@ const restoreSimulationState = async () => {
             type: "SET_WALK_SIMULATION",
             payload: {
               status: "completed" as SimulationStatus,
-              currentIndex: EXPO_PARK_ROUTE.length - 1,
+              currentIndex: route.length - 1,
             },
           });
         }
@@ -426,7 +483,7 @@ const restoreSimulationState = async () => {
   }, [dispatch]);
 
   const simStatus = walkSimulation.status;
-  const progressPercent = ((currentStep + 1) / EXPO_PARK_ROUTE.length) * 100;
+  const progressPercent = ((currentStep + 1) / activeRoute.length) * 100;
 
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} className="p-0">
@@ -456,13 +513,91 @@ const restoreSimulationState = async () => {
           </Text>
         </View>
 
+        {/* ─── 코스 선택 드롭다운 ─── */}
+        <View style={s.courseSelector}>
+          <Text style={s.courseSelectorTitle}>🗺️ 산책 코스 선택</Text>
+          <Pressable
+            onPress={() => {
+              if (simStatus === "idle") {
+                haptic();
+                setShowCourseDropdown(!showCourseDropdown);
+              }
+            }}
+            style={({ pressed }) => [
+              s.courseDropdownBtn,
+              pressed && simStatus === "idle" && { opacity: 0.85 },
+              simStatus !== "idle" && { opacity: 0.5 },
+            ]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+              <Text style={{ fontSize: 20 }}>{selectedCourse.typeEmoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.courseDropdownName}>{selectedCourse.name}</Text>
+                <Text style={s.courseDropdownType}>
+                  {selectedCourse.type} · {selectedCourse.district}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ fontSize: 14, color: "#8E8E93" }}>
+              {showCourseDropdown ? "▲" : "▼"}
+            </Text>
+          </Pressable>
+
+          {/* 드롭다운 목록 */}
+          {showCourseDropdown && (
+            <View style={s.courseDropdownList}>
+              {SIMULATION_COURSES.map((course) => {
+                const isSelected = course.id === selectedCourseId;
+                return (
+                  <Pressable
+                    key={course.id}
+                    onPress={() => handleSelectCourse(course.id)}
+                    style={({ pressed }) => [
+                      s.courseDropdownItem,
+                      isSelected && s.courseDropdownItemSelected,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 24 }}>{course.typeEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={[
+                          s.courseDropdownItemName,
+                          isSelected && { color: "#2E7D32" },
+                        ]}>
+                          {course.name}
+                        </Text>
+                        <View style={[
+                          s.courseTypeBadge,
+                          isSelected && { backgroundColor: "#2E7D32" },
+                        ]}>
+                          <Text style={s.courseTypeBadgeText}>{course.type}</Text>
+                        </View>
+                      </View>
+                      <Text style={s.courseDropdownItemDesc}>{course.description}</Text>
+                      <Text style={s.courseDropdownItemMeta}>
+                        {course.district} · {course.route.length}개 좌표 · {calculateRouteDistance(course.route).toFixed(2)}km
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Text style={{ fontSize: 16, color: "#2E7D32" }}>✓</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
         {/* 경로 정보 카드 */}
         <View style={s.routeCard}>
           <Text style={s.routeTitle}>📍 시뮬레이션 경로</Text>
-          <Text style={s.routeSubtitle}>대전 엑스포 과학공원 일대</Text>
+          <Text style={s.routeSubtitle}>
+            {selectedCourse.name} ({selectedCourse.type}) · {selectedCourse.district}
+          </Text>
           <View style={s.routeStats}>
             <View style={s.routeStat}>
-              <Text style={s.routeStatValue}>{EXPO_PARK_ROUTE.length}</Text>
+              <Text style={s.routeStatValue}>{activeRoute.length}</Text>
               <Text style={s.routeStatLabel}>경유지</Text>
             </View>
             <View style={s.routeStatDivider} />
@@ -472,22 +607,22 @@ const restoreSimulationState = async () => {
             </View>
             <View style={s.routeStatDivider} />
             <View style={s.routeStat}>
-              <Text style={s.routeStatValue}>{EXPO_PARK_ROUTE.length * 5}초</Text>
+              <Text style={s.routeStatValue}>{activeRoute.length * 5}초</Text>
               <Text style={s.routeStatLabel}>소요 시간</Text>
             </View>
           </View>
         </View>
 
-        {/* 경유지 목록 (3개만 표시) */}
+        {/* 경유지 목록 (동적 갱신) */}
         <View style={s.coordList}>
           <Text style={s.coordListTitle}>산책 경로</Text>
-          {WAYPOINTS.map((wp, i) => {
-            const coord = EXPO_PARK_ROUTE[wp.routeIndex];
+          {activeWaypoints.map((wp, i) => {
+            const coord = activeRoute[wp.routeIndex];
             const isActive = currentStep >= wp.routeIndex && (
-              i === WAYPOINTS.length - 1 || currentStep < WAYPOINTS[i + 1].routeIndex
+              i === activeWaypoints.length - 1 || currentStep < activeWaypoints[i + 1].routeIndex
             ) && simStatus === "running";
             const isDone = currentStep > wp.routeIndex || simStatus === "completed";
-            const tag = i === 0 ? "출발" : i === WAYPOINTS.length - 1 ? "도착" : "경유";
+            const tag = i === 0 ? "출발" : i === activeWaypoints.length - 1 ? "도착" : "경유";
             return (
               <View
                 key={i}
@@ -512,7 +647,7 @@ const restoreSimulationState = async () => {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <View style={{
-                      backgroundColor: i === 0 ? "#2E7D32" : i === WAYPOINTS.length - 1 ? "#D32F2F" : "#1565C0",
+                      backgroundColor: i === 0 ? "#2E7D32" : i === activeWaypoints.length - 1 ? "#D32F2F" : "#1565C0",
                       borderRadius: 4,
                       paddingHorizontal: 6,
                       paddingVertical: 2,
@@ -557,7 +692,7 @@ const restoreSimulationState = async () => {
             </View>
             <View style={s.progressInfo}>
               <Text style={s.progressInfoText}>
-                {currentStep + 1} / {EXPO_PARK_ROUTE.length} 좌표 전송
+                {currentStep + 1} / {activeRoute.length} 좌표 전송
               </Text>
               <Text style={s.progressInfoText}>
                 경과: {elapsedSec}초
@@ -644,8 +779,12 @@ const restoreSimulationState = async () => {
             <Text style={s.infoValue}>5초</Text>
           </View>
           <View style={s.infoRow}>
+            <Text style={s.infoLabel}>선택 코스</Text>
+            <Text style={s.infoValue}>{selectedCourse.typeEmoji} {selectedCourse.name} ({selectedCourse.type})</Text>
+          </View>
+          <View style={s.infoRow}>
             <Text style={s.infoLabel}>지역</Text>
-            <Text style={s.infoValue}>유성구 · 엑스포 과학공원</Text>
+            <Text style={s.infoValue}>{selectedCourse.district}</Text>
           </View>
         </View>
       </ScrollView>
@@ -716,6 +855,87 @@ const s = StyleSheet.create({
     flex: 1,
     lineHeight: 18,
   },
+  // ─── 코스 선택 드롭다운 ───
+  courseSelector: {
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  courseSelectorTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: 15,
+    color: "#1A1A1A",
+    marginBottom: 8,
+  },
+  courseDropdownBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 2,
+    borderColor: "#2E7D32",
+  },
+  courseDropdownName: {
+    fontFamily: Fonts.bold,
+    fontSize: 15,
+    color: "#1A1A1A",
+  },
+  courseDropdownType: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: "#8E8E93",
+    marginTop: 2,
+  },
+  courseDropdownList: {
+    marginTop: 6,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    overflow: "hidden",
+  },
+  courseDropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+  },
+  courseDropdownItemSelected: {
+    backgroundColor: "#F0FFF4",
+  },
+  courseDropdownItemName: {
+    fontFamily: Fonts.bold,
+    fontSize: 14,
+    color: "#1A1A1A",
+  },
+  courseDropdownItemDesc: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: "#666666",
+    marginTop: 3,
+    lineHeight: 16,
+  },
+  courseDropdownItemMeta: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: "#8E8E93",
+    marginTop: 2,
+  },
+  courseTypeBadge: {
+    backgroundColor: "#1565C0",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  courseTypeBadgeText: {
+    fontFamily: Fonts.bold,
+    fontSize: 10,
+    color: "#FFFFFF",
+  },
+  // ─── 경로 정보 ───
   routeCard: {
     marginHorizontal: 16,
     marginTop: 16,
