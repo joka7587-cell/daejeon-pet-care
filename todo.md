@@ -797,3 +797,11 @@
 - [ ] 더미 데이터 실시간 생성 (대전 유성구 산책 경로 5초 간격 업데이트)
 - [ ] 마커 위치 업데이트 및 폴리라인 실시간 렌더링
 - [x] 테스트 실행 및 검증 (593개 통과, 1개 스킵, TS 에러 0건)
+
+
+## 1인 가구 서포트 메뉴 UI 스타일 통일 (Phase 53)
+- [x] facilities.tsx UI 스타일 업데이트 (카드, 리스트 아이템, 색상 통일 - accentColor, bgColor, borderColor 상수 사용)
+- [ ] health-manager.tsx UI 스타일 업데이트
+- [ ] emergency-guide.tsx UI 스타일 업데이트
+- [ ] welfare-policy.tsx UI 스타일 업데이트
+- [ ] 전체 스크린 배경색 및 타이포그래피 통일
