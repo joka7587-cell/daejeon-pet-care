@@ -663,7 +663,34 @@ export default function AdminDashboard() {
           ))}
         </View>
 
-        {/* ─── 섹션 5: System Reset ─── */}
+        {/* ─── 섹션 5: 결제 시스템 프리뷰 ─── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold }]}>💳 결제 시스템 프리뷰</Text>
+          <View style={[styles.chartCard, { gap: 12 }]}>
+            <Text style={[{ fontFamily: Fonts.regular, fontSize: 13, color: "#8E8E93", lineHeight: 20 }]}>
+              도그워커 이용료, 산책 패키지 등 결제 시뮬레이션을 미리 확인할 수 있습니다.
+              대전사랑카드(지역화폐) 결제 시 최대 7% 캐시백 혜택이 적용됩니다.
+            </Text>
+            <View style={{ backgroundColor: "#FFF8E1", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#FFD54F" }}>
+              <Text style={[{ fontFamily: Fonts.bold, fontSize: 13, color: "#E65100", textAlign: "center" }]}>
+                🎉 대전사랑카드 결제 시 최대 7% 캐시백!
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => { haptic(); router.push("/admin/payment-preview" as any); }}
+              style={({ pressed }) => [{
+                backgroundColor: "#2E7D32", borderRadius: 14, paddingVertical: 14,
+                alignItems: "center", marginTop: 4,
+              }, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
+            >
+              <Text style={[{ fontFamily: Fonts.bold, fontSize: 16, color: "#FFFFFF" }]}>
+                💳 결제 시스템 프리뷰 열기
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* ─── 섹션 6: System Reset ─── */}
         <View style={[styles.section, styles.resetSection]}>
           <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold, color: "#EF4444" }]}>
             ⚠️ 시스템 관리
