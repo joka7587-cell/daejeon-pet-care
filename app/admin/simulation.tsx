@@ -33,6 +33,21 @@ const haptic = () => {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 };
 
+// localStorage 직접 저장 (웹 환경에서 storage 이벤트 발생시키기 위함)
+const broadcastLocation = (lat: number, lng: number, label: string, index: number) => {
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+    const payload = JSON.stringify({ lat, lng, label, index, timestamp: Date.now() });
+    window.localStorage.setItem("currentLocation", payload);
+  }
+};
+
+// 시뮬레이션 완료/초기화 시 localStorage 정리
+const clearBroadcastLocation = () => {
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+    window.localStorage.removeItem("currentLocation");
+  }
+};
+
 export default function SimulationScreen() {
 
 // 시뮬레이션 상태를 localStorage에 저장
@@ -116,6 +131,9 @@ const restoreSimulationState = async () => {
       })
     ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
 
+    // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
+    broadcastLocation(firstCoord.latitude, firstCoord.longitude, firstCoord.label, 0);
+
     // 시작 시 상태 저장
     saveSimulationState(true, 0, {
       lat: firstCoord.latitude,
@@ -143,6 +161,7 @@ const restoreSimulationState = async () => {
         });
         AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
         AsyncStorage.removeItem("walk_simulation_state").catch(() => {});
+        clearBroadcastLocation();
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -172,6 +191,9 @@ const restoreSimulationState = async () => {
           index: nextStep,
         })
       ).catch(() => {});
+
+      // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
+      broadcastLocation(coord.latitude, coord.longitude, coord.label, nextStep);
 
       // 상태 영속 저장
       saveSimulationState(true, elapsedRef.current * 1000, {
@@ -224,6 +246,7 @@ const restoreSimulationState = async () => {
         AsyncStorage.removeItem("walk_simulation_current").catch((e) =>
           console.error("[Simulation] LocalStorage remove error:", e)
         );
+        clearBroadcastLocation();
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -253,6 +276,9 @@ const restoreSimulationState = async () => {
           index: nextStep,
         })
       ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
+
+      // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
+      broadcastLocation(coord.latitude, coord.longitude, coord.label, nextStep);
     }, SIMULATION_INTERVAL_MS);
   }, [dispatch]);
 
@@ -320,6 +346,9 @@ const restoreSimulationState = async () => {
           })
         );
 
+        // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
+        broadcastLocation(coord.latitude, coord.longitude, coord.label, calculatedStep);
+
         // 아직 완료되지 않았으면 타이머 재개
         if (calculatedStep < EXPO_PARK_ROUTE.length - 1) {
           timerRef.current = setInterval(() => {
@@ -340,6 +369,7 @@ const restoreSimulationState = async () => {
               });
               AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
               AsyncStorage.removeItem("walk_simulation_state").catch(() => {});
+              clearBroadcastLocation();
               return;
             }
 
@@ -363,6 +393,10 @@ const restoreSimulationState = async () => {
                 index: nextStep,
               })
             ).catch(() => {});
+
+            // 브라우저 localStorage 직접 저장 (storage 이벤트 트리거)
+            broadcastLocation(c.latitude, c.longitude, c.label, nextStep);
+
             saveSimulationState(true, elapsedRef.current * 1000, {
               lat: c.latitude,
               lng: c.longitude,

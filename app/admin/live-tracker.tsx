@@ -284,6 +284,7 @@ export default function LiveTrackerScreen() {
   const [mapReady, setMapReady] = useState(false);
   const [mapLoadFailed, setMapLoadFailed] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [debugCoord, setDebugCoord] = useState<{ lat: number; lng: number; index: number } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -326,35 +327,9 @@ export default function LiveTrackerScreen() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [simStatus, walkSimulation.startedAt]);
 
-  // AsyncStorage 폴링 - 시뮬레이션 좌표 수신
-  useEffect(() => {
-    if (!mapReady) return;
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const data = await AsyncStorage.getItem("walk_simulation_current");
-        if (data) {
-          const parsed = JSON.parse(data);
-          const js = `window.updateWalkerPosition(${parsed.lat}, ${parsed.lng}, ${parsed.index});`;
-          if (Platform.OS === "web") {
-            if (iframeRef.current && iframeRef.current.contentWindow) {
-              try { (iframeRef.current.contentWindow as any).eval(js); } catch {}
-            }
-          } else {
-            webViewRef.current?.injectJavaScript(js + "true;");
-          }
-        }
-      } catch {}
-    }, 1000);
-
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
-  }, [mapReady]);
-
-  // 상태 변경 시 지도 마커 업데이트
-  useEffect(() => {
-    if (!mapReady) return;
-    const coord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
-    const js = `window.updateWalkerPosition(${coord.latitude}, ${coord.longitude}, ${currentIndex});`;
+  // 지도에 좌표 전송 헬퍼
+  const sendPositionToMap = useCallback((lat: number, lng: number, index: number) => {
+    const js = `window.updateWalkerPosition(${lat}, ${lng}, ${index});`;
     if (Platform.OS === "web") {
       if (iframeRef.current && iframeRef.current.contentWindow) {
         try { (iframeRef.current.contentWindow as any).eval(js); } catch {}
@@ -362,7 +337,86 @@ export default function LiveTrackerScreen() {
     } else {
       webViewRef.current?.injectJavaScript(js + "true;");
     }
-  }, [currentIndex, mapReady]);
+    // 디버깅 UI 업데이트
+    setDebugCoord({ lat, lng, index });
+  }, []);
+
+  // 초기 로드 시 localStorage에 기존 좌표가 있으면 복원
+  useEffect(() => {
+    if (!mapReady) return;
+    if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+      const existing = window.localStorage.getItem("currentLocation");
+      if (existing) {
+        try {
+          const parsed = JSON.parse(existing);
+          sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+        } catch {}
+      }
+    }
+    // AsyncStorage 폴백도 시도
+    AsyncStorage.getItem("walk_simulation_current").then((data) => {
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+        } catch {}
+      }
+    }).catch(() => {});
+  }, [mapReady, sendPositionToMap]);
+
+  // window.addEventListener('storage') - 실시간 감지 (타 탭/창에서 변경 시)
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    if (!mapReady) return;
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "currentLocation" && event.newValue) {
+        try {
+          const parsed = JSON.parse(event.newValue);
+          sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+        } catch {}
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [mapReady, sendPositionToMap]);
+
+  // 같은 탭 내 동기화 - localStorage 폴링 (같은 탭에서는 storage 이벤트가 발생하지 않으므로)
+  useEffect(() => {
+    if (!mapReady) return;
+
+    pollingRef.current = setInterval(() => {
+      if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+        const data = window.localStorage.getItem("currentLocation");
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+          } catch {}
+        }
+      } else {
+        // 네이티브에서는 AsyncStorage 폴링
+        AsyncStorage.getItem("walk_simulation_current").then((data) => {
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              sendPositionToMap(parsed.lat, parsed.lng, parsed.index);
+            } catch {}
+          }
+        }).catch(() => {});
+      }
+    }, 1000);
+
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+  }, [mapReady, sendPositionToMap]);
+
+  // 상태 변경 시 지도 마커 업데이트
+  useEffect(() => {
+    if (!mapReady) return;
+    const coord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
+    sendPositionToMap(coord.latitude, coord.longitude, currentIndex);
+  }, [currentIndex, mapReady, sendPositionToMap]);
 
   // 이동 거리 계산
   let distanceSoFar = 0;
@@ -525,7 +579,17 @@ export default function LiveTrackerScreen() {
         </View>
 
         {/* 카카오맵 지도 */}
-        {renderMap()}
+        <View style={{ position: "relative" }}>
+          {renderMap()}
+          {/* 디버깅 좌표 UI */}
+          {debugCoord && (
+            <View style={s.debugOverlay}>
+              <Text style={s.debugText}>
+                수신: {debugCoord.lat.toFixed(5)}, {debugCoord.lng.toFixed(5)} [{debugCoord.index}/{EXPO_PARK_ROUTE.length}]
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* 워커 정보 카드 */}
         <View style={s.infoCard}>
@@ -788,4 +852,20 @@ const s = StyleSheet.create({
   },
   idleText: { fontFamily: Fonts.bold, fontSize: 16, color: "#8E8E93" },
   idleSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#BDBDBD" },
+  debugOverlay: {
+    position: "absolute" as const,
+    bottom: 8,
+    left: 8,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    zIndex: 100,
+  },
+  debugText: {
+    fontFamily: Fonts.regular,
+    fontSize: 10,
+    color: "#00FF88",
+    letterSpacing: 0.3,
+  },
 });

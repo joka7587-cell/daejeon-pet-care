@@ -873,3 +873,15 @@
 - [x] map.panTo()로 마커 이동 시 지도 중심 부드럽게 이동
 - [x] 줄 레벨 3~4로 고정 (주변 지형 인지 가능)
 - [x] 테스트 594개 통과, TS 에러 0건
+
+
+## 관리자-보호자 뷰 실시간 위치 동기화 (Phase 62)
+- [x] simulation.tsx 송신측: broadcastLocation() 함수로 localStorage.setItem('currentLocation') 실시간 저장
+- [x] simulation.tsx 송신측: timestamp 포함 + 모든 좌표 저장 지점에 broadcastLocation 적용
+- [x] live-tracker.tsx 수신측: window.addEventListener('storage') 이벤트 리스너 (타 탭/창 감지)
+- [x] live-tracker.tsx 수신측: 같은 탭 내 1초 간격 localStorage 폴링 (이중 동기화)
+- [x] live-tracker.tsx 수신측: sendPositionToMap 헬퍼로 marker.setPosition + map.panTo 즉시 실행
+- [x] live-tracker.tsx 초기 로드 시 localStorage + AsyncStorage 기존 좌표 복원
+- [x] live-tracker.tsx 디버깅 UI: 지도 좌하단에 수신 좌표(Lat, Lng, Index) 실시간 표시
+- [x] 완료/초기화 시 clearBroadcastLocation()으로 localStorage 정리
+- [x] 테스트 594개 통과, TS 에러 0건
