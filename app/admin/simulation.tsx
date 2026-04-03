@@ -18,6 +18,7 @@ import { useApp } from "@/lib/app-context";
 import { useRouter } from "expo-router";
 import { Fonts } from "@/hooks/use-fonts";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   EXPO_PARK_ROUTE,
   SimulationCoord,
@@ -57,6 +58,7 @@ export default function SimulationScreen() {
     const startTime = new Date().toISOString();
 
     // 첫 번째 좌표 즉시 전송
+    const firstCoord = EXPO_PARK_ROUTE[0];
     dispatch({
       type: "SET_WALK_SIMULATION",
       payload: {
@@ -69,6 +71,18 @@ export default function SimulationScreen() {
         petEmoji: "🐕",
       },
     });
+
+    // LocalStorage에 첫 좌표 저장
+    AsyncStorage.setItem(
+      "walk_simulation_current",
+      JSON.stringify({
+        lat: firstCoord.latitude,
+        lng: firstCoord.longitude,
+        label: firstCoord.label,
+        timestamp: startTime,
+        index: 0,
+      })
+    ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
 
     // 5초 간격으로 다음 좌표 전송
     timerRef.current = setInterval(() => {
@@ -88,6 +102,9 @@ export default function SimulationScreen() {
             currentIndex: EXPO_PARK_ROUTE.length - 1,
           },
         });
+        AsyncStorage.removeItem("walk_simulation_current").catch((e) =>
+          console.error("[Simulation] LocalStorage remove error:", e)
+        );
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -96,6 +113,8 @@ export default function SimulationScreen() {
 
       stepRef.current = nextStep;
       setCurrentStep(nextStep);
+      const coord = EXPO_PARK_ROUTE[nextStep];
+
       dispatch({
         type: "SET_WALK_SIMULATION",
         payload: {
@@ -103,6 +122,18 @@ export default function SimulationScreen() {
           currentIndex: nextStep,
         },
       });
+
+      // LocalStorage에 현재 좌표 저장 (보호자 뷰가 감시)
+      AsyncStorage.setItem(
+        "walk_simulation_current",
+        JSON.stringify({
+          lat: coord.latitude,
+          lng: coord.longitude,
+          label: coord.label,
+          timestamp: new Date().toISOString(),
+          index: nextStep,
+        })
+      ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
     }, SIMULATION_INTERVAL_MS);
   }, [dispatch]);
 
@@ -145,6 +176,9 @@ export default function SimulationScreen() {
             currentIndex: EXPO_PARK_ROUTE.length - 1,
           },
         });
+        AsyncStorage.removeItem("walk_simulation_current").catch((e) =>
+          console.error("[Simulation] LocalStorage remove error:", e)
+        );
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -153,6 +187,8 @@ export default function SimulationScreen() {
 
       stepRef.current = nextStep;
       setCurrentStep(nextStep);
+      const coord = EXPO_PARK_ROUTE[nextStep];
+
       dispatch({
         type: "SET_WALK_SIMULATION",
         payload: {
@@ -160,6 +196,18 @@ export default function SimulationScreen() {
           currentIndex: nextStep,
         },
       });
+
+      // LocalStorage에 현재 좌표 저장 (보호자 뷰가 감시)
+      AsyncStorage.setItem(
+        "walk_simulation_current",
+        JSON.stringify({
+          lat: coord.latitude,
+          lng: coord.longitude,
+          label: coord.label,
+          timestamp: new Date().toISOString(),
+          index: nextStep,
+        })
+      ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
     }, SIMULATION_INTERVAL_MS);
   }, [dispatch]);
 

@@ -20,6 +20,7 @@ import { useKeepAwake } from "expo-keep-awake";
 import { calculateDistance } from "@/lib/location-service";
 import { Fonts } from "@/hooks/use-fonts";
 import { getApiBaseUrl } from "@/constants/oauth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -342,6 +343,29 @@ export default function WalkTrackerScreen() {
     })();
     return () => { if (locationSubRef.current) locationSubRef.current.remove(); };
   }, []);
+
+  // ─── LocalStorage 감시: 관리자 시뮬레이션 데이터 동기화 ───
+  useEffect(() => {
+    if (status !== "active" || !mapReady || !apiKey) return;
+
+    const watchLocalStorage = async () => {
+      try {
+        const data = await AsyncStorage.getItem("walk_simulation_current");
+        if (data) {
+          const { lat, lng, index } = JSON.parse(data);
+          console.log("[Tracker] LocalStorage update:", { lat, lng, index });
+          sendPositionToMap(lat, lng, index);
+          addSimulatedPoint(lat, lng);
+        }
+      } catch (e) {
+        console.error("[Tracker] LocalStorage read error:", e);
+      }
+    };
+
+    // 5초마다 LocalStorage 확인
+    const interval = setInterval(watchLocalStorage, 5000);
+    return () => clearInterval(interval);
+  }, [status, mapReady, apiKey]);
 
   // ─── 5초마다 GPS 시뮬레이션 + WebView 마커 이동 ───
   useEffect(() => {
