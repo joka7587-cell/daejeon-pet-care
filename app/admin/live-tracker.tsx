@@ -40,13 +40,13 @@ const haptic = () => {
 
 // 카카오맵 HTML 생성 - 도로 기반 경로 + 주요 경유지만 마커
 function generateTrackerMapHTML(apiKey: string, initialLat: number, initialLng: number): string {
-  // 전체 경로 좌표 (도로 기반 40개 포인트)
+  // 전체 경로 좌표 (4개 도로 좌표)
   const routePathJSON = JSON.stringify(EXPO_PARK_ROUTE.map(c => ({
     lat: c.latitude,
     lng: c.longitude,
   })));
 
-  // 주요 경유지만 (4곳)
+  // 주요 경유지 (3곳: 출발/경유/도착)
   const waypointsJSON = JSON.stringify(WAYPOINTS.map(wp => ({
     routeIndex: wp.routeIndex,
     label: wp.label,
@@ -153,7 +153,7 @@ function sendMsg(obj){
       // 줌 컨트롤
       map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
-      // 도로 기반 경로 데이터 (40개 좌표)
+      // 도로 기반 경로 데이터 (4개 좌표)
       var routeData = ${routePathJSON};
       var routePath = routeData.map(function(c){ return new kakao.maps.LatLng(c.lat, c.lng); });
 
@@ -167,17 +167,17 @@ function sendMsg(obj){
         strokeStyle: 'dashed'
       });
 
-      // 이동 경로 폴리라인 (진행된 구간 - 녹색 실선)
+      // 이동 경로 폴리라인 (진행된 구간 - 파란색 실선)
       var activePolyline = new kakao.maps.Polyline({
         map: map,
         path: [routePath[0]],
         strokeWeight: 5,
-        strokeColor: '#2E7D32',
-        strokeOpacity: 0.9,
+        strokeColor: '#3366FF',
+        strokeOpacity: 0.8,
         strokeStyle: 'solid'
       });
 
-      // 주요 경유지 마커 (4곳만)
+      // 주요 경유지 마커 (3곳: 출발/경유/도착)
       var waypoints = ${waypointsJSON};
       waypoints.forEach(function(wp){
         var pos = new kakao.maps.LatLng(wp.lat, wp.lng);

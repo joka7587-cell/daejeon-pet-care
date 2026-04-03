@@ -21,6 +21,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   EXPO_PARK_ROUTE,
+  WAYPOINTS,
   SimulationCoord,
   SIMULATION_INTERVAL_MS,
   haversineDistance,
@@ -477,12 +478,16 @@ const restoreSimulationState = async () => {
           </View>
         </View>
 
-        {/* 좌표 목록 */}
+        {/* 경유지 목록 (3개만 표시) */}
         <View style={s.coordList}>
-          <Text style={s.coordListTitle}>경유지 목록</Text>
-          {EXPO_PARK_ROUTE.map((coord, i) => {
-            const isActive = i === currentStep && simStatus === "running";
-            const isDone = i < currentStep || simStatus === "completed";
+          <Text style={s.coordListTitle}>산책 경로</Text>
+          {WAYPOINTS.map((wp, i) => {
+            const coord = EXPO_PARK_ROUTE[wp.routeIndex];
+            const isActive = currentStep >= wp.routeIndex && (
+              i === WAYPOINTS.length - 1 || currentStep < WAYPOINTS[i + 1].routeIndex
+            ) && simStatus === "running";
+            const isDone = currentStep > wp.routeIndex || simStatus === "completed";
+            const tag = i === 0 ? "출발" : i === WAYPOINTS.length - 1 ? "도착" : "경유";
             return (
               <View
                 key={i}
@@ -501,15 +506,25 @@ const restoreSimulationState = async () => {
                     s.coordIndexText,
                     (isActive || isDone) && { color: "#FFFFFF" },
                   ]}>
-                    {isDone ? "✓" : i + 1}
+                    {isDone ? "✓" : wp.emoji}
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.coordLabel, isActive && { color: "#2E7D32", fontWeight: "700" }]}>
-                    {coord.label}
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <View style={{
+                      backgroundColor: i === 0 ? "#2E7D32" : i === WAYPOINTS.length - 1 ? "#D32F2F" : "#1565C0",
+                      borderRadius: 4,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                    }}>
+                      <Text style={{ fontSize: 10, color: "#FFFFFF", fontWeight: "700" }}>{tag}</Text>
+                    </View>
+                    <Text style={[s.coordLabel, isActive && { color: "#2E7D32", fontWeight: "700" }]}>
+                      {wp.label}
+                    </Text>
+                  </View>
                   <Text style={s.coordDetail}>
-                    {coord.latitude.toFixed(4)}, {coord.longitude.toFixed(4)} · {coord.district}
+                    {coord.latitude.toFixed(3)}, {coord.longitude.toFixed(3)} · {coord.district}
                   </Text>
                 </View>
                 {isActive && (

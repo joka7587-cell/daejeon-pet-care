@@ -885,3 +885,12 @@
 - [x] live-tracker.tsx 디버깅 UI: 지도 좌하단에 수신 좌표(Lat, Lng, Index) 실시간 표시
 - [x] 완료/초기화 시 clearBroadcastLocation()으로 localStorage 정리
 - [x] 테스트 594개 통과, TS 에러 0건
+
+## 산책 경로 도로 매핑 및 경유지 UI 최적화 (Phase 63)
+- [x] walk-simulation.ts 경로를 4개 도로 좌표로 전면 교체 (36.368~36.372, 127.389~127.391)
+- [x] WAYPOINTS를 3개로 축소 (출발: 시민광장/경유: 수목원 산책로/도착: 수목원 정문)
+- [x] simulation.tsx 경유지 목록 UI 3개로 최적화 + 출발/경유/도착 태그 배지
+- [x] live-tracker.tsx Polyline 색상 #3366FF, strokeWeight 5, strokeOpacity 0.8 적용
+- [x] 마커 이동이 4개 좌표만 따르도록 수정
+- [x] 보호자 뷰 localStorage 동기화 유지 (broadcastLocation 함수 적용)
+- [x] 테스트 594개 통과, TS 에러 0건
