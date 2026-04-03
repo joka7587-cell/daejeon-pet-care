@@ -79,12 +79,25 @@ function generateTrackerMapHTML(apiKey: string): string {
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden}
 #map{width:100%;height:100%}
+#error{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f5f5;padding:20px;border-radius:8px;text-align:center;font-family:sans-serif;color:#333;z-index:1000}
 </style>
 </head><body>
 <div id="map"></div>
+<div id="error" style="display:none"></div>
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false"></script>
 <script>
 var map, marker, polyline, routePath = [];
+console.log('[KakaoMap] SDK loading with key:', '${apiKey}'.substring(0,10) + '...');
+window.addEventListener('error', function(e) {
+  console.error('[KakaoMap] Error:', e.message);
+  document.getElementById('error').style.display = 'block';
+  document.getElementById('error').innerHTML = '<p>❌ 지도 로드 실패</p><p style="font-size:12px;margin-top:8px">' + e.message + '</p>';
+});
+if (typeof kakao === 'undefined') {
+  console.error('[KakaoMap] kakao object not found');
+  document.getElementById('error').innerHTML = '<p>❌ 카카오맵 SDK 로드 실패</p>';
+  document.getElementById('error').style.display = 'block';
+}
 kakao.maps.load(function(){
   var center = new kakao.maps.LatLng(36.376, 127.387);
   map = new kakao.maps.Map(document.getElementById('map'), {
@@ -121,11 +134,22 @@ kakao.maps.load(function(){
   });
   startOverlay.setMap(map);
 
+  console.log('[KakaoMap] Map initialized successfully');
   // 준비 완료 알림
   try {
     window.ReactNativeWebView.postMessage(JSON.stringify({type:'ready'}));
-  } catch(e) {}
+    console.log('[KakaoMap] Ready message sent to RN');
+  } catch(e) {
+    console.log('[KakaoMap] RN bridge not available (web mode)');
+  }
 });
+
+// SDK 로드 실패 처리
+if (typeof kakao === 'undefined') {
+  console.error('[KakaoMap] Kakao SDK failed to load');
+  document.getElementById('error').innerHTML = '<p>❌ 카카오맵 SDK 로드 실패</p><p style="font-size:12px;margin-top:8px">API 키를 확인하세요</p>';
+  document.getElementById('error').style.display = 'block';
+}
 
 // RN에서 호출하는 위치 업데이트 함수
 window.updatePosition = function(lat, lng, index) {
@@ -627,6 +651,10 @@ export default function WalkTrackerScreen() {
                       borderRadius: 12,
                     }}
                     title="카카오맵 산책 추적"
+                    onLoad={() => {
+                      console.log("[Tracker] iframe loaded");
+                      setMapReady(true);
+                    }}
                   />
                 ) : (
                   <WebView
@@ -645,8 +673,19 @@ export default function WalkTrackerScreen() {
                     showsVerticalScrollIndicator={false}
                     allowFileAccess={true}
                     allowUniversalAccessFromFileURLs={true}
-                    onError={(e) => console.error("WebView Error:", e.nativeEvent)}
-                    onHttpError={(e) => console.error("WebView HTTP Error:", e.nativeEvent)}
+                    onLoadStart={() => console.log("[Tracker] WebView loading...")}
+                    onLoadEnd={() => {
+                      console.log("[Tracker] WebView loaded");
+                      setMapReady(true);
+                    }}
+                    onError={(e) => {
+                      console.error("[Tracker] WebView Error:", e.nativeEvent);
+                      setMapReady(false);
+                    }}
+                    onHttpError={(e) => {
+                      console.error("[Tracker] WebView HTTP Error:", e.nativeEvent);
+                      setMapReady(false);
+                    }}
                   />
                 )}
                 {/* 지도 위 상태 배지 */}

@@ -721,3 +721,9 @@
 ## 실시간 산책 추적 버그 수정 (Phase 47)
 - [x] BUG: 시연용 실시간 산책 추적 화면에서 카카오맵 지도가 표시되지 않는 문제 (API 키 로드 실패 시 지도 미표시, 조건부 렌더링 추가)
 - [x] BUG: 5초마다 위치 변경(GPS 시뮬레이션)이 작동하지 않는 문제 (useEffect 의존성 배열에 apiKey 추가, 중복 코드 제거)
+
+## 실시간 산책 추적 WebView 로드 상태 개선 (Phase 48)
+- [x] generateTrackerMapHTML에 SDK 로드 실패 시 에러 메시지 표시 (HTML 에러 div 추가)
+- [x] WebView onLoadStart/onLoadEnd 콜백 추가로 로드 상태 명확히
+- [x] onError/onHttpError 시 mapReady를 false로 설정하여 상태 동기화
+- [x] 브라우저 콘솔 로그 추가 ([KakaoMap], [Tracker] 프리픽스)
