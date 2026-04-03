@@ -900,3 +900,11 @@
 - [x] 클릭 시 localStorage에서 최신 좌표 읽기 + marker.setPosition + map.panTo + map.relayout
 - [x] 토스트 메시지 "실시간 위치를 동기화합니다" 1초간 표시
 - [x] 테스트 594개 통과, TS 에러 0건
+
+## 보호자 뷰 새로고침 버튼 작동 안 됨 버그 수정 (Phase 65)
+- [x] 근본 원인: iframe 내부 localStorage와 부모 페이지 localStorage 분리 문제
+- [x] iframe 새로고침 버튼 → 부모에게 postMessage('refresh_request') 전송 방식으로 변경
+- [x] React Native 측 handleRefreshRequest() 함수 추가 (localStorage + AsyncStorage + 현재 상태 3단계 폴백)
+- [x] React Native 측 플로팅 새로고침 버튼 추가 (지도 우측 상단, 햄틱 피드백)
+- [x] forceRelayout() 함수 추가 - 새로고침 시 map.relayout() 강제 실행
+- [x] 테스트 594개 통과, TS 에러 0건

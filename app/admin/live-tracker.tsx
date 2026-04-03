@@ -284,27 +284,20 @@ function sendMsg(obj){
         });
       };
 
-      // 새로고침 버튼 로직
+      // 새로고침 버튼 로직 - 부모에게 메시지 보내서 최신 좌표 요청
       window.refreshLocation = function(){
-        try{
-          var stored = localStorage.getItem('currentLocation');
-          if(stored){
-            var data = JSON.parse(stored);
-            var newPos = new kakao.maps.LatLng(data.lat, data.lng);
-            walkerOverlay.setPosition(newPos);
-            map.panTo(newPos);
-            map.relayout();
-            // 디버그 오버레이 업데이트
-            var dbg = document.getElementById('debugCoord');
-            if(dbg) dbg.textContent = 'Lat:'+data.lat.toFixed(4)+' Lng:'+data.lng.toFixed(4)+' Idx:'+(data.stepIndex||'-');
-          }
-          // 토스트 표시
-          var toast = document.getElementById('toast');
-          if(toast){
-            toast.classList.add('show');
-            setTimeout(function(){ toast.classList.remove('show'); }, 1000);
-          }
-        }catch(e){}
+        sendMsg({type:'refresh_request'});
+        // 토스트 표시
+        var toast = document.getElementById('toast');
+        if(toast){
+          toast.classList.add('show');
+          setTimeout(function(){ toast.classList.remove('show'); }, 1000);
+        }
+      };
+
+      // 부모에서 좌표를 주입하면 relayout도 실행
+      window.forceRelayout = function(){
+        map.relayout();
       };
 
       // relayout 한번 더 (안전)
@@ -496,12 +489,45 @@ export default function LiveTrackerScreen() {
     return m > 0 ? `${m}분 ${s}초` : `${s}초`;
   };
 
+  // 새로고침 처리 함수 - 최신 좌표 읽어서 지도에 주입
+  const handleRefreshRequest = useCallback(() => {
+    // 1) 부모 페이지 localStorage에서 읽기
+    if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+      const data = window.localStorage.getItem("currentLocation");
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0);
+          // relayout도 강제 실행
+          const relayoutJs = `window.forceRelayout();`;
+          if (iframeRef.current && iframeRef.current.contentWindow) {
+            try { (iframeRef.current.contentWindow as any).eval(relayoutJs); } catch {}
+          }
+          return;
+        } catch {}
+      }
+    }
+    // 2) AsyncStorage 폴백
+    AsyncStorage.getItem("walk_simulation_current").then((data) => {
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          sendPositionToMap(parsed.lat, parsed.lng, parsed.index ?? 0);
+        } catch {}
+      }
+    }).catch(() => {});
+    // 3) 현재 상태에서라도 전송
+    const coord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
+    sendPositionToMap(coord.latitude, coord.longitude, currentIndex);
+  }, [sendPositionToMap, currentIndex]);
+
   const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "ready") setMapReady(true);
+      if (data.type === "refresh_request") handleRefreshRequest();
     } catch {}
-  }, []);
+  }, [handleRefreshRequest]);
 
   // iframe message handler (web)
   useEffect(() => {
@@ -510,12 +536,13 @@ export default function LiveTrackerScreen() {
         try {
           const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
           if (data.type === "ready") setMapReady(true);
+          if (data.type === "refresh_request") handleRefreshRequest();
         } catch {}
       };
       window.addEventListener("message", handler);
       return () => window.removeEventListener("message", handler);
     }
-  }, []);
+  }, [handleRefreshRequest]);
 
   // 지도 렌더링
   const renderMap = () => {
@@ -627,6 +654,16 @@ export default function LiveTrackerScreen() {
         {/* 카카오맵 지도 */}
         <View style={{ position: "relative" }}>
           {renderMap()}
+          {/* React Native 측 새로고침 버튼 (지도 우측 상단) */}
+          <Pressable
+            onPress={() => {
+              haptic();
+              handleRefreshRequest();
+            }}
+            style={({ pressed }) => [s.refreshBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
+          >
+            <Text style={{ fontSize: 18 }}>🔄</Text>
+          </Pressable>
           {/* 디버깅 좌표 UI */}
           {debugCoord && (
             <View style={s.debugOverlay}>
@@ -898,6 +935,25 @@ const s = StyleSheet.create({
   },
   idleText: { fontFamily: Fonts.bold, fontSize: 16, color: "#8E8E93" },
   idleSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#BDBDBD" },
+  refreshBtn: {
+    position: "absolute" as const,
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DDDDDD",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    zIndex: 500,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   debugOverlay: {
     position: "absolute" as const,
     bottom: 8,
