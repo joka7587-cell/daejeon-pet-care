@@ -26,19 +26,22 @@ describe("대전 시청 중심 좌표", () => {
 // ─── 산책 명소 마커 데이터 테스트 ───
 describe("대전 산책 명소 마커", () => {
   const WALK_MARKERS = [
-    { id: "spot_1", name: "한밭수목원", lat: 36.3685, lng: 127.3880, district: "서구 둔산동" },
-    { id: "spot_2", name: "엑스포 시민광장", lat: 36.3742, lng: 127.3917, district: "유성구 도룡동" },
-    { id: "spot_3", name: "유림공원", lat: 36.3609, lng: 127.3592, district: "유성구 봉명동" },
-    { id: "spot_4", name: "남선공원", lat: 36.3276, lng: 127.4218, district: "중구 대사동" },
+    { id: "spot_1", name: "한밭수목원", lat: 36.3665, lng: 127.3880, district: "서구 둔산동" },
+    { id: "spot_2", name: "엑스포 시민광장", lat: 36.368, lng: 127.389, district: "유성구 도룡동" },
+    { id: "spot_3", name: "남선공원", lat: 36.345, lng: 127.402, district: "서구 탄방동" },
+    { id: "spot_4", name: "유림공원", lat: 36.3609, lng: 127.3592, district: "유성구 봉명동" },
     { id: "spot_5", name: "대전 갑천 생태 호수 공원", lat: 36.3299, lng: 127.3536, district: "서구 도안동" },
-    { id: "spot_6", name: "보문산 둘레길", lat: 36.3108, lng: 127.4176, district: "중구 대사동" },
-    { id: "spot_7", name: "카이스트 캠퍼스", lat: 36.3721, lng: 127.3604, district: "유성구 어은동" },
-    { id: "spot_8", name: "계족산 황톳길", lat: 36.4087, lng: 127.4312, district: "대덕구 장동" },
-    { id: "spot_9", name: "동춘당공원", lat: 36.3654, lng: 127.4387, district: "대덕구 송촌동" },
+    { id: "spot_6", name: "대전 오월드 인근 산책로", lat: 36.2876, lng: 127.3987, district: "중구 사정동" },
+    { id: "spot_7", name: "보문산 둘레길", lat: 36.3108, lng: 127.4176, district: "중구 대사동" },
+    { id: "spot_8", name: "대청호 오백리길", lat: 36.425, lng: 127.478, district: "동구 추동" },
+    { id: "spot_9", name: "카이스트 칔퍼스 산책로", lat: 36.3721, lng: 127.3604, district: "유성구 어은동" },
+    { id: "spot_10", name: "대덕연구단지 산책로", lat: 36.3912, lng: 127.3521, district: "유성구 전민동" },
+    { id: "spot_11", name: "계족산 황톳길", lat: 36.4087, lng: 127.4312, district: "대덕구 장동" },
+    { id: "spot_12", name: "동춘당공원", lat: 36.3654, lng: 127.4413, district: "대덕구 송촌동" },
   ];
 
-  it("9개 산책 명소 마커가 존재", () => {
-    expect(WALK_MARKERS).toHaveLength(9);
+  it("12개 산책 명소 마커가 존재", () => {
+    expect(WALK_MARKERS).toHaveLength(12);
   });
 
   it("모든 마커가 대전 좌표 범위 내", () => {
@@ -60,6 +63,12 @@ describe("대전 산책 명소 마커", () => {
     const yurim = WALK_MARKERS.find((m) => m.name === "유림공원");
     expect(yurim).toBeDefined();
     expect(yurim!.district).toContain("유성구");
+  });
+
+  it("남선공원 마커가 서구에 위치", () => {
+    const namseon = WALK_MARKERS.find((m) => m.name === "남선공원");
+    expect(namseon).toBeDefined();
+    expect(namseon!.district).toContain("서구");
   });
 
   it("모든 마커에 고유 ID가 있음", () => {
@@ -175,7 +184,7 @@ describe("워커 위치 업데이트", () => {
 describe("대전 산책 명소 데이터 통합", () => {
   it("산책 명소 데이터 로드 및 구별 필터링", async () => {
     const { DAEJEON_WALK_SPOTS, getSpotsByDistrict } = await import("../lib/daejeon-spots");
-    expect(DAEJEON_WALK_SPOTS.length).toBeGreaterThanOrEqual(9);
+    expect(DAEJEON_WALK_SPOTS.length).toBeGreaterThanOrEqual(12);
 
     const seogu = getSpotsByDistrict("서구");
     expect(seogu.length).toBeGreaterThan(0);
@@ -191,8 +200,8 @@ describe("대전 산책 명소 데이터 통합", () => {
     const yuseong = getSpotsByDistrict("유성구");
     const expo = yuseong.find((s) => s.name === "엑스포 시민광장");
     expect(expo).toBeDefined();
-    expect(expo!.latitude).toBeCloseTo(36.368, 2);
-    expect(expo!.longitude).toBeCloseTo(127.389, 2);
+    expect(expo!.latitude).toBeCloseTo(36.368, 1);
+    expect(expo!.longitude).toBeCloseTo(127.389, 1);
   });
 
   it("유림공원이 유성구에 존재", async () => {

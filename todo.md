@@ -840,3 +840,25 @@
 - [x] 대전 주요 산책로 입구 좌표 정밀화 (4개 지점)
 - [x] 카카오맵 LatLngBounds 적용 (모든 산책로 한눈에 보기)
 - [x] 네비게이션 라우팅 최종 검증
+
+
+## 추천 산책로 전체보기 지도 렌더링 수정 (Phase 59)
+- [x] 지도 렌더링 강제 실행: initMap 내 map.relayout() 추가, setTimeout 300ms 지연 로딩
+- [x] 지도 컨테이너 스타일 강제 고정: height 350px, width 100%, position relative
+- [x] 리스트와 지도 마커 동기화: 12개 산책로 마커 표시
+- [x] kakao.maps.LatLngBounds 적용: 모든 산책로 핀이 한눈에 보이도록 영역 자동 조정
+- [x] 네비게이션 재확인: 돌보미 홈에서 전체보기 클릭 시 올바른 페이지(/walk/all-trails)로 이동
+
+
+## 긴급: 시연용 데이터 동기화 및 지도 렌더링 완전 재수정 (Phase 60)
+- [x] daejeon-spots.ts 좌표 전수 검증 - 실제 입구 좌표로 정밀 수정
+- [x] simulation.tsx 시뮬레이션 상태 AsyncStorage 영속 저장 (타이머/좌표/isWalking)
+- [x] simulation.tsx 화면 재진입 시 시뮬레이션 자동 재개 (Resume 로직)
+- [x] live-tracker.tsx 보호자뷰 지도 카카오맵 WebView로 전면 교체
+- [x] live-tracker.tsx relayout + setCenter 강제 실행, setTimeout 300ms 지연
+- [x] live-tracker.tsx 지도 컨테이너 min-height 400px, z-index 설정
+- [x] live-tracker.tsx AsyncStorage 폴링으로 시뮬레이션 데이터 실시간 동기화
+- [x] all-trails.tsx 인포윈도우 이스케이프 문제 수정
+- [x] 네비게이션 전수 점검 - 반려인/돌보미 양쪽 전체보기 → /walk/all-trails 확인
+- [x] 테스트 파일 동기화 (남선공원 서구 이동, 12개 마커 데이터 일치)
+- [x] 전체 테스트 594개 통과, 0개 실패, TS 에러 0건

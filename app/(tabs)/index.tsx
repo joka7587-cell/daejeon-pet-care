@@ -785,11 +785,28 @@ function CaretakerHome() {
 
       {/* 오늘의 추천 산책로 (돌보미도 볼 수 있음) */}
       <View style={s.section}>
-        <Text style={s.sectionTitle}>오늘의 추천 산책로</Text>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>오늘의 추천 산책로</Text>
+          <Pressable
+            onPress={() => {
+              haptic();
+              router.push("/walk/all-trails" as never);
+            }}
+          >
+            <Text style={s.seeAll}>전체보기</Text>
+          </Pressable>
+        </View>
         <Pressable
           onPress={() => {
             haptic();
-            router.push("/(tabs)/map" as never);
+            router.push({
+              pathname: "/walk/trail-detail",
+              params: {
+                spotId: todaySpot.id,
+                lat: String(todaySpot.latitude),
+                lng: String(todaySpot.longitude),
+              },
+            } as never);
           }}
           style={({ pressed }) => [s.spotCardMini, pressed && { opacity: 0.85 }]}
         >

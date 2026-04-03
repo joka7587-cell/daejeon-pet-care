@@ -1,29 +1,33 @@
 /**
  * 보호자용 - 시뮬레이션 산책 실시간 추적 화면
- * walkSimulation 상태를 구독하여 지도 마커가 부드럽게 이동
+ * 카카오맵 WebView로 실시간 마커 이동 표시
+ *
+ * Phase 60 수정사항:
+ * - 카카오맵 WebView 기반으로 전면 교체
+ * - setTimeout 300ms 지연 로딩으로 DOM 확실히 생성 후 지도 초기화
+ * - map.relayout() + map.setCenter() 강제 실행
+ * - min-height: 400px, z-index 설정
+ * - window.kakaoMapInstance로 전역 참조
+ * - AsyncStorage에서 좌표 수신하여 마커 업데이트
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
-  Dimensions,
   Platform,
+  ActivityIndicator,
+  ScrollView,
 } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
+import { WebView } from "react-native-webview";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { useRouter } from "expo-router";
 import { Fonts } from "@/hooks/use-fonts";
 import * as Haptics from "expo-haptics";
+import { getApiBaseUrl } from "@/constants/oauth";
 import {
   EXPO_PARK_ROUTE,
   calculateRouteDistance,
@@ -34,233 +38,328 @@ const haptic = () => {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 };
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const MAP_WIDTH = SCREEN_WIDTH - 32;
-const MAP_HEIGHT = MAP_WIDTH * 0.85;
+// 카카오맵 HTML 생성 - 보호자뷰 실시간 추적용
+function generateTrackerMapHTML(apiKey: string, initialLat: number, initialLng: number): string {
+  const routeJSON = JSON.stringify(EXPO_PARK_ROUTE.map(c => ({
+    lat: c.latitude,
+    lng: c.longitude,
+    label: c.label,
+  })));
 
-// 대전 좌표 범위 (엑스포 공원 주변 확대)
-const BOUNDS = {
-  minLat: 36.370,
-  maxLat: 36.382,
-  minLon: 127.382,
-  maxLon: 127.396,
-};
-
-function coordToPixel(lat: number, lon: number) {
-  const x = ((lon - BOUNDS.minLon) / (BOUNDS.maxLon - BOUNDS.minLon)) * MAP_WIDTH;
-  const y = ((BOUNDS.maxLat - lat) / (BOUNDS.maxLat - BOUNDS.minLat)) * MAP_HEIGHT;
-  return {
-    x: Math.max(20, Math.min(MAP_WIDTH - 20, x)),
-    y: Math.max(20, Math.min(MAP_HEIGHT - 20, y)),
-  };
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden}
+#map{width:100%;min-height:400px;height:100%;position:relative;z-index:1}
+.walker-marker{
+  width:44px;height:44px;border-radius:50%;
+  background:#2E7D32;border:3px solid white;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 2px 12px rgba(0,0,0,0.35);
+  position:relative;z-index:100;
 }
-
-// 경로 라인 컴포넌트
-function RouteLine({ points, activeIndex }: { points: typeof EXPO_PARK_ROUTE; activeIndex: number }) {
-  return (
-    <>
-      {points.slice(0, -1).map((point, i) => {
-        const from = coordToPixel(point.latitude, point.longitude);
-        const to = coordToPixel(points[i + 1].latitude, points[i + 1].longitude);
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-        const isPassed = i < activeIndex;
-
-        return (
-          <View
-            key={`route_${i}`}
-            style={{
-              position: "absolute",
-              left: from.x,
-              top: from.y - 1.5,
-              width: length,
-              height: 3,
-              backgroundColor: isPassed ? "#2E7D32" : "#D0D0D0",
-              borderRadius: 1.5,
-              transform: [{ rotate: `${angle}deg` }],
-              transformOrigin: "left center",
-              opacity: isPassed ? 0.8 : 0.4,
-            }}
-          />
-        );
-      })}
-    </>
-  );
+.walker-marker .pulse{
+  position:absolute;width:44px;height:44px;border-radius:50%;
+  border:2px solid #2E7D32;
+  animation:pulse 1.5s ease-in-out infinite;
 }
-
-// 경유지 마커
-function WaypointMarker({ coord, index, isActive, isDone }: {
-  coord: typeof EXPO_PARK_ROUTE[0];
-  index: number;
-  isActive: boolean;
-  isDone: boolean;
-}) {
-  const pos = coordToPixel(coord.latitude, coord.longitude);
-  return (
-    <View style={{
-      position: "absolute",
-      left: pos.x - 10,
-      top: pos.y - 10,
-      alignItems: "center",
-    }}>
-      <View style={{
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: isDone ? "#4CAF82" : isActive ? "#2E7D32" : "#E0E0E0",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 2,
-        borderColor: "#FFFFFF",
-      }}>
-        <Text style={{ fontSize: 8, color: "#FFFFFF", fontWeight: "800" }}>
-          {isDone ? "✓" : index + 1}
-        </Text>
-      </View>
-      <Text style={{
-        fontSize: 8,
-        color: "#8E8E93",
-        marginTop: 2,
-        textAlign: "center",
-        width: 60,
-      }}>
-        {coord.label}
-      </Text>
-    </View>
-  );
+@keyframes pulse{
+  0%{transform:scale(1);opacity:0.6}
+  100%{transform:scale(2.2);opacity:0}
 }
+.waypoint{
+  width:20px;height:20px;border-radius:50%;
+  border:2px solid white;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;color:white;font-weight:800;
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+}
+.waypoint-label{
+  font-size:9px;color:#8E8E93;text-align:center;
+  white-space:nowrap;margin-top:2px;
+  background:rgba(255,255,255,0.85);padding:1px 4px;border-radius:4px;
+}
+.loading-overlay{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(248,248,248,0.95);z-index:999;
+  font-family:-apple-system,sans-serif;color:#666;font-size:14px;
+}
+</style>
+</head><body>
+<div id="loading" class="loading-overlay">지도를 불러오는 중...</div>
+<div id="map"></div>
+<script>
+function sendMsg(obj){
+  try{
+    if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(obj));
+    else if(window.parent) window.parent.postMessage(JSON.stringify(obj),'*');
+  }catch(e){}
+}
+</script>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false"
+  onerror="document.getElementById('loading').innerHTML='지도 SDK 로드 실패';sendMsg({type:'error',msg:'SDK load failed'})">
+</script>
+<script>
+(function(){
+  var loadTimeout = setTimeout(function(){
+    document.getElementById('loading').innerHTML = '지도 로드 시간 초과';
+    sendMsg({type:'error',msg:'timeout'});
+  }, 10000);
 
-// 애니메이션 워커 핀
-function AnimatedWalkerPin({ x, y, emoji }: { x: number; y: number; emoji: string }) {
-  const pulseScale = useSharedValue(1);
-  const animX = useSharedValue(x - 22);
-  const animY = useSharedValue(y - 22);
+  if(typeof kakao === 'undefined' || !kakao.maps){
+    return;
+  }
 
-  useEffect(() => {
-    pulseScale.value = withRepeat(
-      withTiming(1.5, { duration: 1000, easing: Easing.out(Easing.ease) }),
-      -1,
-      true
-    );
-  }, []);
+  kakao.maps.load(function(){
+    clearTimeout(loadTimeout);
 
-  // 좌표 변경 시 4초에 걸쳐 부드럽게 이동
-  useEffect(() => {
-    animX.value = withTiming(x - 22, { duration: 4000, easing: Easing.inOut(Easing.ease) });
-    animY.value = withTiming(y - 22, { duration: 4000, easing: Easing.inOut(Easing.ease) });
-  }, [x, y]);
+    // 300ms 지연 - DOM 확실히 생성 후 지도 초기화
+    setTimeout(function(){
+      var container = document.getElementById('map');
+      if(!container){
+        sendMsg({type:'error',msg:'container not found'});
+        return;
+      }
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-    opacity: 2 - pulseScale.value,
-  }));
+      var map = new kakao.maps.Map(container, {
+        center: new kakao.maps.LatLng(${initialLat}, ${initialLng}),
+        level: 4
+      });
 
-  const posStyle = useAnimatedStyle(() => ({
-    left: animX.value,
-    top: animY.value,
-  }));
+      // 전역 참조
+      window.kakaoMapInstance = map;
 
-  return (
-    <Animated.View style={[{
-      position: "absolute",
-      width: 44,
-      height: 44,
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 100,
-    }, posStyle]}>
-      <Animated.View style={[{
-        position: "absolute",
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: "rgba(255,107,53,0.25)",
-      }, pulseStyle]} />
-      <View style={{
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: "#2E7D32",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 3,
-        borderColor: "#FFFFFF",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 6,
-      }}>
-        <Text style={{ fontSize: 18 }}>{emoji}</Text>
-      </View>
-    </Animated.View>
-  );
+      // relayout 강제 실행
+      map.relayout();
+      map.setCenter(new kakao.maps.LatLng(${initialLat}, ${initialLng}));
+
+      // 줌 컨트롤
+      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+
+      // 경로 라인 데이터
+      var route = ${routeJSON};
+      var routePath = route.map(function(c){ return new kakao.maps.LatLng(c.lat, c.lng); });
+
+      // 경로 폴리라인 (전체 경로 - 연한 회색)
+      new kakao.maps.Polyline({
+        map: map,
+        path: routePath,
+        strokeWeight: 3,
+        strokeColor: '#CCCCCC',
+        strokeOpacity: 0.5,
+        strokeStyle: 'dashed'
+      });
+
+      // 이동 경로 폴리라인 (진행된 구간 - 녹색)
+      var activePolyline = new kakao.maps.Polyline({
+        map: map,
+        path: [routePath[0]],
+        strokeWeight: 4,
+        strokeColor: '#2E7D32',
+        strokeOpacity: 0.9,
+        strokeStyle: 'solid'
+      });
+
+      // 경유지 마커
+      route.forEach(function(c, i){
+        var pos = new kakao.maps.LatLng(c.lat, c.lng);
+        var el = document.createElement('div');
+        el.style.textAlign = 'center';
+
+        var dot = document.createElement('div');
+        dot.className = 'waypoint';
+        dot.style.background = '#E0E0E0';
+        dot.textContent = (i + 1).toString();
+        dot.id = 'wp_' + i;
+        el.appendChild(dot);
+
+        var label = document.createElement('div');
+        label.className = 'waypoint-label';
+        label.textContent = c.label;
+        el.appendChild(label);
+
+        new kakao.maps.CustomOverlay({
+          position: pos,
+          content: el,
+          yAnchor: 1.5,
+          zIndex: 2,
+          map: map
+        });
+      });
+
+      // 워커 마커
+      var walkerEl = document.createElement('div');
+      walkerEl.className = 'walker-marker';
+      walkerEl.innerHTML = '<div class="pulse"></div>🐕';
+
+      var walkerOverlay = new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(${initialLat}, ${initialLng}),
+        content: walkerEl,
+        yAnchor: 0.5,
+        zIndex: 100,
+        map: map
+      });
+
+      // 시작 마커
+      var startEl = document.createElement('div');
+      startEl.style.cssText = 'background:#2E7D32;color:white;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.2)';
+      startEl.textContent = '🚩 출발';
+      new kakao.maps.CustomOverlay({
+        position: routePath[0],
+        content: startEl,
+        yAnchor: 2.5,
+        zIndex: 5,
+        map: map
+      });
+
+      // 로딩 오버레이 제거
+      document.getElementById('loading').style.display = 'none';
+
+      // 마커 업데이트 함수 (외부에서 호출)
+      window.updateWalkerPosition = function(lat, lng, stepIndex) {
+        var newPos = new kakao.maps.LatLng(lat, lng);
+        walkerOverlay.setPosition(newPos);
+        map.panTo(newPos);
+
+        // 이동 경로 업데이트
+        var activePath = [];
+        for(var i = 0; i <= stepIndex && i < routePath.length; i++){
+          activePath.push(routePath[i]);
+        }
+        activePath.push(newPos);
+        activePolyline.setPath(activePath);
+
+        // 경유지 색상 업데이트
+        for(var j = 0; j < route.length; j++){
+          var wp = document.getElementById('wp_' + j);
+          if(wp){
+            if(j < stepIndex){
+              wp.style.background = '#4CAF82';
+              wp.textContent = '✓';
+            } else if(j === stepIndex){
+              wp.style.background = '#2E7D32';
+            }
+          }
+        }
+      };
+
+      // relayout 한번 더 (안전)
+      setTimeout(function(){
+        map.relayout();
+        sendMsg({type:'ready'});
+      }, 200);
+
+    }, 300);
+  });
+})();
+</script>
+</body></html>`;
 }
 
 export default function LiveTrackerScreen() {
   const { state } = useApp();
   const router = useRouter();
   const { walkSimulation } = state;
+  const webViewRef = useRef<WebView>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [apiKey, setApiKey] = useState<string>("");
+  const [mapReady, setMapReady] = useState(false);
+  const [mapLoadFailed, setMapLoadFailed] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const simStatus = walkSimulation.status;
   const currentIndex = walkSimulation.currentIndex;
   const currentCoord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
-  const currentPixel = coordToPixel(currentCoord.latitude, currentCoord.longitude);
 
-  // LocalStorage 리스너 - 시뮬레이션 데이터 동기화
+  // API 키 가져오기
   useEffect(() => {
-    const watchInterval = setInterval(async () => {
+    const fetchKey = async () => {
       try {
-        const data = await AsyncStorage.getItem('walk_simulation_current');
-        if (data) {
-          const parsed = JSON.parse(data);
-          console.log('[LiveTracker] LocalStorage update:', parsed);
-        }
-      } catch (err) {
-        console.error('[LiveTracker] LocalStorage read error:', err);
+        const baseUrl = getApiBaseUrl();
+        if (!baseUrl) { setMapLoadFailed(true); return; }
+        const res = await fetch(`${baseUrl}/api/kakao-map-key`);
+        if (!res.ok) { setMapLoadFailed(true); return; }
+        const data = await res.json();
+        if (data.key) setApiKey(data.key);
+        else setMapLoadFailed(true);
+      } catch {
+        setMapLoadFailed(true);
       }
-    }, 1000);
-    return () => clearInterval(watchInterval);
+    };
+    fetchKey();
+    const timeout = setTimeout(() => {
+      setMapLoadFailed(prev => prev ? prev : true);
+    }, 8000);
+    return () => clearTimeout(timeout);
   }, []);
 
   // 경과 시간 타이머
   useEffect(() => {
     if (simStatus === "running" && walkSimulation.startedAt) {
-      console.log("[LiveTracker] Timer started");
       timerRef.current = setInterval(() => {
         const elapsed = (Date.now() - new Date(walkSimulation.startedAt!).getTime()) / 1000;
         setElapsedSec(Math.floor(elapsed));
       }, 1000);
     } else {
-      if (timerRef.current) {
-        console.log("[LiveTracker] Timer cleared");
-        clearInterval(timerRef.current);
-      }
-    }
-    return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-    };
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [simStatus, walkSimulation.startedAt]);
+
+  // AsyncStorage 폴링 - 시뮬레이션 좌표 수신
+  useEffect(() => {
+    if (!mapReady) return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const data = await AsyncStorage.getItem("walk_simulation_current");
+        if (data) {
+          const parsed = JSON.parse(data);
+          const js = `window.updateWalkerPosition(${parsed.lat}, ${parsed.lng}, ${parsed.index});`;
+          if (Platform.OS === "web") {
+            if (iframeRef.current && iframeRef.current.contentWindow) {
+              (iframeRef.current.contentWindow as any).eval(js);
+            }
+          } else {
+            webViewRef.current?.injectJavaScript(js + "true;");
+          }
+        }
+      } catch {}
+    }, 1000);
+
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+  }, [mapReady]);
+
+  // 상태 변경 시 지도 마커 업데이트
+  useEffect(() => {
+    if (!mapReady) return;
+    const coord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
+    const js = `window.updateWalkerPosition(${coord.latitude}, ${coord.longitude}, ${currentIndex});`;
+    if (Platform.OS === "web") {
+      if (iframeRef.current && iframeRef.current.contentWindow) {
+        try { (iframeRef.current.contentWindow as any).eval(js); } catch {}
+      }
+    } else {
+      webViewRef.current?.injectJavaScript(js + "true;");
+    }
+  }, [currentIndex, mapReady]);
 
   // 이동 거리 계산
   let distanceSoFar = 0;
   for (let i = 1; i <= currentIndex && i < EXPO_PARK_ROUTE.length; i++) {
-    const segmentDist = haversineDistance(
+    distanceSoFar += haversineDistance(
       EXPO_PARK_ROUTE[i - 1].latitude,
       EXPO_PARK_ROUTE[i - 1].longitude,
       EXPO_PARK_ROUTE[i].latitude,
       EXPO_PARK_ROUTE[i].longitude
     );
-    distanceSoFar += segmentDist;
   }
-  if (distanceSoFar === 0 && currentIndex > 0) {
-    console.warn("[LiveTracker] Distance calculation issue - currentIndex:", currentIndex);
-  }
-
   const totalDistance = calculateRouteDistance(EXPO_PARK_ROUTE);
   const progressPercent = ((currentIndex + 1) / EXPO_PARK_ROUTE.length) * 100;
 
@@ -270,156 +369,203 @@ export default function LiveTrackerScreen() {
     return m > 0 ? `${m}분 ${s}초` : `${s}초`;
   };
 
-  // 디버깅용 로그
+  const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "ready") setMapReady(true);
+    } catch {}
+  }, []);
+
+  // iframe message handler (web)
   useEffect(() => {
-    console.log("[LiveTracker] simStatus:", simStatus);
-    console.log("[LiveTracker] currentIndex:", currentIndex);
-    console.log("[LiveTracker] elapsedSec:", elapsedSec);
-    console.log("[LiveTracker] walkSimulation:", walkSimulation);
-  }, [simStatus, currentIndex, elapsedSec, walkSimulation]);
+    if (Platform.OS === "web") {
+      const handler = (event: MessageEvent) => {
+        try {
+          const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+          if (data.type === "ready") setMapReady(true);
+        } catch {}
+      };
+      window.addEventListener("message", handler);
+      return () => window.removeEventListener("message", handler);
+    }
+  }, []);
+
+  // 지도 렌더링
+  const renderMap = () => {
+    if (mapLoadFailed && !apiKey) {
+      return (
+        <View style={s.mapFallback}>
+          <Text style={{ fontSize: 48, marginBottom: 8 }}>🗺️</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: "#2E7D32" }}>실시간 추적</Text>
+          <Text style={{ fontSize: 13, color: "#8E8E93", marginTop: 4 }}>
+            지도 로드에 실패했습니다. 관리자에게 문의하세요.
+          </Text>
+        </View>
+      );
+    }
+
+    if (!apiKey) {
+      return (
+        <View style={s.mapLoading}>
+          <ActivityIndicator size="large" color="#2E7D32" />
+          <Text style={{ marginTop: 8, fontSize: 13, color: "#8E8E93" }}>지도를 불러오는 중...</Text>
+        </View>
+      );
+    }
+
+    const initialCoord = EXPO_PARK_ROUTE[0];
+    const html = generateTrackerMapHTML(apiKey, initialCoord.latitude, initialCoord.longitude);
+
+    if (Platform.OS === "web") {
+      return (
+        <View style={s.mapContainer}>
+          <iframe
+            ref={(el) => { iframeRef.current = el; }}
+            srcDoc={html}
+            style={{
+              width: "100%",
+              height: "100%",
+              border: "none",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              zIndex: 1,
+            }}
+            title="kakao-map-live-tracker"
+            onLoad={() => { setTimeout(() => setMapReady(true), 3000); }}
+          />
+          {!mapReady && (
+            <View style={s.mapOverlay}>
+              <ActivityIndicator size="large" color="#2E7D32" />
+              <Text style={{ marginTop: 8, fontSize: 13, color: "#8E8E93" }}>지도를 불러오는 중...</Text>
+            </View>
+          )}
+        </View>
+      );
+    }
+
+    return (
+      <View style={s.mapContainer}>
+        <WebView
+          ref={webViewRef}
+          source={{ html }}
+          style={s.mapWebView}
+          onMessage={handleWebViewMessage}
+          scrollEnabled={false}
+          scalesPageToFit={false}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          mixedContentMode="always"
+          originWhitelist={["*"]}
+        />
+        {!mapReady && (
+          <View style={s.mapOverlay}>
+            <ActivityIndicator size="large" color="#2E7D32" />
+            <Text style={{ marginTop: 8, fontSize: 13, color: "#8E8E93" }}>지도를 불러오는 중...</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} className="p-0">
-      {/* 헤더 */}
-      <View style={s.header}>
-        <Pressable
-          onPress={() => { haptic(); router.back(); }}
-          style={({ pressed }) => [s.backBtn, pressed && { opacity: 0.7 }]}
-        >
-          <Text style={s.backBtnText}>‹ 뒤로</Text>
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={s.headerTitle}>실시간 산책 추적</Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-            <View style={[s.statusDot, {
-              backgroundColor: simStatus === "running" ? "#4CAF82" : simStatus === "paused" ? "#F59E0B" : "#8E8E93",
-            }]} />
-            <Text style={[s.statusText, {
-              color: simStatus === "running" ? "#4CAF82" : simStatus === "paused" ? "#F59E0B" : "#8E8E93",
-            }]}>
-              {simStatus === "running" ? "산책 중" : simStatus === "paused" ? "일시정지" : simStatus === "completed" ? "산책 완료" : "대기 중"}
-            </Text>
-          </View>
-        </View>
-        <View style={s.simBadge}>
-          <Text style={s.simBadgeText}>SIM</Text>
-        </View>
-      </View>
-
-      {/* 지도 */}
-      <View style={s.mapContainer}>
-        <View style={s.map}>
-          {/* 배경 그리드 */}
-          {Array.from({ length: 4 }).map((_, i) => (
-            <View key={`h_${i}`} style={{
-              position: "absolute", left: 0, right: 0,
-              top: (MAP_HEIGHT / 4) * (i + 1), height: 1,
-              backgroundColor: "rgba(0,0,0,0.04)",
-            }} />
-          ))}
-          {Array.from({ length: 4 }).map((_, i) => (
-            <View key={`v_${i}`} style={{
-              position: "absolute", top: 0, bottom: 0,
-              left: (MAP_WIDTH / 4) * (i + 1), width: 1,
-              backgroundColor: "rgba(0,0,0,0.04)",
-            }} />
-          ))}
-
-          {/* 경로 라인 */}
-          <RouteLine points={EXPO_PARK_ROUTE} activeIndex={currentIndex} />
-
-          {/* 경유지 마커 */}
-          {EXPO_PARK_ROUTE.map((coord, i) => (
-            <WaypointMarker
-              key={i}
-              coord={coord}
-              index={i}
-              isActive={i === currentIndex && simStatus === "running"}
-              isDone={i < currentIndex || simStatus === "completed"}
-            />
-          ))}
-
-          {/* 워커 애니메이션 핀 */}
-          {(simStatus === "running" || simStatus === "paused") && (
-            <AnimatedWalkerPin
-              x={currentPixel.x}
-              y={currentPixel.y}
-              emoji={walkSimulation.walkerEmoji}
-            />
-          )}
-
-          {/* 지도 라벨 */}
-          <View style={s.mapLabel}>
-            <Text style={s.mapLabelText}>엑스포 과학공원 일대</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* 워커 정보 카드 */}
-      <View style={s.infoCard}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View style={s.walkerAvatar}>
-            <Text style={{ fontSize: 24 }}>{walkSimulation.walkerEmoji}</Text>
-          </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* 헤더 */}
+        <View style={s.header}>
+          <Pressable
+            onPress={() => { haptic(); router.back(); }}
+            style={({ pressed }) => [s.backBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={s.backBtnText}>‹ 뒤로</Text>
+          </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={s.walkerName}>{walkSimulation.walkerName}</Text>
-            <Text style={s.walkerSub}>
-              {walkSimulation.petEmoji} {walkSimulation.petName}와 산책 중
+            <Text style={s.headerTitle}>실시간 산책 추적</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+              <View style={[s.statusDot, {
+                backgroundColor: simStatus === "running" ? "#4CAF82" : simStatus === "paused" ? "#F59E0B" : "#8E8E93",
+              }]} />
+              <Text style={[s.statusText, {
+                color: simStatus === "running" ? "#4CAF82" : simStatus === "paused" ? "#F59E0B" : "#8E8E93",
+              }]}>
+                {simStatus === "running" ? "산책 중" : simStatus === "paused" ? "일시정지" : simStatus === "completed" ? "산책 완료" : "대기 중"}
+              </Text>
+            </View>
+          </View>
+          <View style={s.simBadge}>
+            <Text style={s.simBadgeText}>SIM</Text>
+          </View>
+        </View>
+
+        {/* 카카오맵 지도 */}
+        {renderMap()}
+
+        {/* 워커 정보 카드 */}
+        <View style={s.infoCard}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={s.walkerAvatar}>
+              <Text style={{ fontSize: 24 }}>{walkSimulation.walkerEmoji}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.walkerName}>{walkSimulation.walkerName}</Text>
+              <Text style={s.walkerSub}>
+                {walkSimulation.petEmoji} {walkSimulation.petName}와 산책 중
+              </Text>
+            </View>
+            <View style={s.locationBadge}>
+              <Text style={s.locationBadgeText}>📍 {currentCoord.district}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 산책 통계 */}
+        <View style={s.statsRow}>
+          <View style={s.statItem}>
+            <Text style={s.statIcon}>⏱️</Text>
+            <Text style={s.statValue}>{formatTime(elapsedSec)}</Text>
+            <Text style={s.statLabel}>경과 시간</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={s.statIcon}>📏</Text>
+            <Text style={s.statValue}>{distanceSoFar.toFixed(2)} km</Text>
+            <Text style={s.statLabel}>이동 거리</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={s.statIcon}>📍</Text>
+            <Text style={s.statValue}>{currentIndex + 1}/{EXPO_PARK_ROUTE.length}</Text>
+            <Text style={s.statLabel}>경유지</Text>
+          </View>
+        </View>
+
+        {/* 진행 바 */}
+        <View style={s.progressBar}>
+          <View style={s.progressBg}>
+            <View style={[s.progressFill, { width: `${progressPercent}%` }]} />
+          </View>
+          <Text style={s.progressText}>{currentCoord.label}</Text>
+        </View>
+
+        {/* 완료 배너 */}
+        {simStatus === "completed" && (
+          <View style={s.completedBanner}>
+            <Text style={{ fontSize: 32 }}>🎉</Text>
+            <Text style={s.completedText}>산책이 완료되었습니다!</Text>
+            <Text style={s.completedSub}>
+              총 {totalDistance.toFixed(2)}km · {EXPO_PARK_ROUTE.length}개 경유지
             </Text>
           </View>
-          <View style={s.locationBadge}>
-            <Text style={s.locationBadgeText}>📍 {currentCoord.district}</Text>
+        )}
+
+        {simStatus === "idle" && (
+          <View style={s.idleBanner}>
+            <Text style={{ fontSize: 32 }}>⏳</Text>
+            <Text style={s.idleText}>시뮬레이션 대기 중</Text>
+            <Text style={s.idleSub}>관리자 메뉴에서 시뮬레이션을 시작하세요</Text>
           </View>
-        </View>
-      </View>
-
-      {/* 산책 통계 */}
-      <View style={s.statsRow}>
-        <View style={s.statItem}>
-          <Text style={s.statIcon}>⏱️</Text>
-          <Text style={s.statValue}>{formatTime(elapsedSec)}</Text>
-          <Text style={s.statLabel}>경과 시간</Text>
-        </View>
-        <View style={s.statDivider} />
-        <View style={s.statItem}>
-          <Text style={s.statIcon}>📏</Text>
-          <Text style={s.statValue}>{distanceSoFar.toFixed(2)} km</Text>
-          <Text style={s.statLabel}>이동 거리</Text>
-        </View>
-        <View style={s.statDivider} />
-        <View style={s.statItem}>
-          <Text style={s.statIcon}>📍</Text>
-          <Text style={s.statValue}>{currentIndex + 1}/{EXPO_PARK_ROUTE.length}</Text>
-          <Text style={s.statLabel}>경유지</Text>
-        </View>
-      </View>
-
-      {/* 진행 바 */}
-      <View style={s.progressBar}>
-        <View style={s.progressBg}>
-          <View style={[s.progressFill, { width: `${progressPercent}%` }]} />
-        </View>
-        <Text style={s.progressText}>{currentCoord.label}</Text>
-      </View>
-
-      {/* 완료 배너 */}
-      {simStatus === "completed" && (
-        <View style={s.completedBanner}>
-          <Text style={s.completedEmoji}>🎉</Text>
-          <Text style={s.completedText}>산책이 완료되었습니다!</Text>
-          <Text style={s.completedSub}>
-            총 {totalDistance.toFixed(2)}km · {EXPO_PARK_ROUTE.length}개 경유지
-          </Text>
-        </View>
-      )}
-
-      {simStatus === "idle" && (
-        <View style={s.idleBanner}>
-          <Text style={s.idleEmoji}>⏳</Text>
-          <Text style={s.idleText}>시뮬레이션 대기 중</Text>
-          <Text style={s.idleSub}>관리자 메뉴에서 시뮬레이션을 시작하세요</Text>
-        </View>
-      )}
+        )}
+      </ScrollView>
     </ScreenContainer>
   );
 }
@@ -446,27 +592,56 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   simBadgeText: { fontFamily: Fonts.bold, fontSize: 10, color: "#FFFFFF", letterSpacing: 1 },
-  mapContainer: { paddingHorizontal: 16, paddingTop: 12 },
-  map: {
-    width: MAP_WIDTH,
-    height: MAP_HEIGHT,
-    backgroundColor: "#F5F8F0",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E0E8D8",
-    overflow: "hidden",
+  // 지도 컨테이너 - 강제 고정 스타일
+  mapContainer: {
+    height: 400,
+    width: "100%",
     position: "relative",
+    backgroundColor: "#F0F0F0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8E8",
+    overflow: "hidden",
+    zIndex: 1,
   },
-  mapLabel: {
+  mapWebView: {
     position: "absolute",
-    bottom: 8,
-    right: 8,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: 1,
   },
-  mapLabelText: { fontFamily: Fonts.semiBold, fontSize: 9, color: "#8E8E93" },
+  mapOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(248,248,248,0.95)",
+    zIndex: 10,
+  },
+  mapLoading: {
+    height: 400,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8F8F8",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8E8",
+  },
+  mapFallback: {
+    height: 400,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F0F7F0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E8E8",
+  },
   infoCard: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -474,7 +649,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#FFE8DD",
+    borderColor: "#C6F6D5",
   },
   walkerAvatar: {
     width: 44,
@@ -542,7 +717,6 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#C6F6D5",
   },
-  completedEmoji: { fontSize: 32 },
   completedText: { fontFamily: Fonts.bold, fontSize: 16, color: "#2E7D32" },
   completedSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#4CAF82" },
   idleBanner: {
@@ -556,7 +730,6 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E0E0",
   },
-  idleEmoji: { fontSize: 32 },
   idleText: { fontFamily: Fonts.bold, fontSize: 16, color: "#8E8E93" },
   idleSub: { fontFamily: Fonts.regular, fontSize: 12, color: "#BDBDBD" },
 });

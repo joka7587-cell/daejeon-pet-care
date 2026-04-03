@@ -39,11 +39,12 @@ describe("산책 명소 - 5개 구 분포 검증", () => {
     });
   });
 
-  it("서구: 한밭수목원, 대전 갑천 생태 호수 공원 (2개)", () => {
+  it("서구: 한밭수목원, 남선공원, 대전 갑천 생태 호수 공원 (3개)", () => {
     const spots = getSpotsByDistrict("서구");
-    expect(spots).toHaveLength(2);
+    expect(spots).toHaveLength(3);
     const names = spots.map((s) => s.name);
     expect(names).toContain("한밭수목원");
+    expect(names).toContain("남선공원");
     expect(names).toContain("대전 갑천 생태 호수 공원");
   });
 
@@ -57,11 +58,10 @@ describe("산책 명소 - 5개 구 분포 검증", () => {
     expect(names).toContain("대덕연구단지 산책로");
   });
 
-  it("중구: 남선공원, 대전 오월드 인근 산책로, 보문산 둘레길 (3개)", () => {
+  it("중구: 대전 오월드 인근 산책로, 보문산 둘레길 (2개)", () => {
     const spots = getSpotsByDistrict("중구");
-    expect(spots).toHaveLength(3);
+    expect(spots).toHaveLength(2);
     const names = spots.map((s) => s.name);
-    expect(names).toContain("남선공원");
     expect(names).toContain("대전 오월드 인근 산책로");
     expect(names).toContain("보문산 둘레길");
   });

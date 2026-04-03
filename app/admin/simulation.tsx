@@ -116,6 +116,13 @@ const restoreSimulationState = async () => {
       })
     ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
 
+    // 시작 시 상태 저장
+    saveSimulationState(true, 0, {
+      lat: firstCoord.latitude,
+      lng: firstCoord.longitude,
+      index: 0,
+    });
+
     // 5초 간격으로 다음 좌표 전송
     timerRef.current = setInterval(() => {
       elapsedRef.current += 5;
@@ -134,9 +141,8 @@ const restoreSimulationState = async () => {
             currentIndex: EXPO_PARK_ROUTE.length - 1,
           },
         });
-        AsyncStorage.removeItem("walk_simulation_current").catch((e) =>
-          console.error("[Simulation] LocalStorage remove error:", e)
-        );
+        AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
+        AsyncStorage.removeItem("walk_simulation_state").catch(() => {});
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -165,7 +171,14 @@ const restoreSimulationState = async () => {
           timestamp: new Date().toISOString(),
           index: nextStep,
         })
-      ).catch((e) => console.error("[Simulation] LocalStorage save error:", e));
+      ).catch(() => {});
+
+      // 상태 영속 저장
+      saveSimulationState(true, elapsedRef.current * 1000, {
+        lat: coord.latitude,
+        lng: coord.longitude,
+        index: nextStep,
+      });
     }, SIMULATION_INTERVAL_MS);
   }, [dispatch]);
 
@@ -265,12 +278,117 @@ const restoreSimulationState = async () => {
     });
   }, [dispatch]);
 
-  // cleanup on unmount
+  // 화면 재진입 시 시뮬레이션 상태 복구 (Resume)
   useEffect(() => {
+    const restoreState = async () => {
+      const savedState = await restoreSimulationState();
+      if (savedState && savedState.isRunning) {
+        // 경과 시간에서 현재 스텝 계산
+        const elapsedMs = savedState.elapsedTime;
+        const elapsedSeconds = Math.floor(elapsedMs / 1000);
+        const calculatedStep = Math.min(
+          Math.floor(elapsedMs / SIMULATION_INTERVAL_MS),
+          EXPO_PARK_ROUTE.length - 1
+        );
+
+        setCurrentStep(calculatedStep);
+        stepRef.current = calculatedStep;
+        setElapsedSec(elapsedSeconds);
+        elapsedRef.current = elapsedSeconds;
+        setIsRunning(true);
+
+        // 현재 좌표를 dispatch
+        dispatch({
+          type: "SET_WALK_SIMULATION",
+          payload: {
+            status: "running" as SimulationStatus,
+            currentIndex: calculatedStep,
+            startedAt: new Date(savedState.startTime).toISOString(),
+          },
+        });
+
+        // LocalStorage에 현재 좌표 저장
+        const coord = EXPO_PARK_ROUTE[calculatedStep];
+        await AsyncStorage.setItem(
+          "walk_simulation_current",
+          JSON.stringify({
+            lat: coord.latitude,
+            lng: coord.longitude,
+            label: coord.label,
+            timestamp: new Date().toISOString(),
+            index: calculatedStep,
+          })
+        );
+
+        // 아직 완료되지 않았으면 타이머 재개
+        if (calculatedStep < EXPO_PARK_ROUTE.length - 1) {
+          timerRef.current = setInterval(() => {
+            elapsedRef.current += 5;
+            setElapsedSec(elapsedRef.current);
+
+            const nextStep = stepRef.current + 1;
+            if (nextStep >= EXPO_PARK_ROUTE.length) {
+              if (timerRef.current) clearInterval(timerRef.current);
+              timerRef.current = null;
+              setIsRunning(false);
+              dispatch({
+                type: "SET_WALK_SIMULATION",
+                payload: {
+                  status: "completed" as SimulationStatus,
+                  currentIndex: EXPO_PARK_ROUTE.length - 1,
+                },
+              });
+              AsyncStorage.removeItem("walk_simulation_current").catch(() => {});
+              AsyncStorage.removeItem("walk_simulation_state").catch(() => {});
+              return;
+            }
+
+            stepRef.current = nextStep;
+            setCurrentStep(nextStep);
+            const c = EXPO_PARK_ROUTE[nextStep];
+            dispatch({
+              type: "SET_WALK_SIMULATION",
+              payload: {
+                status: "running" as SimulationStatus,
+                currentIndex: nextStep,
+              },
+            });
+            AsyncStorage.setItem(
+              "walk_simulation_current",
+              JSON.stringify({
+                lat: c.latitude,
+                lng: c.longitude,
+                label: c.label,
+                timestamp: new Date().toISOString(),
+                index: nextStep,
+              })
+            ).catch(() => {});
+            saveSimulationState(true, elapsedRef.current * 1000, {
+              lat: c.latitude,
+              lng: c.longitude,
+              index: nextStep,
+            });
+          }, SIMULATION_INTERVAL_MS);
+        } else {
+          // 이미 완료된 경우
+          setIsRunning(false);
+          dispatch({
+            type: "SET_WALK_SIMULATION",
+            payload: {
+              status: "completed" as SimulationStatus,
+              currentIndex: EXPO_PARK_ROUTE.length - 1,
+            },
+          });
+        }
+      }
+    };
+    restoreState();
+
+    // cleanup on unmount
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [dispatch]);
 
   const simStatus = walkSimulation.status;
   const progressPercent = ((currentStep + 1) / EXPO_PARK_ROUTE.length) * 100;
