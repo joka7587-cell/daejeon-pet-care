@@ -894,3 +894,9 @@
 - [x] 마커 이동이 4개 좌표만 따르도록 수정
 - [x] 보호자 뷰 localStorage 동기화 유지 (broadcastLocation 함수 적용)
 - [x] 테스트 594개 통과, TS 에러 0건
+
+## 보호자 뷰 실시간 위치 새로고침 버튼 (Phase 64)
+- [x] 지도 우측 상단 플로팅 새로고침 버튼 (🔄 아이콘, 카카오맵 컨트롤 스타일)
+- [x] 클릭 시 localStorage에서 최신 좌표 읽기 + marker.setPosition + map.panTo + map.relayout
+- [x] 토스트 메시지 "실시간 위치를 동기화합니다" 1초간 표시
+- [x] 테스트 594개 통과, TS 에러 0건

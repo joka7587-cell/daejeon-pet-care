@@ -101,10 +101,33 @@ html,body{width:100%;height:100%;overflow:hidden}
   background:rgba(248,248,248,0.95);z-index:999;
   font-family:-apple-system,sans-serif;color:#666;font-size:14px;
 }
+.refresh-btn{
+  position:absolute;top:12px;right:12px;z-index:500;
+  width:36px;height:36px;border-radius:4px;
+  background:#FFFFFF;border:1px solid #ddd;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,0.15);
+  transition:background 0.15s;
+}
+.refresh-btn:hover{background:#F5F5F5}
+.refresh-btn:active{background:#EEEEEE;transform:scale(0.95)}
+.toast-msg{
+  position:absolute;top:56px;left:50%;transform:translateX(-50%);
+  z-index:600;background:rgba(46,125,50,0.92);color:#fff;
+  padding:8px 16px;border-radius:20px;font-size:13px;
+  font-family:-apple-system,sans-serif;font-weight:600;
+  white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.2);
+  opacity:0;transition:opacity 0.3s;
+  pointer-events:none;
+}
+.toast-msg.show{opacity:1}
 </style>
 </head><body>
 <div id="loading" class="loading-overlay">지도를 불러오는 중...</div>
 <div id="map"></div>
+<div id="refreshBtn" class="refresh-btn" onclick="refreshLocation()">🔄</div>
+<div id="toast" class="toast-msg">실시간 위치를 동기화합니다</div>
 <script>
 function sendMsg(obj){
   try{
@@ -259,6 +282,29 @@ function sendMsg(obj){
             }
           }
         });
+      };
+
+      // 새로고침 버튼 로직
+      window.refreshLocation = function(){
+        try{
+          var stored = localStorage.getItem('currentLocation');
+          if(stored){
+            var data = JSON.parse(stored);
+            var newPos = new kakao.maps.LatLng(data.lat, data.lng);
+            walkerOverlay.setPosition(newPos);
+            map.panTo(newPos);
+            map.relayout();
+            // 디버그 오버레이 업데이트
+            var dbg = document.getElementById('debugCoord');
+            if(dbg) dbg.textContent = 'Lat:'+data.lat.toFixed(4)+' Lng:'+data.lng.toFixed(4)+' Idx:'+(data.stepIndex||'-');
+          }
+          // 토스트 표시
+          var toast = document.getElementById('toast');
+          if(toast){
+            toast.classList.add('show');
+            setTimeout(function(){ toast.classList.remove('show'); }, 1000);
+          }
+        }catch(e){}
       };
 
       // relayout 한번 더 (안전)
