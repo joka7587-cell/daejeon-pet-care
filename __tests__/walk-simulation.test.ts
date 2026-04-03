@@ -14,8 +14,8 @@ import {
 
 describe("walk-simulation 모듈", () => {
   describe("EXPO_PARK_ROUTE 좌표 배열", () => {
-    it("12개의 좌표가 정의되어 있어야 한다 (엑스포과학공원 → 엑스포 다리 → 갑천변)", () => {
-      expect(EXPO_PARK_ROUTE).toHaveLength(12);
+    it("40개의 정밀 좌표가 정의되어 있어야 한다 (도로 기반 경로)", () => {
+      expect(EXPO_PARK_ROUTE).toHaveLength(40);
     });
 
     it("모든 좌표에 필수 필드가 있어야 한다", () => {
@@ -41,9 +41,9 @@ describe("walk-simulation 모듈", () => {
       });
     });
 
-    it("모든 좌표가 유성구 지역이어야 한다 (엑스포 공원)", () => {
+    it("모든 좌표가 유성구 또는 서구 지역이어야 한다 (갑천 횡단 경로)", () => {
       EXPO_PARK_ROUTE.forEach((coord) => {
-        expect(coord.district).toBe("유성구");
+        expect(["유성구", "서구"]).toContain(coord.district);
       });
     });
   });
