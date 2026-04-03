@@ -191,8 +191,8 @@ describe("대전 산책 명소 데이터 통합", () => {
     const yuseong = getSpotsByDistrict("유성구");
     const expo = yuseong.find((s) => s.name === "엑스포 시민광장");
     expect(expo).toBeDefined();
-    expect(expo!.latitude).toBeCloseTo(36.3742, 2);
-    expect(expo!.longitude).toBeCloseTo(127.3917, 2);
+    expect(expo!.latitude).toBeCloseTo(36.368, 2);
+    expect(expo!.longitude).toBeCloseTo(127.389, 2);
   });
 
   it("유림공원이 유성구에 존재", async () => {

@@ -34,6 +34,38 @@ const haptic = () => {
 };
 
 export default function SimulationScreen() {
+
+// 시뮬레이션 상태를 localStorage에 저장
+const saveSimulationState = async (isRunning: boolean, currentTime: number, currentPath: any) => {
+  try {
+    await AsyncStorage.setItem('walk_simulation_state', JSON.stringify({
+      isRunning,
+      startTime: Date.now() - currentTime,
+      currentPath,
+      lastUpdate: Date.now(),
+    }));
+  } catch (e) {
+    console.warn('Failed to save simulation state:', e);
+  }
+};
+
+// 시뮬레이션 상태 복구
+const restoreSimulationState = async () => {
+  try {
+    const saved = await AsyncStorage.getItem('walk_simulation_state');
+    if (saved) {
+      const state = JSON.parse(saved);
+      const elapsed = Date.now() - state.startTime;
+      if (state.isRunning && elapsed < 3600000) { // 1시간 이내
+        return { ...state, elapsedTime: elapsed };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to restore simulation state:', e);
+  }
+  return null;
+};
+
   const { state, dispatch } = useApp();
   const router = useRouter();
   const { walkSimulation } = state;
