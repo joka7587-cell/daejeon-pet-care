@@ -3,6 +3,7 @@
  * walkSimulation 상태를 구독하여 지도 마커가 부드럽게 이동
  */
 import { useState, useEffect, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -209,6 +210,22 @@ export default function LiveTrackerScreen() {
   const currentIndex = walkSimulation.currentIndex;
   const currentCoord = EXPO_PARK_ROUTE[currentIndex] || EXPO_PARK_ROUTE[0];
   const currentPixel = coordToPixel(currentCoord.latitude, currentCoord.longitude);
+
+  // LocalStorage 리스너 - 시뮬레이션 데이터 동기화
+  useEffect(() => {
+    const watchInterval = setInterval(async () => {
+      try {
+        const data = await AsyncStorage.getItem('walk_simulation_current');
+        if (data) {
+          const parsed = JSON.parse(data);
+          console.log('[LiveTracker] LocalStorage update:', parsed);
+        }
+      } catch (err) {
+        console.error('[LiveTracker] LocalStorage read error:', err);
+      }
+    }, 1000);
+    return () => clearInterval(watchInterval);
+  }, []);
 
   // 경과 시간 타이머
   useEffect(() => {

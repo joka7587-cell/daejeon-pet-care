@@ -277,77 +277,80 @@ export default function FacilitiesScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-          <Text style={styles.backBtn}>← 뒤로</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>주변 반려 인프라</Text>
-        <View style={{ width: 50 }} />
-      </View>
-
-      {/* 마이크로카피 */}
-      <View style={styles.microCopy}>
-        <Text style={styles.microCopyText}>🐾 혼자서도 걱정 마세요! 대전의 검증된 반려 인프라를 한눈에</Text>
-      </View>
-
-      {/* 검색 */}
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="장소명, 주소, 동네로 검색..."
-          placeholderTextColor="#999"
-          value={searchText}
-          onChangeText={setSearchText}
-          returnKeyType="search"
-        />
-      </View>
-
-      {/* 카테고리 탭 */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow} contentContainerStyle={{ paddingHorizontal: 16 }}>
-        {CATEGORIES.map(cat => (
-          <Pressable
-            key={cat.key}
-            style={[styles.categoryChip, selectedCategory === cat.key && styles.categoryChipActive]}
-            onPress={() => setSelectedCategory(cat.key)}
-          >
-            <Text style={styles.categoryIcon}>{cat.icon}</Text>
-            <Text style={[styles.categoryLabel, selectedCategory === cat.key && styles.categoryLabelActive]}>{cat.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {/* 필터 */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ paddingHorizontal: 16 }}>
-        {FILTERS.map(f => (
-          <Pressable
-            key={f.key}
-            style={[styles.filterChip, activeFilters.has(f.key) && styles.filterChipActive]}
-            onPress={() => toggleFilter(f.key)}
-          >
-            <Text style={[styles.filterLabel, activeFilters.has(f.key) && styles.filterLabelActive]}>{f.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {/* 예약 현황 배너 */}
-      {reservations.length > 0 && (
-        <View style={styles.reservationBanner}>
-          <Text style={styles.reservationBannerText}>📋 예약 {reservations.length}건 | 다음 예약: {reservations[reservations.length - 1].facilityName} {reservations[reservations.length - 1].timeSlot}</Text>
-        </View>
-      )}
-
-      {/* 결과 수 */}
-      <View style={styles.resultCount}>
-        <Text style={styles.resultCountText}>검색 결과 {filteredFacilities.length}곳</Text>
-      </View>
-
-      {/* 시설 목록 */}
       <FlatList
         data={filteredFacilities}
         keyExtractor={item => item.id}
         renderItem={renderFacilityCard}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={true}
+        ListHeaderComponent={
+          <>
+            <View style={styles.header}>
+              <Pressable onPress={() => router.back()} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+                <Text style={styles.backBtn}>← 뒤로</Text>
+              </Pressable>
+              <Text style={styles.headerTitle}>주변 반려 인프라</Text>
+              <View style={{ width: 50 }} />
+            </View>
+
+            {/* 마이크로카피 */}
+            <View style={styles.microCopy}>
+              <Text style={styles.microCopyText}>🐾 혼자서도 걱정 마세요! 대전의 검증된 반려 인프라를 한눈에</Text>
+            </View>
+
+            {/* 검색 */}
+            <View style={styles.searchRow}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="장소명, 주소, 동네로 검색..."
+                placeholderTextColor="#999"
+                value={searchText}
+                onChangeText={setSearchText}
+                returnKeyType="search"
+              />
+            </View>
+
+            {/* 카테고리 탭 */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow} contentContainerStyle={{ paddingHorizontal: 0 }}>
+              {CATEGORIES.map(cat => (
+                <Pressable
+                  key={cat.key}
+                  style={[styles.categoryChip, selectedCategory === cat.key && styles.categoryChipActive]}
+                  onPress={() => setSelectedCategory(cat.key)}
+                >
+                  <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                  <Text style={[styles.categoryLabel, selectedCategory === cat.key && styles.categoryLabelActive]}>{cat.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* 필터 */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ paddingHorizontal: 0 }}>
+              {FILTERS.map(f => (
+                <Pressable
+                  key={f.key}
+                  style={[styles.filterChip, activeFilters.has(f.key) && styles.filterChipActive]}
+                  onPress={() => toggleFilter(f.key)}
+                >
+                  <Text style={[styles.filterLabel, activeFilters.has(f.key) && styles.filterLabelActive]}>{f.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* 예약 현황 배너 */}
+            {reservations.length > 0 && (
+              <View style={styles.reservationBanner}>
+                <Text style={styles.reservationBannerText}>📋 예약 {reservations.length}건 | 다음 예약: {reservations[reservations.length - 1].facilityName} {reservations[reservations.length - 1].timeSlot}</Text>
+              </View>
+            )}
+
+            {/* 결과 수 */}
+            <View style={styles.resultCount}>
+              <Text style={styles.resultCountText}>검색 결과 {filteredFacilities.length}곳</Text>
+            </View>
+          </>
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🔍</Text>
@@ -362,11 +365,11 @@ export default function FacilitiesScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  headerTitle: { fontFamily: Fonts.bold, fontSize: 18, color: "#1A1A1A" },
-  backBtn: { fontFamily: Fonts.semiBold, fontSize: 16, color: "#2E7D32" },
-  microCopy: { backgroundColor: "#E8F5E9", marginHorizontal: 16, borderRadius: 12, padding: 12, marginBottom: 8 },
-  microCopyText: { fontFamily: Fonts.medium, fontSize: 13, color: "#2E7D32", textAlign: "center" },
-  searchRow: { paddingHorizontal: 16, marginBottom: 8 },
+  headerTitle: { fontFamily: Fonts.bold, fontSize: 18, color: textPrimary },
+  backBtn: { fontFamily: Fonts.semiBold, fontSize: 16, color: accentColor },
+  microCopy: { backgroundColor: accentColor + "15", marginHorizontal: 0, borderRadius: 12, padding: 12, marginBottom: 8 },
+  microCopyText: { fontFamily: Fonts.medium, fontSize: 13, color: accentColor, textAlign: "center" },
+  searchRow: { paddingHorizontal: 0, marginBottom: 8 },
   searchInput: { backgroundColor: bgColor, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, fontFamily: Fonts.regular, fontSize: 14, color: textPrimary, borderWidth: 1, borderColor: borderColor },
   categoryRow: { marginBottom: 8, maxHeight: 44 },
   categoryChip: { flexDirection: "row", alignItems: "center", backgroundColor: bgColor, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8, borderWidth: 1, borderColor: borderColor },
@@ -379,9 +382,9 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: accentColor + "20", borderColor: accentColor },
   filterLabel: { fontFamily: Fonts.medium, fontSize: 12, color: textSecondary },
   filterLabelActive: { color: accentColor },
-  reservationBanner: { backgroundColor: accentColor + "15", marginHorizontal: 16, borderRadius: 10, padding: 10, marginBottom: 8 },
+  reservationBanner: { backgroundColor: accentColor + "15", marginHorizontal: 0, borderRadius: 10, padding: 10, marginBottom: 8 },
   reservationBannerText: { fontFamily: Fonts.medium, fontSize: 12, color: accentColor },
-  resultCount: { paddingHorizontal: 16, marginBottom: 8 },
+  resultCount: { paddingHorizontal: 0, marginBottom: 8 },
   resultCountText: { fontFamily: Fonts.medium, fontSize: 12, color: textSecondary },
   facilityCard: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: borderColor },
   cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
@@ -389,8 +392,8 @@ const styles = StyleSheet.create({
   cardTitleArea: { flex: 1 },
   cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   cardName: { fontFamily: Fonts.bold, fontSize: 15, color: textPrimary, flex: 1 },
-  soloBadge: { backgroundColor: "#E8F5E9", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
-  soloBadgeText: { fontFamily: Fonts.semiBold, fontSize: 10, color: "#2E7D32" },
+  soloBadge: { backgroundColor: accentColor + "20", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+  soloBadgeText: { fontFamily: Fonts.semiBold, fontSize: 10, color: accentColor },
   cardAddress: { fontFamily: Fonts.regular, fontSize: 12, color: textSecondary, marginTop: 2 },
   cardInfo: { marginBottom: 10 },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
@@ -407,7 +410,6 @@ const styles = StyleSheet.create({
   callBtnText: { fontFamily: Fonts.semiBold, fontSize: 12, color: textPrimary },
   bookBtn: { flex: 1, backgroundColor: accentColor, borderRadius: 8, paddingVertical: 8, alignItems: "center" },
   bookBtnText: { fontFamily: Fonts.semiBold, fontSize: 12, color: "#FFFFFF" },
-  // Booking
   bookingContainer: { flex: 1, padding: 16 },
   bookingHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
   bookingTitle: { fontFamily: Fonts.bold, fontSize: 18, color: textPrimary },
@@ -434,7 +436,6 @@ const styles = StyleSheet.create({
   confirmBtn: { backgroundColor: accentColor, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 12 },
   confirmBtnDisabled: { backgroundColor: borderColor },
   confirmBtnText: { fontFamily: Fonts.bold, fontSize: 15, color: "#FFFFFF" },
-  // Empty
   emptyState: { alignItems: "center", paddingTop: 60 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyText: { fontFamily: Fonts.semiBold, fontSize: 16, color: textSecondary },
