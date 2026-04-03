@@ -474,38 +474,51 @@ export default function AdminDashboard() {
 
   const handleSystemReset = useCallback(() => {
     Alert.alert(
-      "⚠️ System Reset",
-      "모든 채팅 내역, 위치 데이터, 예약 데이터가 초기화됩니다.\n\n시연용 시드 데이터는 유지됩니다.\n\n계속하시겠습니까?",
+      "⚠️ 시스템 초기화",
+      "모든 데이터가 삭제됩니다. 계속하시겠습니까?\n\n• 산책 시뮬레이션 좌표\n• 사용자 설정\n• 결제 미리보기 내역\n• 채팅 내역\n• 1인 가구 서포트 설정\n\n초기화 후 앱이 처음 로딩 화면으로 돌아갑니다.",
       [
         { text: "취소", style: "cancel" },
         {
-          text: "초기화",
+          text: "초기화 실행",
           style: "destructive",
           onPress: async () => {
             haptic();
             setIsResetting(true);
             try {
-              // 채팅 관련 키 삭제
+              // 1. AsyncStorage 전체 삭제
               const allKeys = await AsyncStorage.getAllKeys();
-              const chatKeys = allKeys.filter(
-                (k) => k.includes("chat") || k.includes("message") || k.includes("location") || k.includes("walk_session")
-              );
-              if (chatKeys.length > 0) {
-                await AsyncStorage.multiRemove(chatKeys);
+              if (allKeys.length > 0) {
+                await AsyncStorage.multiRemove(allKeys);
               }
-              // 앱 상태 리셋
+
+              // 2. localStorage 전체 삭제 (웹 환경)
+              if (Platform.OS === "web" && typeof window !== "undefined") {
+                try { window.localStorage.clear(); } catch (_) {}
+                try { window.sessionStorage.clear(); } catch (_) {}
+                // Splash 화면에서 초기화 메시지를 표시하기 위한 플래그 설정
+                try { window.localStorage.setItem("system_reset_in_progress", "true"); } catch (_) {}
+              }
+
+              // 3. 앱 상태 리셋 (Context 초기화)
               await resetApp();
-              Alert.alert("초기화 완료", "모든 데이터가 초기화되었습니다.\n앱이 다시 시작됩니다.");
+
+              // 4. Splash 화면으로 리다이렉션
+              if (Platform.OS === "web" && typeof window !== "undefined") {
+                // 웹: Hard Reload로 메모리 잔여 데이터 완전 제거
+                window.location.href = "/";
+              } else {
+                // 네이티브: 루트로 이동
+                router.replace("/" as any);
+              }
             } catch (e) {
               Alert.alert("오류", "초기화 중 오류가 발생했습니다.");
-            } finally {
               setIsResetting(false);
             }
           },
         },
       ]
     );
-  }, [resetApp]);
+  }, [resetApp, router]);
 
   const pendingCount = pendingWalkers.filter((w) => w.status === "pending").length;
 
@@ -690,14 +703,14 @@ export default function AdminDashboard() {
           </View>
         </View>
 
-        {/* ─── 섹션 6: System Reset ─── */}
+        {/* ─── 섹션 6: 시스템 초기화 ─── */}
         <View style={[styles.section, styles.resetSection]}>
           <Text style={[styles.sectionTitle, { fontFamily: Fonts.bold, color: "#EF4444" }]}>
-            ⚠️ 시스템 관리
+            ⚠️ 시스템 초기화
           </Text>
           <Text style={[styles.resetDescription, { fontFamily: Fonts.regular }]}>
-            시연용 데이터 초기화: 모든 채팅 내역, 위치 데이터, 예약 데이터를 삭제하고 앱을 초기 상태로 되돌립니다.
-            시드 데이터(워커 5명, 예약 3건)는 앱 재시작 시 자동으로 다시 로드됩니다.
+            시연 및 테스트를 위해 앱의 모든 데이터를 삭제하고 처음 로딩(Splash) 화면으로 돌아갑니다.
+            산책 시뮬레이션, 채팅, 결제, 사용자 설정 등 모든 데이터가 완전히 삭제됩니다.
           </Text>
           <Pressable
             onPress={handleSystemReset}
@@ -709,7 +722,7 @@ export default function AdminDashboard() {
             ]}
           >
             <Text style={[styles.resetButtonText, { fontFamily: Fonts.bold }]}>
-              {isResetting ? "초기화 중..." : "🔄 System Reset"}
+              {isResetting ? "데이터를 초기화하고 시스템을 재시작합니다..." : "🗑️ 시스템 초기화"}
             </Text>
           </Pressable>
           <Text style={[styles.resetWarning, { fontFamily: Fonts.medium }]}>

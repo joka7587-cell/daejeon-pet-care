@@ -939,3 +939,13 @@
 - [x] 결제 화면: 상단 히어로 섹션 추가 (🔒 안심하고 결제하세요 + SSL 안내)
 - [x] 결제 버튼 전체 너비 + 큰 폰트(28px 금액, 17px 버튼)
 - [x] 테스트 594개 통과, TS 에러 0건
+
+## 관리자 시스템 초기화 기능 추가 (Phase 69)
+- [x] 관리자 대시보드 하단에 빨간색 [🗑️ 시스템 초기화] 버튼 추가
+- [x] 확인 팝업 (모든 데이터 삭제 항목 상세 나열 + 초기화 실행 버튼)
+- [x] localStorage.clear() + sessionStorage.clear() + AsyncStorage 전체 삭제
+- [x] resetApp()으로 Context 상태 초기화
+- [x] 초기화 후 window.location.href = '/' Hard Reload (웹) / router.replace('/') (네이티브)
+- [x] Splash 화면에 반려이음 로고 + "데이터를 초기화하고 시스템을 재시작합니다..." 1.5초 표시
+- [x] system_reset_in_progress 플래그로 Splash 메시지 제어
+- [x] 테스트 594개 통과, TS 에러 0건
