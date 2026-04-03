@@ -400,7 +400,21 @@ export default function WalkTrackerScreen() {
         simTimerRef.current = null;
       }
     };
-  }, [status, mapReady, apiKey]);
+  }, [status, mapReady, apiKey, addSimulatedPoint]);
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (simTimerRef.current) {
+        clearInterval(simTimerRef.current);
+        simTimerRef.current = null;
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
 
   const sendPositionToMap = (lat: number, lng: number, index: number) => {
     if (webViewRef.current) {
