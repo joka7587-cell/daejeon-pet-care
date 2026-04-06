@@ -6,6 +6,7 @@
  * - 시연용 SOS 메시지 미리보기
  * - 긴급 확인 팝업 + 5초/60초 카운트다운 + SOS 발송 시뮬레이션
  * - 푸시 알림 바(Toast) 시각적 연출
+ * - [버그 수정] 진동/타이머 인스턴스 전역 관리 + 즉시 중단 + 강제 초기화
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -50,6 +51,30 @@ import {
   type SOSMessage,
 } from "@/lib/safety-net";
 
+// ─── 진동 유틸 (전역 제어 가능) ───
+let vibrationIntervalId: ReturnType<typeof setInterval> | null = null;
+
+function startVibrationLoop() {
+  stopVibrationLoop(); // 기존 진동 먼저 중단
+  if (Platform.OS !== "web") {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    vibrationIntervalId = setInterval(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }, 1500);
+  }
+}
+
+function stopVibrationLoop() {
+  if (vibrationIntervalId) {
+    clearInterval(vibrationIntervalId);
+    vibrationIntervalId = null;
+  }
+  // 웹 환경에서 navigator.vibrate(0)으로 진동 강제 중단
+  if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.vibrate) {
+    navigator.vibrate(0);
+  }
+}
+
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
@@ -79,6 +104,12 @@ export default function SafetyNetScreen() {
     address: `대전 ${state.profile.neighborhood || "서구 둔산동"} 1234`,
   });
 
+  // ─── 설정 상태를 ref로도 추적 (타이머 콜백에서 최신 값 참조) ───
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
   // ─── 연락처 입력 상태 ───
   const [newContactName, setNewContactName] = useState("");
   const [newContactPhone, setNewContactPhone] = useState("");
@@ -103,6 +134,7 @@ export default function SafetyNetScreen() {
   // ─── 푸시 알림 바 (SOS 발송 완료 시각적 연출) ───
   const [pushToasts, setPushToasts] = useState<{ id: string; text: string }[]>([]);
   const pushToastAnim = useRef(new Animated.Value(-120)).current;
+  const pushToastTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // ─── 시연 모드 실시간 타이머 ───
   const [demoTimerActive, setDemoTimerActive] = useState(false);
@@ -112,6 +144,39 @@ export default function SafetyNetScreen() {
 
   // ─── 펄스 애니메이션 ───
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // ─── 모든 타이머/진동/리소스 강제 정리 함수 ───
+  const cleanupAllResources = useCallback(() => {
+    // 1. 카운트다운 타이머 정리
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    // 2. 시연 모드 타이머 정리
+    if (demoTimerRef.current) {
+      clearInterval(demoTimerRef.current);
+      demoTimerRef.current = null;
+    }
+    // 3. 진동 루프 중단
+    stopVibrationLoop();
+    // 4. 푸시 토스트 setTimeout들 정리
+    pushToastTimeoutsRef.current.forEach((t) => clearTimeout(t));
+    pushToastTimeoutsRef.current = [];
+    // 5. UI 상태 초기화
+    setShowCheckPopup(false);
+    setShowSosResult(false);
+    setDemoTimerActive(false);
+    setDemoElapsed(0);
+    setCountdown(60);
+    setPushToasts([]);
+  }, []);
+
+  // ─── 컴포넌트 언마운트 시 전체 클린업 ───
+  useEffect(() => {
+    return () => {
+      cleanupAllResources();
+    };
+  }, [cleanupAllResources]);
 
   useEffect(() => {
     if (settings.enabled) {
@@ -147,6 +212,16 @@ export default function SafetyNetScreen() {
       setDemoTimerActive(true);
 
       demoTimerRef.current = setInterval(() => {
+        // ★ 매 초마다 enabled 상태 체크 → 꺼져 있으면 즉시 탈출
+        if (!settingsRef.current.enabled) {
+          if (demoTimerRef.current) {
+            clearInterval(demoTimerRef.current);
+            demoTimerRef.current = null;
+          }
+          setDemoTimerActive(false);
+          return;
+        }
+
         const elapsed = Math.floor((Date.now() - lastActivityRef.current) / 1000);
         setDemoElapsed(elapsed);
 
@@ -169,12 +244,13 @@ export default function SafetyNetScreen() {
         setDemoTimerActive(false);
       };
     } else {
-      // 시연 모드가 아닌 경우 타이머 정리
+      // 시연 모드가 아닌 경우 또는 비활성화 시 타이머 정리
       if (demoTimerRef.current) {
         clearInterval(demoTimerRef.current);
         demoTimerRef.current = null;
       }
       setDemoTimerActive(false);
+      setDemoElapsed(0);
     }
   }, [settings.enabled, settings.checkInterval]);
 
@@ -197,6 +273,12 @@ export default function SafetyNetScreen() {
   // ─── 토글 ───
   const handleToggle = async (val: boolean) => {
     haptic();
+
+    if (!val) {
+      // ★ OFF 시 모든 리소스 즉시 정리
+      cleanupAllResources();
+    }
+
     const updated = { ...settings, enabled: val };
     if (val) {
       updated.lastActivityTime = new Date().toISOString();
@@ -260,11 +342,25 @@ export default function SafetyNetScreen() {
 
   // ─── 긴급 확인 팝업 트리거 ───
   const triggerCheckPopup = useCallback(() => {
+    // ★ enabled 체크 → 꺼져 있으면 팝업 안 띄움
+    if (!settingsRef.current.enabled) return;
+
     hapticError();
-    const popupCountdown = getPopupCountdown(settings.checkInterval);
+    startVibrationLoop(); // 진동 시작
+    const popupCountdown = getPopupCountdown(settingsRef.current.checkInterval);
     setCountdown(popupCountdown);
     setShowCheckPopup(true);
+
     countdownRef.current = setInterval(() => {
+      // ★ 매 초 enabled 체크
+      if (!settingsRef.current.enabled) {
+        if (countdownRef.current) clearInterval(countdownRef.current);
+        countdownRef.current = null;
+        stopVibrationLoop();
+        setShowCheckPopup(false);
+        return;
+      }
+
       setCountdown((prev) => {
         if (prev <= 1) {
           if (countdownRef.current) clearInterval(countdownRef.current);
@@ -275,7 +371,7 @@ export default function SafetyNetScreen() {
         return prev - 1;
       });
     }, 1000);
-  }, [settings]);
+  }, []);
 
   // ─── 시연용 테스트 버튼 (수동 트리거) ───
   const handleTestCheckPopup = () => {
@@ -287,32 +383,23 @@ export default function SafetyNetScreen() {
   // ─── "나 괜찮아요" 응답 ───
   const handleImOkay = async () => {
     hapticSuccess();
+    // ★ 카운트다운 타이머 즉시 정리
     if (countdownRef.current) {
       clearInterval(countdownRef.current);
       countdownRef.current = null;
     }
+    // ★ 진동 즉시 중단
+    stopVibrationLoop();
+    // ★ 팝업 닫기
     setShowCheckPopup(false);
+
     await updateLastActivity();
     const updated = { ...settings, lastActivityTime: new Date().toISOString() };
     await saveSettings(updated);
 
     // 시연 모드면 타이머 재시작
     if (isDemoMode(settings.checkInterval) && settings.enabled) {
-      lastActivityRef.current = Date.now();
-      setDemoElapsed(0);
-      setDemoTimerActive(true);
-      demoTimerRef.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - lastActivityRef.current) / 1000);
-        setDemoElapsed(elapsed);
-        if (elapsed >= 10) {
-          if (demoTimerRef.current) {
-            clearInterval(demoTimerRef.current);
-            demoTimerRef.current = null;
-          }
-          setDemoTimerActive(false);
-          triggerCheckPopup();
-        }
-      }, 1000);
+      restartDemoTimer();
     }
   };
 
@@ -322,22 +409,66 @@ export default function SafetyNetScreen() {
       clearInterval(countdownRef.current);
       countdownRef.current = null;
     }
+    // ★ 진동 중단 (SOS 발송 시 별도 진동 효과 사용)
+    stopVibrationLoop();
     handleSOSSend();
   };
 
+  // ─── 시연 모드 타이머 재시작 헬퍼 ───
+  const restartDemoTimer = useCallback(() => {
+    // 기존 타이머 정리
+    if (demoTimerRef.current) {
+      clearInterval(demoTimerRef.current);
+      demoTimerRef.current = null;
+    }
+    lastActivityRef.current = Date.now();
+    setDemoElapsed(0);
+    setDemoTimerActive(true);
+    demoTimerRef.current = setInterval(() => {
+      // ★ 매 초 enabled 체크
+      if (!settingsRef.current.enabled) {
+        if (demoTimerRef.current) {
+          clearInterval(demoTimerRef.current);
+          demoTimerRef.current = null;
+        }
+        setDemoTimerActive(false);
+        return;
+      }
+      const elapsed = Math.floor((Date.now() - lastActivityRef.current) / 1000);
+      setDemoElapsed(elapsed);
+      if (elapsed >= 10) {
+        if (demoTimerRef.current) {
+          clearInterval(demoTimerRef.current);
+          demoTimerRef.current = null;
+        }
+        setDemoTimerActive(false);
+        triggerCheckPopup();
+      }
+    }, 1000);
+  }, [triggerCheckPopup]);
+
   // ─── SOS 발송 시뮬레이션 ───
   const handleSOSSend = () => {
+    // ★ 진동 중단
+    stopVibrationLoop();
     setShowCheckPopup(false);
-    const messages = generateSOSMessages(settings);
+    const messages = generateSOSMessages(settingsRef.current);
     setSosMessages(messages);
     setShowSosResult(true);
     hapticError();
 
     // 푸시 알림 바 연출 (각 연락처마다 순차 표시)
-    settings.contacts.forEach((contact, idx) => {
-      setTimeout(() => {
-        showPushToast(generateDemoSOSCompletionMessage(settings, contact));
+    // ★ setTimeout을 ref에 저장하여 나중에 정리 가능
+    pushToastTimeoutsRef.current.forEach((t) => clearTimeout(t));
+    pushToastTimeoutsRef.current = [];
+
+    settingsRef.current.contacts.forEach((contact, idx) => {
+      const timeoutId = setTimeout(() => {
+        // ★ enabled 체크 → 꺼져 있으면 토스트 안 띄움
+        if (!settingsRef.current.enabled) return;
+        showPushToast(generateDemoSOSCompletionMessage(settingsRef.current, contact));
       }, (idx + 1) * 1200);
+      pushToastTimeoutsRef.current.push(timeoutId);
     });
   };
 
@@ -359,6 +490,21 @@ export default function SafetyNetScreen() {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
+  };
+
+  // ─── 강제 초기화 (시연 안전장치) ───
+  const handleForceReset = async () => {
+    haptic();
+    // 모든 리소스 정리
+    cleanupAllResources();
+    // 설정을 OFF로 저장
+    const resetSettings: SafetyNetSettings = {
+      ...settings,
+      enabled: false,
+      lastActivityTime: new Date().toISOString(),
+    };
+    await saveSettings(resetSettings);
+    Alert.alert("초기화 완료", "모든 알림, 진동, 타이머가 중단되었습니다.\n설정이 OFF로 변경되었습니다.");
   };
 
   // ─── SOS 메시지 미리보기 ───
@@ -620,6 +766,21 @@ export default function SafetyNetScreen() {
               </Text>
             </View>
           </View>
+
+          {/* ─── 강제 초기화 버튼 (시연 안전장치) ─── */}
+          <View style={st.forceResetCard}>
+            <Text style={st.forceResetTitle}>🔧 시연 안전장치</Text>
+            <Text style={st.forceResetDesc}>
+              시연 중 진동이나 알림이 멈추지 않을 때 아래 버튼을 눌러주세요.{"\n"}
+              모든 타이머, 진동, 알림을 즉시 중단하고 설정을 OFF로 변경합니다.
+            </Text>
+            <Pressable
+              onPress={handleForceReset}
+              style={({ pressed }) => [st.forceResetBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+            >
+              <Text style={st.forceResetBtnText}>🛑 모든 알림 및 진동 강제 초기화</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </Pressable>
 
@@ -723,24 +884,12 @@ export default function SafetyNetScreen() {
             <Pressable
               onPress={() => {
                 haptic();
+                // ★ 결과 모달 닫을 때도 진동 확실히 중단
+                stopVibrationLoop();
                 setShowSosResult(false);
                 // 시연 모드면 타이머 재시작
                 if (isDemoMode(settings.checkInterval) && settings.enabled) {
-                  lastActivityRef.current = Date.now();
-                  setDemoElapsed(0);
-                  setDemoTimerActive(true);
-                  demoTimerRef.current = setInterval(() => {
-                    const elapsed = Math.floor((Date.now() - lastActivityRef.current) / 1000);
-                    setDemoElapsed(elapsed);
-                    if (elapsed >= 10) {
-                      if (demoTimerRef.current) {
-                        clearInterval(demoTimerRef.current);
-                        demoTimerRef.current = null;
-                      }
-                      setDemoTimerActive(false);
-                      triggerCheckPopup();
-                    }
-                  }, 1000);
+                  restartDemoTimer();
                 }
               }}
               style={({ pressed }) => [st.closeSosBtn, pressed && { opacity: 0.85 }]}
@@ -1018,6 +1167,28 @@ const st = StyleSheet.create({
     overflow: "hidden",
   },
   infoStepText: { flex: 1, fontSize: 13, color: "#333", lineHeight: 20 },
+
+  // ─── 강제 초기화 버튼 ───
+  forceResetCard: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 20,
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: "#FFCDD2",
+    borderStyle: "dashed",
+  },
+  forceResetTitle: { fontSize: 15, fontWeight: "700", color: "#B71C1C", marginBottom: 6 },
+  forceResetDesc: { fontSize: 12, color: "#666", lineHeight: 18, marginBottom: 14 },
+  forceResetBtn: {
+    backgroundColor: "#B71C1C",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  forceResetBtnText: { fontSize: 15, fontWeight: "800", color: "#FFF" },
 
   // 저장 토스트
   toast: {

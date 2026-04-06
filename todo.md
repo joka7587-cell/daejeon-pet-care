@@ -1033,3 +1033,28 @@
 ### 테스트
 - [x] 10초 시연 모드 관련 테스트 추가 (isDemoMode, getPopupCountdown, getIntervalDisplayText 등)
 - [x] 전체 테스트 698개 통과, TS 에러 0건
+
+## [긴급 버그] SOS 알림 해제 시 진동/타이머 즉시 중단 (Phase 74)
+### 진동 인스턴스 관리
+- [x] 진동 vibrationIntervalId 전역 변수로 관리 (startVibrationLoop/stopVibrationLoop 분리)
+- [x] [나 괜찮아요] 클릭 시 clearInterval + stopVibrationLoop + navigator.vibrate(0) 즉시 실행
+- [x] [안심 알림 OFF] 토글 시 cleanupAllResources() 호출로 모든 진동/타이머 즉시 중단
+
+### 조건문 강화
+- [x] 매 초 타이머 콜백에서 settingsRef.current.enabled === false 체크 후 즉시 return
+- [x] 팝업 카운트다운에서도 enabled 상태 체크 추가
+- [x] 시연 모드 타이머에서도 enabled 상태 체크 추가
+- [x] 푸시 토스트 발송 전에도 enabled 체크 추가
+
+### 팝업 닫기 클린업
+- [x] onClose 시 countdownRef/demoTimerRef/vibration/pushToastTimeouts 모두 정리
+- [x] SOS 결과 모달 닫기 시 stopVibrationLoop 호출
+- [x] useEffect cleanup에서 cleanupAllResources 자동 호출
+- [x] pushToastTimeoutsRef로 모든 setTimeout 추적 및 정리
+
+### 강제 초기화 버튼
+- [x] 설정 페이지 하단에 🛑 [모든 알림 및 진동 강제 초기화] 버튼 추가 (빨간 점선 카드)
+- [x] 버튼 클릭 시 cleanupAllResources + enabled=false 저장 + Alert 안내
+
+### 테스트
+- [x] 전체 테스트 698개 통과, TS 에러 0건
