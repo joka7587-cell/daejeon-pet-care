@@ -3,6 +3,7 @@
  * - 설정 관리 (AsyncStorage 영속)
  * - 활동 감지 타이머 로직
  * - SOS 발송 시뮬레이션
+ * - 시연 전용 10초 강제 실행 모드
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -15,7 +16,8 @@ export interface EmergencyContact {
   relationship: string; // 가족, 친구, 이웃 등
 }
 
-export type CheckInterval = 12 | 24 | 48; // 시간 단위
+// 시간 단위: 0.00278 = 10초(시연용), 12/24/48 = 실제 운영
+export type CheckInterval = 0.00278 | 12 | 24 | 48;
 
 export interface SafetyNetSettings {
   enabled: boolean;
@@ -41,7 +43,7 @@ export interface SafetyNetState {
   isCheckPopupVisible: boolean;
   isSosSent: boolean;
   sosMessages: SOSMessage[];
-  countdownSeconds: number; // 긴급 확인 팝업 카운트다운 (60초)
+  countdownSeconds: number; // 긴급 확인 팝업 카운트다운
 }
 
 // ─── 기본값 ───
@@ -67,11 +69,29 @@ export const DEFAULT_SAFETY_NET_STATE: SafetyNetState = {
 
 // ─── 체크 간격 옵션 ───
 
-export const CHECK_INTERVAL_OPTIONS: { label: string; value: CheckInterval }[] = [
+export const CHECK_INTERVAL_OPTIONS: { label: string; value: CheckInterval; isDemo?: boolean }[] = [
+  { label: "⚡ 10초 (시연용)", value: 0.00278, isDemo: true },
   { label: "12시간", value: 12 },
   { label: "24시간", value: 24 },
   { label: "48시간", value: 48 },
 ];
+
+// ─── 시연 모드 판별 ───
+
+export function isDemoMode(interval: CheckInterval): boolean {
+  return interval === 0.00278;
+}
+
+/** 체크 간격을 사람이 읽을 수 있는 텍스트로 변환 */
+export function getIntervalDisplayText(interval: CheckInterval): string {
+  if (isDemoMode(interval)) return "10초";
+  return `${interval}시간`;
+}
+
+/** 시연 모드의 팝업 카운트다운 시간 (초) */
+export function getPopupCountdown(interval: CheckInterval): number {
+  return isDemoMode(interval) ? 5 : 60;
+}
 
 // ─── 관계 옵션 ───
 
@@ -146,22 +166,37 @@ export function isActivityOverdue(lastActivity: string, checkIntervalHours: numb
 export function getTimeSinceLastActivity(lastActivity: string): {
   hours: number;
   minutes: number;
+  seconds: number;
   totalMinutes: number;
+  totalSeconds: number;
 } {
   const lastTime = new Date(lastActivity).getTime();
   const now = Date.now();
   const diffMs = now - lastTime;
-  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const totalMinutes = Math.floor(totalSeconds / 60);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return { hours, minutes, totalMinutes };
+  const seconds = totalSeconds % 60;
+  return { hours, minutes, seconds, totalMinutes, totalSeconds };
 }
 
 // ─── SOS 메시지 생성 ───
 
 export function generateSOSMessage(settings: SafetyNetSettings): string {
-  const intervalText = `${settings.checkInterval}시간`;
+  const intervalText = getIntervalDisplayText(settings.checkInterval);
   return `[반려이음 안심 알림] ${settings.ownerName} 보호자님이 ${intervalText} 동안 활동이 없습니다. 현재 자택에 반려견 '${settings.petName}'${settings.petEmoji}가 혼자 있을 가능성이 높으니 확인 부탁드립니다. (주소: ${settings.address})`;
+}
+
+/** 시연용 SOS 발송 완료 메시지 */
+export function generateDemoSOSCompletionMessage(settings: SafetyNetSettings, contact: EmergencyContact): string {
+  return `지정된 비상 연락처(${contact.phone})로 반려견 '${settings.petName}'의 보호 요청 메시지와 현재 위치를 발송했습니다.`;
+}
+
+/** 시연용 팝업 메시지 */
+export function generateDemoPopupMessage(settings: SafetyNetSettings): string {
+  const intervalText = getIntervalDisplayText(settings.checkInterval);
+  return `보호자님의 활동이 ${intervalText}간 감지되지 않았습니다. ${getPopupCountdown(settings.checkInterval)}초 후 비상 연락망으로 SOS 메시지를 자동 발송합니다.`;
 }
 
 export function generateSOSMessages(settings: SafetyNetSettings): SOSMessage[] {

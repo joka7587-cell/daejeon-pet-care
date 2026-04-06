@@ -9,9 +9,14 @@ import {
   getTimeSinceLastActivity,
   generateSOSMessage,
   generateSOSMessages,
+  generateDemoSOSCompletionMessage,
+  generateDemoPopupMessage,
   generateContactId,
   formatPhoneNumber,
   isValidPhoneNumber,
+  isDemoMode,
+  getIntervalDisplayText,
+  getPopupCountdown,
   type SafetyNetSettings,
   type EmergencyContact,
   type SOSMessage,
@@ -35,12 +40,20 @@ describe("세이프티 넷 데이터 모델", () => {
     expect(DEFAULT_SAFETY_NET_STATE.countdownSeconds).toBe(60);
   });
 
-  it("체크 간격 옵션이 3개 (12h/24h/48h) 정의되어 있다", () => {
-    expect(CHECK_INTERVAL_OPTIONS).toHaveLength(3);
-    expect(CHECK_INTERVAL_OPTIONS.map((o) => o.value)).toEqual([12, 24, 48]);
-    expect(CHECK_INTERVAL_OPTIONS[0].label).toBe("12시간");
-    expect(CHECK_INTERVAL_OPTIONS[1].label).toBe("24시간");
-    expect(CHECK_INTERVAL_OPTIONS[2].label).toBe("48시간");
+  it("체크 간격 옵션이 4개 (10초/12h/24h/48h) 정의되어 있다", () => {
+    expect(CHECK_INTERVAL_OPTIONS).toHaveLength(4);
+    const values = CHECK_INTERVAL_OPTIONS.map((o) => o.value);
+    expect(values).toContain(0.00278);
+    expect(values).toContain(12);
+    expect(values).toContain(24);
+    expect(values).toContain(48);
+  });
+
+  it("10초 시연 모드 옵션이 isDemo 플래그를 가진다", () => {
+    const demoOpt = CHECK_INTERVAL_OPTIONS.find((o) => o.isDemo);
+    expect(demoOpt).toBeDefined();
+    expect(demoOpt!.label).toContain("시연용");
+    expect(demoOpt!.value).toBe(0.00278);
   });
 
   it("관계 옵션이 5개 정의되어 있다", () => {
@@ -60,13 +73,11 @@ describe("세이프티 넷 데이터 모델", () => {
 
 describe("활동 감지 타이머 로직", () => {
   it("활동 시간이 설정 시간을 초과하면 true를 반환한다", () => {
-    // 25시간 전
     const past = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
     expect(isActivityOverdue(past, 24)).toBe(true);
   });
 
   it("활동 시간이 설정 시간 이내이면 false를 반환한다", () => {
-    // 1시간 전
     const recent = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
     expect(isActivityOverdue(recent, 24)).toBe(false);
   });
@@ -86,6 +97,16 @@ describe("활동 감지 타이머 로직", () => {
     expect(isActivityOverdue(past, 48)).toBe(false);
   });
 
+  it("10초(0.003h) 시연 모드에서 11초 경과 시 초과 판정", () => {
+    const past = new Date(Date.now() - 11 * 1000).toISOString();
+    expect(isActivityOverdue(past, 0.00278)).toBe(true);
+  });
+
+  it("10초(0.003h) 시연 모드에서 5초 경과 시 미초과 판정", () => {
+    const past = new Date(Date.now() - 5 * 1000).toISOString();
+    expect(isActivityOverdue(past, 0.00278)).toBe(false);
+  });
+
   it("마지막 활동 이후 경과 시간을 올바르게 계산한다", () => {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000 - 30 * 60 * 1000).toISOString();
     const result = getTimeSinceLastActivity(twoHoursAgo);
@@ -100,6 +121,38 @@ describe("활동 감지 타이머 로직", () => {
     expect(result.hours).toBe(0);
     expect(result.minutes).toBe(0);
     expect(result.totalMinutes).toBe(0);
+  });
+});
+
+describe("시연 모드 유틸리티", () => {
+  it("isDemoMode가 0.003을 시연 모드로 판별한다", () => {
+    expect(isDemoMode(0.00278)).toBe(true);
+  });
+
+  it("isDemoMode가 12/24/48을 시연 모드가 아닌 것으로 판별한다", () => {
+    expect(isDemoMode(12)).toBe(false);
+    expect(isDemoMode(24)).toBe(false);
+    expect(isDemoMode(48)).toBe(false);
+  });
+
+  it("getIntervalDisplayText가 시연 모드에서 '10초'를 반환한다", () => {
+    expect(getIntervalDisplayText(0.00278)).toBe("10초");
+  });
+
+  it("getIntervalDisplayText가 일반 모드에서 시간 단위를 반환한다", () => {
+    expect(getIntervalDisplayText(12)).toBe("12시간");
+    expect(getIntervalDisplayText(24)).toBe("24시간");
+    expect(getIntervalDisplayText(48)).toBe("48시간");
+  });
+
+  it("getPopupCountdown가 시연 모드에서 5초를 반환한다", () => {
+    expect(getPopupCountdown(0.00278)).toBe(5);
+  });
+
+  it("getPopupCountdown가 일반 모드에서 60초를 반환한다", () => {
+    expect(getPopupCountdown(12)).toBe(60);
+    expect(getPopupCountdown(24)).toBe(60);
+    expect(getPopupCountdown(48)).toBe(60);
   });
 });
 
@@ -140,6 +193,12 @@ describe("SOS 메시지 생성", () => {
     expect(msg).toContain("[반려이음 안심 알림]");
   });
 
+  it("시연 모드에서 SOS 메시지에 10초가 표시된다", () => {
+    const demoSettings = { ...testSettings, checkInterval: 0.00278 as CheckInterval };
+    const msg = generateSOSMessage(demoSettings);
+    expect(msg).toContain("10초");
+  });
+
   it("연락처 수만큼 SOS 메시지가 생성된다", () => {
     const messages = generateSOSMessages(testSettings);
     expect(messages).toHaveLength(2);
@@ -165,6 +224,50 @@ describe("SOS 메시지 생성", () => {
     const settings48h = { ...testSettings, checkInterval: 48 as CheckInterval };
     const msg = generateSOSMessage(settings48h);
     expect(msg).toContain("48시간");
+  });
+});
+
+describe("시연용 메시지 생성", () => {
+  const testSettings: SafetyNetSettings = {
+    enabled: true,
+    contacts: DEMO_CONTACTS,
+    checkInterval: 0.00278 as CheckInterval,
+    lastActivityTime: new Date().toISOString(),
+    petName: "초코",
+    petEmoji: "🐶",
+    ownerName: "홍길동",
+    address: "대전 서구 둔산동 1234",
+  };
+
+  it("시연 팝업 메시지에 10초가 포함된다", () => {
+    const msg = generateDemoPopupMessage(testSettings);
+    expect(msg).toContain("10초");
+  });
+
+  it("시연 팝업 메시지에 5초 후 발송 안내가 포함된다", () => {
+    const msg = generateDemoPopupMessage(testSettings);
+    expect(msg).toContain("5초");
+  });
+
+  it("일반 모드 팝업 메시지에 시간 단위가 포함된다", () => {
+    const normalSettings = { ...testSettings, checkInterval: 24 as CheckInterval };
+    const msg = generateDemoPopupMessage(normalSettings);
+    expect(msg).toContain("24시간");
+  });
+
+  it("SOS 완료 메시지에 연락처 전화번호가 포함된다", () => {
+    const msg = generateDemoSOSCompletionMessage(testSettings, DEMO_CONTACTS[0]);
+    expect(msg).toContain(DEMO_CONTACTS[0].phone);
+  });
+
+  it("SOS 완료 메시지에 반려견 이름이 포함된다", () => {
+    const msg = generateDemoSOSCompletionMessage(testSettings, DEMO_CONTACTS[0]);
+    expect(msg).toContain("초코");
+  });
+
+  it("SOS 완료 메시지에 위치 발송 안내가 포함된다", () => {
+    const msg = generateDemoSOSCompletionMessage(testSettings, DEMO_CONTACTS[0]);
+    expect(msg).toContain("발송");
   });
 });
 
@@ -232,7 +335,6 @@ describe("SOSMessage 타입", () => {
 
 describe("세이프티 넷 설정 통합 시나리오", () => {
   it("세이프티 넷 활성화 → 연락처 추가 → SOS 메시지 생성 플로우", () => {
-    // 1. 설정 활성화
     const settings: SafetyNetSettings = {
       ...DEFAULT_SAFETY_NET_SETTINGS,
       enabled: true,
@@ -243,7 +345,6 @@ describe("세이프티 넷 설정 통합 시나리오", () => {
       checkInterval: 12,
     };
 
-    // 2. 연락처 추가
     const contact: EmergencyContact = {
       id: generateContactId(),
       name: "박영희",
@@ -252,7 +353,6 @@ describe("세이프티 넷 설정 통합 시나리오", () => {
     };
     settings.contacts = [contact];
 
-    // 3. SOS 메시지 생성
     const messages = generateSOSMessages(settings);
     expect(messages).toHaveLength(1);
     expect(messages[0].contactName).toBe("박영희");
@@ -263,17 +363,13 @@ describe("세이프티 넷 설정 통합 시나리오", () => {
   });
 
   it("활동 초과 감지 → 긴급 확인 → 미응답 → SOS 발송 시나리오", () => {
-    // 25시간 전 마지막 활동
     const lastActivity = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
     
-    // 24시간 체크 간격으로 초과 확인
     expect(isActivityOverdue(lastActivity, 24)).toBe(true);
     
-    // 경과 시간 확인
     const elapsed = getTimeSinceLastActivity(lastActivity);
     expect(elapsed.hours).toBeGreaterThanOrEqual(25);
     
-    // SOS 메시지 생성
     const settings: SafetyNetSettings = {
       ...DEFAULT_SAFETY_NET_SETTINGS,
       enabled: true,
@@ -285,5 +381,41 @@ describe("세이프티 넷 설정 통합 시나리오", () => {
       expect(msg.status).toBe("sent");
       expect(msg.message).toContain("[반려이음 안심 알림]");
     });
+  });
+
+  it("시연 모드 전체 플로우: 10초 설정 → 초과 감지 → 5초 카운트다운 → SOS 발송", () => {
+    // 1. 10초 시연 모드 설정
+    const settings: SafetyNetSettings = {
+      ...DEFAULT_SAFETY_NET_SETTINGS,
+      enabled: true,
+      checkInterval: 0.00278 as CheckInterval,
+      contacts: DEMO_CONTACTS,
+      ownerName: "홍길동",
+      petName: "초코",
+      address: "대전 서구 둔산동 1234",
+    };
+
+    // 2. 시연 모드 확인
+    expect(isDemoMode(settings.checkInterval)).toBe(true);
+    expect(getPopupCountdown(settings.checkInterval)).toBe(5);
+    expect(getIntervalDisplayText(settings.checkInterval)).toBe("10초");
+
+    // 3. 11초 경과 → 초과 감지
+    const past = new Date(Date.now() - 11 * 1000).toISOString();
+    expect(isActivityOverdue(past, settings.checkInterval)).toBe(true);
+
+    // 4. 팝업 메시지 확인
+    const popupMsg = generateDemoPopupMessage(settings);
+    expect(popupMsg).toContain("10초");
+    expect(popupMsg).toContain("5초");
+
+    // 5. SOS 발송
+    const messages = generateSOSMessages(settings);
+    expect(messages).toHaveLength(2);
+    
+    // 6. 완료 메시지 확인
+    const completionMsg = generateDemoSOSCompletionMessage(settings, DEMO_CONTACTS[0]);
+    expect(completionMsg).toContain(DEMO_CONTACTS[0].phone);
+    expect(completionMsg).toContain("초코");
   });
 });
