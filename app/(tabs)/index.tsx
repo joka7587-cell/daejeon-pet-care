@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   ScrollView,
   View,
@@ -21,12 +21,80 @@ import {
 } from "@/lib/daejeon-spots";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
+import { Platform, Animated } from "react-native";
 import { Fonts } from "@/hooks/use-fonts";
+import { loadSafetyNetSettings, type SafetyNetSettings } from "@/lib/safety-net";
+
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
+
+// ─── 세이프티 넷 작동 중 배지 ───
+function SafetyNetBadge() {
+  const [enabled, setEnabled] = useState(false);
+  const router = useRouter();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    (async () => {
+      const settings = await loadSafetyNetSettings();
+      setEnabled(settings.enabled);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.03, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [enabled, pulseAnim]);
+
+  if (!enabled) return null;
+
+  return (
+    <Pressable
+      onPress={() => { haptic(); router.push('/solo-care/safety-net' as never); }}
+      style={({ pressed }) => [pressed && { opacity: 0.85 }]}
+    >
+      <Animated.View style={[safetyBadgeStyles.container, { transform: [{ scale: pulseAnim }] }]}>
+        <Text style={safetyBadgeStyles.icon}>{"\u{1F6E1}\uFE0F"}</Text>
+        <Text style={safetyBadgeStyles.text}>세이프티 넷 작동 중</Text>
+        <View style={safetyBadgeStyles.dot} />
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+const safetyBadgeStyles = StyleSheet.create({
+  container: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    backgroundColor: "#E8F5E9",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#A5D6A7",
+  },
+  icon: { fontSize: 16 },
+  text: { fontSize: 13, fontWeight: "700", color: "#2E7D32", flex: 1 },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#4CAF50",
+  },
+});
 
 const DISTRICTS = ["전체", "서구", "유성구", "중구", "동구", "대덕구"] as const;
 
@@ -349,6 +417,9 @@ function OwnerHome() {
         </Text>
       </View>
 
+      {/* 세이프티 넷 작동 중 배지 */}
+      <SafetyNetBadge />
+
       {/* 구 필터 탭 */}
       <DistrictTabs selected={selectedDistrict} onSelect={setSelectedDistrict} />
 
@@ -507,6 +578,16 @@ function OwnerHome() {
             </View>
             <Text style={s.soloServiceName}>복지 정책</Text>
             <Text style={s.soloServiceDesc}>대전 지원사업</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { haptic(); router.push('/solo-care/safety-net' as never); }}
+            style={({ pressed }) => [s.soloServiceCard, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+          >
+            <View style={[s.soloServiceIcon, { backgroundColor: '#FFEBEE' }]}>
+              <Text style={{ fontSize: 24 }}>🛡️</Text>
+            </View>
+            <Text style={s.soloServiceName}>세이프티 넷</Text>
+            <Text style={s.soloServiceDesc}>안심 SOS 알림</Text>
           </Pressable>
         </View>
       </View>
