@@ -1058,3 +1058,46 @@
 
 ### 테스트
 - [x] 전체 테스트 698개 통과, TS 에러 0건
+
+
+## 전체 스택 배포 최적화 (Phase 75)
+
+### 배포 계획
+- [ ] 백엔드: Render 또는 Railway 배포
+- [ ] 웹 프론트엔드: Netlify 배포
+- [ ] 모바일 앱: EAS Build (iOS/Android)
+- [ ] 데이터베이스: PostgreSQL 클라우드 (Render/Railway 포함)
+
+### 백엔드 배포 최적화
+- [x] server/package.json 정리 (프로덕션 의존성만)
+- [x] Dockerfile 작성 (Node.js 멀티스테이지 빈드)
+- [x] .dockerignore 파일 생성
+- [x] 환경 변수 설정 (DATABASE_URL, JWT_SECRET, CORS_ORIGIN)
+- [x] 포트 설정 (3000 → 프로덕션 포트)
+- [x] 헬스 체크 엔드포인트 추가 (/health)
+
+### 웹 프론트엔드 Netlify 배포
+- [x] expo export --platform web 빈드 설정
+- [x] netlify.toml 설정 파일 생성
+- [x] 환경 변수 (REACT_APP_API_URL, REACT_APP_KAKAO_MAP_KEY)
+- [x] 리다이렉트 규칙 설정 (SPA 라우팅)
+- [x] 빈드 최적화 (tree-shaking, 코드 스플리팅)
+
+### 모바일 앱 EAS Build 배포
+- [x] eas.json 설정 (프로덕션 프로필)
+- [x] app.config.ts 프로덕션 환경 설정
+- [x] iOS 빈드 설정 (프로비저닝 프로필, 서명)
+- [x] Android 빈드 설정 (키스토어, 서명)
+- [x] 앱 스토어/플레이 스토어 배포 준비
+
+### 환경 변수 통합
+- [ ] 백엔드 API 엔드포인트 통합
+- [ ] 카카오맵 API 키 관리
+- [ ] JWT 시크릿 키 관리
+- [ ] CORS 설정 (웹/모바일 도메인)
+
+### 배포 가이드 문서
+- [x] DEPLOYMENT.md 작성 (단계별 배포 가이드)
+- [x] 환경 변수 설정 가이드
+- [x] 트러블싱싱 가이드
+- [x] 모니터링 및 로깅 설정
