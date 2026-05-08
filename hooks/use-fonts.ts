@@ -19,82 +19,74 @@ export const Fonts = {
 /**
  * Typography presets using Pretendard.
  * Import and spread into StyleSheet styles.
- * 
- * 한글 텍스트 자간 최적화:
- * - 기본값: letterSpacing -1.0 (모든 텍스트에 적용)
- * - 버튼/탭: letterSpacing -1.5 (좁은 공간의 텍스트는 더 촘촘하게)
  */
 export const Typography = {
   h1: {
     fontFamily: Fonts.extraBold,
     fontSize: 28,
     lineHeight: 36,
-    letterSpacing: -1.0,
+    letterSpacing: -0.5,
   },
   h2: {
     fontFamily: Fonts.bold,
     fontSize: 22,
     lineHeight: 30,
-    letterSpacing: -1.0,
+    letterSpacing: -0.4,
   },
   h3: {
     fontFamily: Fonts.bold,
     fontSize: 18,
     lineHeight: 26,
-    letterSpacing: -1.0,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontFamily: Fonts.semiBold,
     fontSize: 16,
     lineHeight: 22,
-    letterSpacing: -1.0,
+    letterSpacing: -0.2,
   },
   body: {
     fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 20,
-    letterSpacing: -1.0,
+    letterSpacing: -0.1,
   },
   bodyMedium: {
     fontFamily: Fonts.medium,
     fontSize: 14,
     lineHeight: 20,
-    letterSpacing: -1.0,
+    letterSpacing: -0.1,
   },
   caption: {
     fontFamily: Fonts.regular,
     fontSize: 12,
     lineHeight: 16,
-    letterSpacing: -1.0,
   },
   captionMedium: {
     fontFamily: Fonts.medium,
     fontSize: 12,
     lineHeight: 16,
-    letterSpacing: -1.0,
   },
   label: {
     fontFamily: Fonts.semiBold,
     fontSize: 11,
     lineHeight: 14,
-    letterSpacing: -1.0,
+    letterSpacing: 0.1,
   },
   button: {
     fontFamily: Fonts.bold,
     fontSize: 15,
     lineHeight: 20,
-    letterSpacing: -1.5,
+    letterSpacing: -0.1,
   },
   buttonSmall: {
     fontFamily: Fonts.semiBold,
     fontSize: 13,
     lineHeight: 18,
-    letterSpacing: -1.5,
   },
   tabLabel: {
     fontFamily: Fonts.medium,
     fontSize: 10,
     lineHeight: 14,
-    letterSpacing: -1.5,
   },
 } as const;
