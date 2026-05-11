@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: daejeon-pet-care-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: daejeon-pet-care-db
+          property: connectionString
+      - key: KAKAO_MAP_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+databases:
+  - name: daejeon-pet-care-db
+    plan: free
+    databaseName: daejeon_pet_care
+    region: singapore
