@@ -9,7 +9,8 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
 # 소스 코드 복사 및 빌드
 COPY . .
-RUN pnpm run build
+# ESM 형식으로 빌드하되 .mjs 확장자로 출력
+RUN pnpm run build && mv dist/index.js dist/index.mjs
 
 # 프로덕션 스테이지
 FROM node:18-alpine
@@ -33,4 +34,4 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/index.mjs"]
