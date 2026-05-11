@@ -1108,3 +1108,10 @@
 - [x] BUG: live-tracker.tsx Expo Go에서 지도 SDK 로드 실패 (getApiBaseUrl 네이티브 폴백 + API 키 하드코딩 폴백)
 - [x] walk/tracker.tsx API 키 로드 폴백 추가
 - [x] facilities.tsx API 키 로드 폴백 추가
+
+
+## QR 코드 및 딥 링크 개선 (Phase 77)
+- [x] QR 코드 생성 스크립트 개선 (scripts/generate_qr.mjs)
+- [x] 자동 Metro URL 감지 기능 추가
+- [x] Deep Link Scheme 설정 확인 (manus20260311222720)
+- [x] QR 코드 스캔 시 Expo Go에서 앱 바로 실행
