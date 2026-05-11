@@ -73,23 +73,28 @@ export default function FacilitiesScreen() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [showBooking, setShowBooking] = useState(false);
 
-  // API 키 가져오기
+  // API 키 가져오기 (실패 시 폴백 키 사용)
   useEffect(() => {
+    const FALLBACK_KEY = "bacaa8f1d9ab392f51dce2e886e5e15b";
     const fetchKey = async () => {
       try {
         const baseUrl = getApiBaseUrl();
-        if (!baseUrl) { setMapLoadFailed(true); return; }
+        if (!baseUrl) { setApiKey(FALLBACK_KEY); return; }
         const res = await fetch(`${baseUrl}/api/kakao-map-key`);
-        if (!res.ok) { setMapLoadFailed(true); return; }
+        if (!res.ok) { setApiKey(FALLBACK_KEY); return; }
         const data = await res.json();
         if (data.key) { setApiKey(data.key); }
-        else { setMapLoadFailed(true); }
+        else { setApiKey(FALLBACK_KEY); }
       } catch (e) {
         console.warn("[Facilities] API key fetch error:", e);
-        setMapLoadFailed(true);
+        setApiKey(FALLBACK_KEY);
       }
     };
     fetchKey();
+    const timeout = setTimeout(() => {
+      setApiKey((prev) => prev || FALLBACK_KEY);
+    }, 5000);
+    return () => clearTimeout(timeout);
   }, []);
 
   // 날짜 옵션

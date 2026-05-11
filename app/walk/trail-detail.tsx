@@ -369,26 +369,40 @@ export default function TrailDetailScreen() {
         <View style={st.section}>
           <Text style={st.sectionTitle}>📍 위치</Text>
           <View style={st.mapContainer}>
-            <WebView
-              ref={webViewRef}
-              source={{ html: generateTrailMapHTML(apiKey || "bacaa8f1d9ab392f51dce2e886e5e15b", spot) }}
-              style={{ flex: 1, minHeight: 300 }}
-              originWhitelist={["*"]}
-              javaScriptEnabled
-              domStorageEnabled
-              mixedContentMode="always"
-              allowFileAccess
-              allowUniversalAccessFromFileURLs
-              scrollEnabled={false}
-              onMessage={(event) => {
-                try {
-                  const data = JSON.parse(event.nativeEvent.data);
-                  if (data.type === "ready") setMapReady(true);
-                } catch {}
-              }}
-              onError={(syntheticEvent) => console.error("TrailMap WebView Error:", syntheticEvent.nativeEvent)}
-              onHttpError={(syntheticEvent) => console.error("TrailMap HTTP Error:", syntheticEvent.nativeEvent)}
-            />
+            {Platform.OS === "web" ? (
+              <iframe
+                srcDoc={generateTrailMapHTML(apiKey || "bacaa8f1d9ab392f51dce2e886e5e15b", spot)}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  borderRadius: 14,
+                }}
+                title="카카오맵 산책로 위치"
+                onLoad={() => setMapReady(true)}
+              />
+            ) : (
+              <WebView
+                ref={webViewRef}
+                source={{ html: generateTrailMapHTML(apiKey || "bacaa8f1d9ab392f51dce2e886e5e15b", spot) }}
+                style={{ flex: 1, minHeight: 300 }}
+                originWhitelist={["*"]}
+                javaScriptEnabled
+                domStorageEnabled
+                mixedContentMode="always"
+                allowFileAccess
+                allowUniversalAccessFromFileURLs
+                scrollEnabled={false}
+                onMessage={(event) => {
+                  try {
+                    const data = JSON.parse(event.nativeEvent.data);
+                    if (data.type === "ready") setMapReady(true);
+                  } catch {}
+                }}
+                onError={(syntheticEvent) => console.error("TrailMap WebView Error:", syntheticEvent.nativeEvent)}
+                onHttpError={(syntheticEvent) => console.error("TrailMap HTTP Error:", syntheticEvent.nativeEvent)}
+              />
+            )}
           </View>
         </View>
 

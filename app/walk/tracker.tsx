@@ -273,29 +273,36 @@ export default function WalkTrackerScreen() {
 
   // 카카오맵 API 키 가져오기
   useEffect(() => {
+    const FALLBACK_KEY = "bacaa8f1d9ab392f51dce2e886e5e15b";
     const fetchKey = async () => {
       try {
         const baseUrl = getApiBaseUrl();
         if (!baseUrl) {
-          console.warn("API base URL not available");
+          setApiKey(FALLBACK_KEY);
           return;
         }
         const res = await fetch(`${baseUrl}/api/kakao-map-key`);
         if (!res.ok) {
-          console.warn("API key fetch failed:", res.status);
+          setApiKey(FALLBACK_KEY);
           return;
         }
         const data = await res.json();
         if (data.key) {
           setApiKey(data.key);
         } else {
-          console.warn("No API key in response");
+          setApiKey(FALLBACK_KEY);
         }
       } catch (e) {
         console.warn("API key fetch error:", e);
+        setApiKey(FALLBACK_KEY);
       }
     };
     fetchKey();
+    // 5초 타임아웃 폴백
+    const timeout = setTimeout(() => {
+      setApiKey((prev) => prev || FALLBACK_KEY);
+    }, 5000);
+    return () => clearTimeout(timeout);
   }, [])
 
   // 타이머

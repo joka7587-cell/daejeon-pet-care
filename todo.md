@@ -1101,3 +1101,10 @@
 - [x] 환경 변수 설정 가이드
 - [x] 트러블싱싱 가이드
 - [x] 모니터링 및 로깅 설정
+
+## 한글 자간 최적화 및 지도 렌더링 수정 (Phase 76)
+- [x] 한글 자간 최적화 재적용 (letterSpacing -1.0 기본, 버튼/탭 -1.5)
+- [x] BUG: trail-detail.tsx 웹 플랫폼에서 WebView 미지원 오류 (iframe으로 교체)
+- [x] BUG: live-tracker.tsx Expo Go에서 지도 SDK 로드 실패 (getApiBaseUrl 네이티브 폴백 + API 키 하드코딩 폴백)
+- [x] walk/tracker.tsx API 키 로드 폴백 추가
+- [x] facilities.tsx API 키 로드 폴백 추가

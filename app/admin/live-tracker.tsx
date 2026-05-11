@@ -427,25 +427,31 @@ export default function LiveTrackerScreen() {
   const currentCoord = activeRoute[currentIndex] || activeRoute[0];
   const lastCourseIdRef = useRef<string>("course_a");
 
-  // API 키 가져오기
+  // API 키 가져오기 (실패 시 하드코딩 폴백)
   useEffect(() => {
+    const FALLBACK_KEY = "bacaa8f1d9ab392f51dce2e886e5e15b";
     const fetchKey = async () => {
       try {
         const baseUrl = getApiBaseUrl();
-        if (!baseUrl) { setMapLoadFailed(true); return; }
+        if (!baseUrl) {
+          // API 서버 URL을 알 수 없으면 폴백 키 사용
+          setApiKey(FALLBACK_KEY);
+          return;
+        }
         const res = await fetch(`${baseUrl}/api/kakao-map-key`);
-        if (!res.ok) { setMapLoadFailed(true); return; }
+        if (!res.ok) { setApiKey(FALLBACK_KEY); return; }
         const data = await res.json();
         if (data.key) setApiKey(data.key);
-        else setMapLoadFailed(true);
+        else setApiKey(FALLBACK_KEY);
       } catch {
-        setMapLoadFailed(true);
+        setApiKey(FALLBACK_KEY);
       }
     };
     fetchKey();
+    // 5초 타임아웃 - 아직 키가 없으면 폴백
     const timeout = setTimeout(() => {
-      setMapLoadFailed(prev => prev ? prev : true);
-    }, 8000);
+      setApiKey((prev) => prev || FALLBACK_KEY);
+    }, 5000);
     return () => clearTimeout(timeout);
   }, []);
 
@@ -745,7 +751,7 @@ export default function LiveTrackerScreen() {
 
   // 지도 렌더링
   const renderMap = () => {
-    if (mapLoadFailed && !apiKey) {
+    if (!apiKey && mapLoadFailed) {
       return (
         <View style={s.mapFallback}>
           <Text style={{ fontSize: 48, marginBottom: 8 }}>🗺️</Text>

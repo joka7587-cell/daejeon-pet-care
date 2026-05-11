@@ -35,7 +35,7 @@ export default function TabLayout() {
           fontFamily: Fonts.semiBold,
           fontSize: 10,
           marginTop: 2,
-          letterSpacing: -0.2,
+          letterSpacing: -1.5,
         },
       }}
     >

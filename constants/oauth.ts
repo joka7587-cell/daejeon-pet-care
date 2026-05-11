@@ -45,6 +45,19 @@ export function getApiBaseUrl(): string {
     }
   }
 
+  // Native fallback: use Expo Constants to derive the API server URL
+  // When running in Expo Go, the debugger host provides the dev machine IP
+  if (ReactNative.Platform.OS !== "web") {
+    try {
+      const Constants = require("expo-constants").default;
+      const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || Constants.manifest?.debuggerHost;
+      if (debuggerHost) {
+        const host = debuggerHost.split(":")[0];
+        return `http://${host}:3000`;
+      }
+    } catch {}
+  }
+
   // Fallback to empty (will use relative URL)
   return "";
 }
