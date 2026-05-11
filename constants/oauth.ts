@@ -58,8 +58,8 @@ export function getApiBaseUrl(): string {
     } catch {}
   }
 
-  // Fallback to empty (will use relative URL)
-  return "";
+  // Fallback to Render.com production server
+  return "https://daejeon-pet-care.onrender.com";
 }
 
 export const SESSION_TOKEN_KEY = "app_session_token";
